@@ -1,0 +1,3 @@
+import appWosBattleshipServer
+
+print("Test")

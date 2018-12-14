@@ -1,0 +1,62 @@
+from cClientCommEngine import ClientCommEngine
+from cCommonCommEngine import ConnInfo
+import cMessages
+import threading
+import time
+
+
+class WosClientInterfaceManager(object):
+    __instance = None
+    __init_flag = False
+
+    # Singleton pattern
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super(WosClientInterfaceManager, cls).__new__(cls, *args, **kwargs)
+        return cls.__instance
+
+    def __init__(self):
+        if self.__init_flag:
+            return
+        self.__init_flag = True
+
+        self.addr_svr = "127.0.0.1"
+        self.port_req = 5556
+        self.port_sub = 5557
+
+        self.req_rep_if = ConnInfo(self.addr_svr, self.port_req)
+        self.pub_sub_if = ConnInfo(self.addr_svr, self.port_sub)
+
+        self.thread_client = None
+        self.client_commEngine = None
+        self.is_running = True
+
+    def client_thread(self, commEngine=ClientCommEngine()):
+        print("*** client %s commEngine thread start ***" % commEngine.client_id)
+        # global is_running
+        commEngine.start()
+        while self.is_running:
+            time.sleep(1)
+        commEngine.stop()
+        print("*** client %s commEngine thread exit ***" % commEngine.client_id)
+
+    def connect_to_server(self):
+        self.client_commEngine = ClientCommEngine(1, self.req_rep_if, self.pub_sub_if)
+        self.thread_client = threading.Thread(name='client-thread', target=self.client_thread,
+                                              args=(self.client_commEngine,))
+        self.thread_client.start()
+        time.sleep(1)
+        # rep = self.client_commEngine.req_register()
+        # print(vars(rep))
+        # rep = client_commEngine.req_register_ships([])
+
+    def disconnect_from_server(self):
+        print("Terminating connection from server...")
+        self.is_running = False
+        self.thread_client.join()
+
+    def send_deployment(self, ships):
+        rep = self.client_commEngine.req_register_ships(ships)
+        if isinstance(rep, cMessages.MsgRepAck):
+            return rep.ack
+        return False

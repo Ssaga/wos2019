@@ -18,7 +18,8 @@ run_count = 0
 total_turn_cnt = 4
 total_round_cnt = 1
 total_exec_cnt = (total_round_cnt * total_turn_cnt) + total_turn_cnt
-bc_rate = 0.5  # unit in seconds
+bc_rate = 500		# unit in milliseconds
+polling_rate = 500	# unit in milliseconds
 
 
 # ---------------------------------------------------------------------
@@ -41,7 +42,8 @@ def perform_server_task(server_comm_engine, cnt):
 	elif cnt < total_exec_cnt:
 		### when the game status is in play
 		# Set the broadcast message
-		game_status = GameStatus(GameState.PLAY, ((cnt - total_turn_cnt) // total_turn_cnt + 1),
+		game_status = GameStatus(GameState.PLAY_COMPUTE,
+								 ((cnt - total_turn_cnt) // total_turn_cnt + 1),
 								 ((cnt - total_turn_cnt) % total_turn_cnt + 1))
 	else:
 		### when the game status is in end
@@ -123,9 +125,9 @@ def perform_client_task(list_client_comm_engine, cnt):
 	# Print publisher data
 	obj = list_client_comm_engine[player_turn].recv_from_publisher()
 	if (obj is not None):
-		print("*** Recv Fr Publisher : %s" % obj.__dict__)
+		print("*** Recv Fr Publisher: %s" % obj.__dict__)
 	else:
-		print("*** Recv Fr Publisher : -- No Publish --")
+		print("*** Recv Fr Publisher: -- No Publish --")
 
 	# Sending request to the server for reply
 	if cnt < total_turn_cnt:
@@ -145,7 +147,7 @@ def perform_client_task(list_client_comm_engine, cnt):
 			print(vars(rep))
 		# Satcom
 		rep = list_client_comm_engine[player_turn].req_action_satcom(
-			SatcomInfo(1, 2, 3, 4, 5, 6, False, True))
+			SatcomInfo(1, 2, 3, 4, 5, 6, False, False))
 		if rep is None:
 			print("No valid reply from server")
 		else:
@@ -190,7 +192,7 @@ is_running = True
 
 print("tesing code --------")
 # server
-server_commEngine = ServerCommEngine(req_rep_if, pub_sub_if, bc_rate)
+server_commEngine = ServerCommEngine(req_rep_if, pub_sub_if, polling_rate, bc_rate)
 thread_server = threading.Thread(name='server-thread',
 								 target=server_thread,
 								 args=(server_commEngine,))
@@ -200,8 +202,8 @@ thread_server.start()
 list_thread_client = []
 list_client_commEngine = []
 for i in range(1, total_turn_cnt + 1):
-	print("Creating Client Id : %s" % i)
-	client_commEngine = ClientCommEngine(i, req_rep_if, pub_sub_if)
+	print("Creating Client Id: %s" % i)
+	client_commEngine = ClientCommEngine(i, req_rep_if, pub_sub_if, polling_rate)
 	thread_client = threading.Thread(name='client-thread',
 									 target=client_thread,
 									 args=(client_commEngine,))
@@ -221,9 +223,10 @@ for client_commEngine in list_client_commEngine:
 		time.sleep(1)
 
 # Waiting execution
-# for i in range(0, (total_round_cnt * total_turn_cnt) + total_turn_cnt) :
+# for i in range(0, (total_round_cnt * total_turn_cnt) + total_turn_cnt):
+sleep_dur = bc_rate / 1000
 for i in range(0, 10):
-	time.sleep(bc_rate)
+	time.sleep(sleep_dur)
 	print("%s *** count %s..." % (time.ctime(time.time()), i))
 	run_count = i
 	perform_client_task(list_client_commEngine, i)

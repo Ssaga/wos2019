@@ -1,4 +1,5 @@
 import zmq
+import json
 import threading
 
 import cCommonGame
@@ -11,14 +12,17 @@ from cMessages import MsgJsonDecoder
 #
 #
 #
-class ClientCommEngine :
+class ClientCommEngine:
 	#
 	def __init__(self, client_id = 0,
 				 req_if = ConnInfo("127.0.0.1", 5556), 
-				 sub_if = ConnInfo("127.0.0.1", 5557)):
+				 sub_if = ConnInfo("127.0.0.1", 5557),
+				 polling_rate=1000):
 		self.client_id = client_id
 		self.req_if = req_if			# server-client
 		self.sub_if = sub_if			# publisher
+		self.polling_rate = polling_rate
+
 		self.start_time = None
 		self.sub_thread = None
 		self.context = None
@@ -32,7 +36,7 @@ class ClientCommEngine :
 		if (self.sub_thread is not None):
 			self.sub_thread.stop()
 			self.sub_thread.join()
-		self.sub_thread = ClientCommEngineSubscriber(self.sub_if.addr, self.sub_if.port)
+		self.sub_thread = ClientCommEngineSubscriber(self.sub_if.addr, self.sub_if.port, self.polling_rate)
 		self.sub_thread.start()
 		
 		# set the flag to create the connection with server
@@ -47,7 +51,7 @@ class ClientCommEngine :
 		self.is_ready = False
 		# stop the created subscriber thread
 		if (self.sub_thread is not None):
-			try :
+			try:
 				self.sub_thread.stop()
 				self.sub_thread.join()
 				self.sub_thread = None
@@ -63,7 +67,7 @@ class ClientCommEngine :
 		data = None
 		if (self.sub_thread is not None):
 			data = self.sub_thread.get()
-		else :
+		else:
 			print("Subscription thread in no available...")
 		return data
 	
@@ -76,7 +80,7 @@ class ClientCommEngine :
 		self.context = zmq.Context()
 		self.socket = self.context.socket(zmq.REQ)
 		connString = str("tcp://%s:%s" % (self.req_if.addr, self.req_if.port,))
-		print("\tClient %s : Setup connection to server... [%s]" % (self.client_id, connString))
+		print("\tClient %s: Setup connection to server... [%s]" % (self.client_id, connString))
 		self.socket.connect(connString)
 		self.socket.RCVTIMEO = 2000			# in milliseconds
 		
@@ -109,20 +113,24 @@ class ClientCommEngine :
 			# send the request to the server
 			try:
 				print("\rClient %s: SEND: %s" % (self.client_id, vars(msg)))
-				self.socket.send_json(msg, 0, cls=MsgJsonEncoder)
+				# self.socket.send_json(msg, 0, cls=MsgJsonEncoder)
+				msg_str = json.dumps(msg, cls=MsgJsonEncoder)
+				self.socket.send_string(msg_str)
 			except zmq.ZMQError:
 				self.reset_conn = True
 			
 			# wait for the reply from the server
 			try:
-				reply = self.socket.recv_json(0, cls=MsgJsonDecoder)
+				# reply = self.socket.recv_json(0, cls=MsgJsonDecoder)
+				reply_str = self.socket.recv_string()
+				reply = json.loads(reply_str, cls=MsgJsonDecoder)
 				if reply is not None:
 					print("\rClient %s: RECV: %s" % (self.client_id, reply))
 				else:
 					print("\rClient %s: RECV: --NO DATA--" % self.client_id)
 			except zmq.ZMQError:
 				self.reset_conn = True
-		else :
+		else:
 			print("\tUnable to send unsupported message")
 		return reply
 
@@ -207,10 +215,11 @@ class ClientCommEngine :
 #
 class ClientCommEngineSubscriber(threading.Thread):
 	# 
-	def __init__(self, addr_svr, port_pub):
+	def __init__(self, addr_svr, port_pub, polling_rate):
 		threading.Thread.__init__(self)
 		self.addr_svr = addr_svr
 		self.port_pub = port_pub
+		self.polling_rate = polling_rate
 		self.is_running = False
 		self.game_status = None
 	
@@ -220,12 +229,14 @@ class ClientCommEngineSubscriber(threading.Thread):
 		self.setup()
 		
 		self.is_running = True
-		while self.is_running :
+		while self.is_running:
 			# Poll from the socket
-			socks = dict(self.poller.poll(1000))
+			socks = dict(self.poller.poll(self.polling_rate))
 			if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
-				msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
-				print("\tsubscriber-recv : %s" % msg)
+				# msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
+				msg_str = self.socket.recv_string()
+				msg = json.loads(msg_str, cls=MsgJsonDecoder)
+				print("\tsubscriber-recv: %s" % msg)
 
 				# set  game status
 				if (msg is not None) and (isinstance(msg, cCommonGame.GameStatus)):

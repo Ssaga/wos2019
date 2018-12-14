@@ -4,7 +4,7 @@ import json
 
 from copy import deepcopy
 
-class Msg :
+class Msg:
 	def __init__(self,type_id):
 		self.type_id = type_id
 
@@ -176,8 +176,8 @@ class MsgJsonEncoder(json.JSONEncoder):
 				"d": obj.d,
 				"e": obj.e,
 				"f": obj.f,
-				"g": obj.g,
-				"h": obj.h
+				"is_sar": obj.is_sar,
+				"is_rhs": obj.is_rhs
 			}
 
 		elif isinstance(obj, cCommonGame.GameConfig):
@@ -364,8 +364,8 @@ class MsgJsonDecoder(json.JSONDecoder):
 			obj['d'],
 			obj['e'],
 			obj['f'],
-			obj['g'],
-			obj['h']
+			obj['is_sar'],
+			obj['is_rhs']
 		)
 
 	def parse_game_config(self, obj):

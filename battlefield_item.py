@@ -8,8 +8,10 @@ class WosBattlefieldItem(QGraphicsItem):
     def __init__(self, field_info):
         QGraphicsItem.__init__(self)
         self.field_info = field_info
-        self.grid_pos = QPoint(0, 0)
-        self.heading = cCommonGame.Heading.NORTH
+
+        self.ship_info = cCommonGame.ShipInfo()
+        self.ship_info.rotated.connect(self.ship_rotated)
+        self.ship_info.moved.connect(self.ship_moved)
 
         self.setAcceptDrops(True)
         self.setAcceptHoverEvents(True)
@@ -18,6 +20,9 @@ class WosBattlefieldItem(QGraphicsItem):
         # Used as a boolean to determine whether item is being moved, also used as the delta between the control point
         # of the item and the mouse cursor
         self.drag_delta = None
+
+    def get_ship_info(self):
+        return self.ship_info
 
     def map_grid_to_position(self, x, y):
         return QPoint(self.field_info.top_left.x() + x * self.field_info.size.x(),
@@ -42,26 +47,18 @@ class WosBattlefieldItem(QGraphicsItem):
             self.snap_to_grid(self.pos().x(), self.pos().y())
 
         if event.button() == Qt.RightButton:
-            self.rotate()
+            self.rotate_ship()
 
-    def rotate(self, direction=cCommonGame.TurnDirection.CLOCKWISE):
-        if direction == cCommonGame.TurnDirection.CLOCKWISE:
-            self.heading = (self.heading + 1) % len(cCommonGame.Heading)
-        else:
-            self.heading = (self.heading - 1) % len(cCommonGame.Heading)
-
-        if self.heading == cCommonGame.Heading.NORTH:
-            self.setRotation(0)
-        elif self.heading == cCommonGame.Heading.EAST:
-            self.setRotation(90)
-        elif self.heading == cCommonGame.Heading.SOUTH:
-            self.setRotation(180)
-        else:
-            self.setRotation(270)
+    def rotate_ship(self):
+        self.ship_info.turn_clockwise()
 
     def set_grid_position(self, x, y):
-        self.grid_pos.setX(x)
-        self.grid_pos.setY(y)
+        self.ship_info.set_position(x, y)
+
+    def ship_rotated(self, heading):
+        self.setRotation(heading)
+
+    def ship_moved(self, x, y):
         self.setPos(self.map_grid_to_position(x, y))
 
     def snap_to_grid(self, pos_x, pos_y):

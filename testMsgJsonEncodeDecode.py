@@ -11,7 +11,7 @@ a = cCommonGame.Position(1,2)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -20,7 +20,7 @@ a = cCommonGame.Size(1,2)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -29,7 +29,7 @@ a = cCommonGame.ShipInfo(0, cCommonGame.Position(0,0))
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -38,7 +38,7 @@ a = cCommonGame.ShipMovementInfo(0, cCommonGame.Action.FWD)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -47,16 +47,16 @@ a = cCommonGame.FireInfo(cCommonGame.Position(5, 6))
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
 print("SatcomInfo:")
-a = cCommonGame.SatcomInfo(0, cCommonGame.SatcomInfo(1,2,3,4,5,6,7,8))
+a = cCommonGame.SatcomInfo(0, cCommonGame.SatcomInfo(1,2,3,4,5,6,False,False))
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -65,16 +65,16 @@ a = cCommonGame.GameConfig(0, cCommonGame.Action.FWD)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
 print("GameStatus:")
-a = cCommonGame.GameStatus(cCommonGame.GameState.PLAY, 10, 3)
+a = cCommonGame.GameStatus(cCommonGame.GameState.PLAY_INPUT, 10, 3)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -83,7 +83,7 @@ a = cMessages.MsgReqRegister(1)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -94,7 +94,7 @@ a = cMessages.MsgReqRegShips(1,
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -103,7 +103,7 @@ a = cMessages.MsgReqConfig(1)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -112,7 +112,7 @@ a = cMessages.MsgReqTurnInfo(1)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -126,7 +126,7 @@ a = cMessages.MsgReqTurnMoveAct(1,
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -143,16 +143,16 @@ a = cMessages.MsgReqTurnFireAct(1,
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
 print("MsgReqTurnSatAct:")
-a = cMessages.MsgReqTurnSatAct(1, cCommonGame.SatcomInfo(1,2,3,4,5,6,7,8))
+a = cMessages.MsgReqTurnSatAct(1, cCommonGame.SatcomInfo(1,2,3,4,5,6,False,False))
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -161,7 +161,7 @@ a = cMessages.MsgRepAck(True)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -170,7 +170,7 @@ a = cMessages.MsgRepAckMap(True, [[1,1,1,1],[1,1,1,0],[1,1,0,0],[1,0,0,0]])
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -180,7 +180,7 @@ a = cMessages.MsgRepGameConfig(True, cCommonGame.GameConfig(5, True, True))
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
@@ -203,5 +203,5 @@ a = cMessages.MsgRepTurnInfo(True,
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
-print("JSON   : %s" % c)
+print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)

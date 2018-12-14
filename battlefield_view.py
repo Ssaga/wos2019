@@ -11,6 +11,11 @@ class WosFieldInfo:
     def __init__(self, pos=QPoint(40, 40), size=QPoint(20, 20), dimension=QPoint(120, 120)):
         self.top_left = pos
         self.size = size
+        self.dimension = None
+        self.bottom_right = None
+        self.set_dimension(dimension)
+
+    def set_dimension(self, dimension):
         self.dimension = dimension
         self.bottom_right = QPoint(self.top_left.x() + self.size.x() * self.dimension.x(),
                                    self.top_left.y() + self.size.y() * self.dimension.y())
@@ -29,6 +34,21 @@ class WosBattleFieldView(QGraphicsView):
         self.field_info = WosFieldInfo(QPoint(40, 40), QPoint(20, 20), field_count)
 
         self.field_lines = []
+
+        self.update_field()
+
+    def get_field_info(self):
+        return self.field_info
+
+    def grid_to_pos(self, grid):
+        return QPointF(self.field_info.top_left.x() + grid.x() * self.field_info.size.x(),
+                       self.field_info.top_left.y() + grid.y() * self.field_info.size.y())
+
+    def update_field(self):
+        scene = self.scene()
+        scene.clear()
+        self.field_lines = []
+
         for i in range(0, self.field_info.dimension.x() + 1):
             self.field_lines.append(QLineF(self.field_info.top_left.x() + i * self.field_info.size.y(),
                                            self.field_info.top_left.y(),
@@ -44,12 +64,9 @@ class WosBattleFieldView(QGraphicsView):
         for i in self.field_lines:
             scene.addLine(i, dark_gray_pen)
 
-    def get_field_info(self):
-        return self.field_info
-
-    def grid_to_pos(self, grid):
-        return QPointF(self.field_info.top_left.x() + grid.x() * self.field_info.size.x(),
-                       self.field_info.top_left.y() + grid.y() * self.field_info.size.y())
+    def set_dimension(self, x, y):
+        self.field_info.set_dimension(QPoint(x, y))
+        self.update_field()
 
     def place_item(self, item, grid):
         item.setPos(self.grid_to_pos(grid))
