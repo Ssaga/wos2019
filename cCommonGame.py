@@ -24,11 +24,17 @@ class Position:
         self.x = x
         self.y = y
 
+    def __repr__(self):
+        return str(vars(self))
+
 
 class Size:
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class Heading(IntEnum):
@@ -55,9 +61,12 @@ class ShipInfo(QObject):
         # first position is the bow of the ship
         self.area = self.get_placement()
 
+    def __repr__(self):
+        return str(vars(self))
+
     def move_forward(self):
         head_rad = self.heading * np.pi / 180.0
-        pos = np.array([1, 0])
+        pos = np.array([0, -1])
         kin_mat = np.array([[np.cos(head_rad), np.sin(head_rad)],
                             [-np.sin(head_rad), np.cos(head_rad)]])
         transpose = np.dot(pos, kin_mat)
@@ -108,6 +117,9 @@ class ShipMovementInfo:
         self.ship_id = ship_id
         self.action_str = action.name
 
+    def __repr__(self):
+        return str(vars(self))
+
     def get_enum_action(self):
         return Action[self.action_str]
 
@@ -115,6 +127,9 @@ class ShipMovementInfo:
 class FireInfo:
     def __init__(self, pos=Position()):
         self.pos = pos
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class SatcomInfo:
@@ -128,12 +143,18 @@ class SatcomInfo:
         self.is_sar = bool(is_sar)
         self.is_rhs = bool(is_rhs)
 
+    def __repr__(self):
+        return str(vars(self))
+
 
 class GameConfig:
     def __init__(self, num_of_rounds=0, en_satillite=False, en_submarine=False):
         self.num_of_rounds = int(num_of_rounds)
         self.en_satillite = bool(en_satillite)
         self.en_submarine = bool(en_submarine)
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class GameStatus:
@@ -144,6 +165,9 @@ class GameStatus:
         self.game_state_str = game_state.name
         self.game_round = game_round
         self.player_turn = player_turn
+
+    def __repr__(self):
+        return str(vars(self))
 
     def get_enum_game_state(self):
         return GameState[self.game_state_str]

@@ -20,7 +20,7 @@ def island_generation(map_data, island_coverage):
         b = np.append(b, np.random.randint(0, y, island_sz))
         bb = np.reshape(b, (2, -1))
         bb = np.transpose(bb)
-        print("index: \r\n%s" % bb)
+        print("index: [%s]\r\n%s" % (__file__, bb))
         for c in bb:
             map_data[c[1]][c[0]] = 1
 

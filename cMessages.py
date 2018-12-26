@@ -127,6 +127,9 @@ class MsgPubGameStatus(MsgRep):
 		self.game_round =  game_round
 
 
+#----------------------------------------------------------
+
+
 class MsgJsonEncoder(json.JSONEncoder):
 	def default(self, obj):
 		result = None
@@ -272,7 +275,7 @@ class MsgJsonEncoder(json.JSONEncoder):
 				"map_data": obj.map_data
 			}
 		else:
-			result = super().default(self, obj)
+			result = super().default(obj)
 
 		return result
 

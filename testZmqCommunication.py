@@ -72,10 +72,10 @@ def perform_server_task(server_comm_engine, cnt):
 		elif msg_req.type_id == 3:
 			print("\tServer: RECV: Request Turn Info")
 			msg_rep = cMessages.MsgRepTurnInfo(True,
-											   [ShipInfo(1, Position(1, 1), 1, 0, False),
-												ShipInfo(2, Position(2, 2), 2, 90, False),
-												ShipInfo(3, Position(3, 3), 3, 180, False),
-												ShipInfo(4, Position(4, 4), 4, 270, True)],
+											   [ShipInfo(1, Position(1, 1), 0, 1, False),
+												ShipInfo(2, Position(2, 2), 90, 2, False),
+												ShipInfo(3, Position(3, 3), 180, 3, False),
+												ShipInfo(4, Position(4, 4), 270, 4, True)],
 											   [Position(5, 5),
 												Position(6, 6),
 												Position(7, 7)],
@@ -133,9 +133,21 @@ def perform_client_task(list_client_comm_engine, cnt):
 	if cnt < total_turn_cnt:
 		# when the game status is in init
 		rep = list_client_comm_engine[player_turn].req_register()
+		if rep is not None:
 		print(vars(rep))
-		rep = list_client_comm_engine[player_turn].req_register_ships([])
-		print(vars(rep))
+		else:
+			print("No reply from server")
+
+		ship_list = []
+		ship_list.append(ShipInfo(1, Position(36, 20), 0, 3, False))
+		ship_list.append(ShipInfo(2, Position(2, 2), 90, 3, False))
+
+		rep = list_client_comm_engine[player_turn].req_register_ships(ship_list)
+		if rep is not None:
+			print(vars(rep))
+		else:
+			print("No reply from server")
+
 	# elif cnt < (total_round_cnt * total_turn_cnt) + total_turn_cnt:
 	elif cnt < total_exec_cnt:
 		# when the game status is in play
@@ -192,34 +204,34 @@ is_running = True
 
 print("tesing code --------")
 # server
-server_commEngine = ServerCommEngine(req_rep_if, pub_sub_if, polling_rate, bc_rate)
+server_comm_engine = ServerCommEngine(req_rep_if, pub_sub_if, polling_rate, bc_rate)
 thread_server = threading.Thread(name='server-thread',
 								 target=server_thread,
-								 args=(server_commEngine,))
+								 args=(server_comm_engine,))
 thread_server.start()
 
 # client
 list_thread_client = []
-list_client_commEngine = []
+list_client_comm_engine = []
 for i in range(1, total_turn_cnt + 1):
 	print("Creating Client Id: %s" % i)
-	client_commEngine = ClientCommEngine(i, req_rep_if, pub_sub_if, polling_rate)
+	client_comm_engine = ClientCommEngine(i, req_rep_if, pub_sub_if, polling_rate)
 	thread_client = threading.Thread(name='client-thread',
 									 target=client_thread,
-									 args=(client_commEngine,))
+									 args=(client_comm_engine,))
 	thread_client.start()
-	list_client_commEngine.append(client_commEngine)
+	list_client_comm_engine.append(client_comm_engine)
 	list_thread_client.append(thread_client)
 
 # wait for the server commEngine to be ready
-while (not server_commEngine.is_ready):
+while (not server_comm_engine.is_ready):
 	print("Waiting for server commEngine")
 	time.sleep(1)
 
 # wait for the client commEngine to be ready
-for client_commEngine in list_client_commEngine:
-	while (not client_commEngine.is_ready):
-		print("Waiting for client %s commEngine..." % client_commEngine.client_id)
+for client_comm_engine in list_client_comm_engine:
+	while (not client_comm_engine.is_ready):
+		print("Waiting for client %s commEngine..." % client_comm_engine.client_id)
 		time.sleep(1)
 
 # Waiting execution
@@ -229,7 +241,7 @@ for i in range(0, 10):
 	time.sleep(sleep_dur)
 	print("%s *** count %s..." % (time.ctime(time.time()), i))
 	run_count = i
-	perform_client_task(list_client_commEngine, i)
+	perform_client_task(list_client_comm_engine, i)
 
 is_running = False
 for thread_client in list_thread_client:

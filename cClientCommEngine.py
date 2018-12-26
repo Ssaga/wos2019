@@ -76,18 +76,27 @@ class ClientCommEngine:
 		# create the req-rep i/f with the server
 		if (self.context is not None):
 			print("\tReset connection with server")
-			self.teardown_connect(self)
+			self.teardown_connect()
 		self.context = zmq.Context()
 		self.socket = self.context.socket(zmq.REQ)
 		connString = str("tcp://%s:%s" % (self.req_if.addr, self.req_if.port,))
 		print("\tClient %s: Setup connection to server... [%s]" % (self.client_id, connString))
 		self.socket.connect(connString)
+		self.socket.setsockopt(zmq.LINGER, 0)
 		self.socket.RCVTIMEO = 2000			# in milliseconds
+		# self.poller = zmq.Poller()
+		# self.poller.register(self.socket, zmq.POLLIN)
 		
 	def teardown_connect(self):
 		# close the connection of the req socket
 		if (self.socket is not None):
 			try:
+				print("Unregister socket")
+				self.poller.unregister(self.socket)
+			except:
+				print("\tUnable to unregister socket")
+			try:
+				print("Close socket")
 				self.socket.close()
 				self.socket = None
 			except:
@@ -96,10 +105,12 @@ class ClientCommEngine:
 		# teminate the context
 		if (self.context is not None):
 			try:			
+				print("Terminate context")
 				self.context.term()
 				self.context = None
 			except:
 				print("\tError terminating context")
+		print("Teardown completed")
 	
 	
 	def send(self, msg):
@@ -118,7 +129,7 @@ class ClientCommEngine:
 				self.socket.send_string(msg_str)
 			except zmq.ZMQError:
 				self.reset_conn = True
-			
+
 			# wait for the reply from the server
 			try:
 				# reply = self.socket.recv_json(0, cls=MsgJsonDecoder)
@@ -130,6 +141,20 @@ class ClientCommEngine:
 					print("\rClient %s: RECV: --NO DATA--" % self.client_id)
 			except zmq.ZMQError:
 				self.reset_conn = True
+
+			# # wait for the reply from the server
+			# try:
+			# 	socks = dict(self.poller.poll(2000))
+			# 	if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
+			# 		# reply = self.socket.recv_json(0, cls=MsgJsonDecoder)
+			# 		reply_str = self.socket.recv_string()
+			# 		reply = json.loads(reply_str, cls=MsgJsonDecoder)
+			# 		if reply is not None:
+			# 			print("\rClient %s: RECV: %s" % (self.client_id, reply))
+			# 		else:
+			# 			print("\rClient %s: RECV: --NO DATA--" % self.client_id)
+			# except zmq.ZMQError:
+			# 	self.reset_conn = True
 		else:
 			print("\tUnable to send unsupported message")
 		return reply
@@ -258,6 +283,7 @@ class ClientCommEngineSubscriber(threading.Thread):
 		connString = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
 		print("\tSubscribing to server... [%s]" % connString)
 		self.socket.connect(connString)
+		self.socket.setsockopt(zmq.LINGER, 0)
 		self.socket.setsockopt(zmq.SUBSCRIBE, b"");
 		self.poller = zmq.Poller()
 		self.poller.register(self.socket, zmq.POLLIN)

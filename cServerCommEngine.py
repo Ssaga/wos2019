@@ -75,6 +75,7 @@ class ServerCommEngine:
 		connString = str("tcp://%s:%s" % (self.rep_if.addr, self.rep_if.port,))
 		print("\tSetting up server... [%s]" % connString)
 		self.socket.bind(connString)
+		self.socket.setsockopt(zmq.LINGER, 0)
 		self.poller.register(self.socket, zmq.POLLIN)
 
 
@@ -185,6 +186,7 @@ class ServerCommEnginePublisher(threading.Thread):
 		connString = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
 		print("\tRegistering publisher server... [%s]" % connString)
 		self.socket.bind(connString)
+		self.socket.setsockopt(zmq.LINGER, 0)
 
 
 	# Teardown the connection

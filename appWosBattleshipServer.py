@@ -5,14 +5,17 @@ import threading
 import logging
 import sys
 import select
+import collections
 
 import cMessages
 from cServerCommEngine import ServerCommEngine
 from wosBattleshipServer.cCmdCommEngineSvr import CmdServerCommEngine
 
+from cCommonGame import Position
 from cCommonGame import GameState
+from cCommonGame import GameStatus
 from cCommonGame import GameConfig
-from cCommonGame import ShipInfo
+from cCommonGame import ShipInfo as ShipInfoDat
 from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
 from cCommonGame import SatcomInfo
@@ -21,7 +24,9 @@ from cCommonGame import Action
 from wosBattleshipServer.funcIslandGeneration import island_generation
 from wosBattleshipServer.funcCloudGeneration import cloud_generation
 from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_generation
+from wosBattleshipServer.funcCivilianShipsMovement import civilian_ship_movement
 
+from wosBattleshipServer.cCommon import ShipInfo
 from wosBattleshipServer.cCommon import PlayerStatus
 from wosBattleshipServer.cCommon import PlayerTurnActionCount
 from wosBattleshipServer.cCommon import GameTurnStatus
@@ -50,12 +55,22 @@ class WosBattleshipServer(threading.Thread):
 		self.is_running = False
 		self.flag_end_game = False
 		self.flag_restart_game =False
-		self.game_status = GameTurnStatus()
+
+		num_move_act = self.game_setting.num_move_act
+		num_fire_act = self.game_setting.num_fire_act
+		num_satcom_act = self.game_setting.num_satcom_act
+		if self.game_setting.en_satillite == False:
+			num_satcom_act = 0
+		self.game_status = GameTurnStatus(GameState.INIT, num_move_act, num_fire_act, num_satcom_act)
 
 		# Players data
 		self.player_status_list = dict()
 		self.player_curr_fire_cmd_list = dict()
 		self.player_prev_fire_cmd_list = dict()
+		self.player_mask_layer = dict()
+		self.player_boundary = dict()
+
+		self.turn_map_mask = []
 
 		# Game Setup --------------------------------------------------------------
 		# Generate the array required
@@ -65,26 +80,27 @@ class WosBattleshipServer(threading.Thread):
 		self.civilian_ship_layer = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
 
 		# Generate Player mask
-		self.players_mask_layer = self.generate_player_mask()
-		print("Player mask:")
-		for mask_key in self.players_mask_layer.keys():
+		self.generate_player_mask(self.player_mask_layer, self.player_boundary)
+		# self.player_mask_layer = self.generate_player_mask()
+		print("Player mask: ---------------------------------------------")
+		for mask_key in self.player_mask_layer.keys():
 			print("Player mask: %s" % mask_key)
-			print(self.players_mask_layer[mask_key])
+			print(self.player_mask_layer[mask_key])
 
 		# Generate the island on the map
 		# TODO: Generate the island
 		island_generation(self.island_layer, self.game_setting.island_coverage)
-		print("Island data:")
+		print("Island data: ---------------------------------------------")
 		print(self.island_layer)
 
 		# TODO: Generate the cloud
 		cloud_generation(self.cloud_layer, self.game_setting.cloud_coverage)
-		print("Cloud data:")
+		print("Cloud data: ---------------------------------------------")
 		print(self.cloud_layer)
 
 		# TODO: Generate the civilian
 		civilian_ship_generation(self.civilian_ship_list, self.game_setting.civilian_ship_count)
-		print("Civilian data:")
+		print("Civilian data: ---------------------------------------------")
 		print(self.civilian_ship_list)
 
 
@@ -121,6 +137,7 @@ class WosBattleshipServer(threading.Thread):
 			if state_changed:
 				print("State Change to %s" % self.game_status.game_state)
 				self.state_setup()
+				state_changed = False
 			self.state_exec(msg_data)
 
 		# stop the communication engine
@@ -150,8 +167,9 @@ class WosBattleshipServer(threading.Thread):
 	def state_get_next_init(self):
 		state_changed = False
 		# check if all the player has registered
+		# print("********** %s %s" % (len(self.player_status_list), self.game_setting.num_of_player))
 		if len(self.player_status_list) >= self.game_setting.num_of_player:
-			self.game_status.game_state == GameState.PLAY_INPUT
+			self.game_status.game_state = GameState.PLAY_INPUT
 			state_changed = True
 		else:
 			print("Waiting for %s remaining player registeration" % (
@@ -166,6 +184,7 @@ class WosBattleshipServer(threading.Thread):
 		remaining_action = remaining_turn_action.remain_move + remaining_turn_action.remain_fire + remaining_turn_action.remain_satcom
 
 		# todo: add a condition for player timeout
+		print("********** Remaining action %s %s %s %s " % (remaining_action, remaining_turn_action.remain_move, remaining_turn_action.remain_fire, remaining_turn_action.remain_satcom))
 		if (remaining_action <= 0) or (False):
 			self.game_status.game_state = GameState.PLAY_COMPUTE
 			state_changed = True
@@ -218,6 +237,8 @@ class WosBattleshipServer(threading.Thread):
 		self.game_status.player_turn = 0
 		self.game_status.game_round = 0
 		self.game_status.clear_turn_remaining_action()
+		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
+		self.comm_engine.set_game_status(bc_game_status)
 
 
 	def state_setup_play_input(self):
@@ -226,34 +247,75 @@ class WosBattleshipServer(threading.Thread):
 		self.game_status.reset_turn_remaining_action()
 
 		# initial the mask required for this turn
-		self.turn_map_mask = self.players_mask_layer[self.game_status.player_turn]
+		self.turn_map_mask = self.player_mask_layer[self.game_status.player_turn]
 
+		# check if this is a beginning of a new round; if so, update the civilian ship and cloud
 		if self.game_status.player_turn == 1:
 			# generate the cloud to be used for this round
 			cloud_generation(self.cloud_layer, self.game_setting.cloud_coverage)
 
 			# generate new position of the civilian ships
-			civilian_ship_generation(self.civilian_ship_list)
+			civilian_ship_movement(self.civilian_ship_list, self.game_setting.civilian_ship_move_probility)
 
 			# update the layer for the civilian ship
 			self.civilian_ship_layer.fill(0)
 			for civilian_ship in self.civilian_ship_list:
-				for pos in self.civilian_ship.area:
-					self.civilian_ship_layer[pos[1],pos[0]] = 1
+				if isinstance(civilian_ship, ShipInfo) and (not civilian_ship.is_sunken):
+					for pos in self.civilian_ship.area:
+						self.civilian_ship_layer[pos[1],pos[0]] = 1
 		# else no update is required
+		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
+		self.comm_engine.set_game_status(bc_game_status)
 
 
 	def state_setup_play_compute(self):
-		# Compute the score of current turn
-		# TODO: Check if any of the ship has been hit
-		#		if so, update the score and ship status
-		pass
+		# Check if its previous fire hit any ships; if so, update the score and ship status
+		player_status = self.player_status_list[self.game_status.player_turn]
+		fire_cmds = self.player_prev_fire_cmd_list[self.game_status.player_turn]
+		if isinstance(fire_cmds, collections.Iterable):
+			for fire_cmd in fire_cmds:
+				self.state_setup_play_compute_fire(fire_cmd, player_status)
+		else:
+			self.state_setup_play_compute_fire(fire_cmds, player_status)
+		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
+		self.comm_engine.set_game_status(bc_game_status)
+
+
+	def state_setup_play_compute_fire(self, fire_cmd, player_status):
+		if isinstance(fire_cmd, FireInfo):
+			for other_player_id, other_player_info in self.player_status_list.items():
+				if other_player_id is not self.game_status.player_turn:
+					for other_player_ship_info in other_player_info.ship_list:
+						fire_pos = [fire_cmd.pos.x, fire_cmd.pos.y]
+						if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
+							other_player_ship_info.is_sunken = True
+							player_status.hit_count += 1
+							print("DEUG: Player did hit %s:%s [%s] @ [%s, %s]" % (
+								other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area, fire_cmd.pos.x, fire_cmd.pos.y))
+						else:
+							print("DEUG: Player did not hit %s:%s [%s] @ [%s, %s]" % (
+								other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area, fire_cmd.pos.x, fire_cmd.pos.y))
+					# end of for..loop player_ship_list
+				# end of Check to skip self
+			# end of for..loop player_status_list
+		# Else Do nothing
+		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
+		self.comm_engine.set_game_status(bc_game_status)
 
 
 	def state_setup_stop(self):
-		# TODO: Display or Send the score of the game
-		pass
-
+		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
+		self.comm_engine.set_game_status(bc_game_status)
+		# Display the score of the game
+		print("** Game end ------------------------------------")
+		for key, player in self.player_status_list:
+			sunken_count = 0
+			for ship_info in player.ship_list:
+				if ship_info.is_sunken:
+					sunken_count += 1
+			score = player.hit_count - (sunken_count * 0.5)
+			print("** \tPlayer %s : score:%s | hit:%s | sunken:%s" % (key, score, player.hit_count, sunken_count))
+		print("** ---------------------------------------------")
 
 	#---------------------------------------------------------------------------
 	def state_exec(self, msg_data):
@@ -281,12 +343,12 @@ class WosBattleshipServer(threading.Thread):
 		if msg_data is not None:
 			# Check if message is MsgReqRegister
 			if isinstance(msg_data, cMessages.MsgReqRegister):
-				map_data = []
+				map_data = np.array([])
 				ack = False
 				if msg_data.player_id not in self.player_status_list:
-					map_data = self.island_layer * self.players_mask_layer[msg_data.player_id]
+					map_data = self.island_layer * self.player_mask_layer[msg_data.player_id]
 					ack = True
-				reply = cMessages.MsgRepAckMap(ack, map_data)
+				reply = cMessages.MsgRepAckMap(ack, map_data.tolist())
 
 			# Check if message is MsgReqRegShips
 			elif isinstance(msg_data, cMessages.MsgReqRegShips):
@@ -294,9 +356,22 @@ class WosBattleshipServer(threading.Thread):
 				if msg_data.player_id not in self.player_status_list:
 					# add the new player to the list
 					player_status = PlayerStatus()
-					player_status.ship_list.extend(msg_data.ship_list)
-					self.player_status_list[msg_data.player_id] = player_status
-					ack = True
+					player_status.ship_list.clear()
+
+					# check if the placement of the ships are ok before adding them to the list
+					is_ok = self.check_ship_placement(msg_data.player_id, msg_data.ship_list)
+					if is_ok:
+						for ship_info_dat in msg_data.ship_list:
+							if isinstance(ship_info_dat, ShipInfoDat):
+								ship_info = ShipInfo(ship_info_dat.ship_id,
+													 Position(ship_info_dat.position.x, ship_info_dat.position.y),
+													 ship_info_dat.heading,
+													 ship_info_dat.size,
+													 ship_info_dat.is_sunken)
+								player_status.ship_list.append(ship_info)
+								print(ship_info)
+						self.player_status_list[msg_data.player_id] = player_status
+						ack = True
 				reply = cMessages.MsgRepAck(ack)
 
 			# Check if message is MsgReqConfig
@@ -315,79 +390,22 @@ class WosBattleshipServer(threading.Thread):
 		# process the reply for any input message
 		reply = None
 		# process the reply for any input message
-		if msg_data is not None:
+		if (msg_data is not None) and isinstance(msg_data, cMessages.MsgReq):
 			# Check if message is MsgReqTurnInfo
 			if isinstance(msg_data, cMessages.MsgReqTurnInfo):
-				ship_list = self.player_status_list[msg_data.player_id].ship_list
-				bombardment_data = [ value for key, value in self.player_curr_fire_cmd_list.items() if key is not msg_data.player_id]
-
-				# compute the map data
-				map_data = self.generate_map_data()
-				map_data = np.maximum(map_data, self.cloud_layer)				# Add the cloud to the map
-				map_data = map_data * self.turn_map_mask						# Add the player default mask
-
-				reply = cMessages.MsgRepTurnInfo(True, ship_list, bombardment_data, map_data)
+				reply = self.state_exec_play_input_turn(msg_data)
 
 			# Check if message is MsgReqTurnMoveAct
 			elif isinstance(msg_data, cMessages.MsgReqTurnMoveAct):
-				ack = False
-				if self.game_status.remaining_action.remain_move >= len(msg_data.move):
-					for action in msg_data.move:
-						if isinstance(action, ShipMovementInfo):
-							ship = self.player_status_list[msg_data.msg_data.player_id].ship_list[action.ship_id]
-							if action.get_enum_action() == Action.FWD:
-								ship.move_forward()
-							elif action.get_enum_action() == Action.CW:
-								ship.turn_clockwise()
-							elif action.get_enum_action() == Action.CCW:
-								ship.turn_counter_clockwise()
-					# Update on the number of remaining move operation
-					self.game_status.remaining_action.remain_move -= len(msg_data.move)
-					ack = True
-				reply = cMessages.MsgRepAck(ack)
+				reply = self.state_exec_play_input_move(msg_data)
 
 			# Check if message is MsgReqTurnFireAct
 			elif isinstance(msg_data, cMessages.MsgReqTurnFireAct):
-				ack = False
-				if self.game_status.remaining_action.remain_fire >= len(msg_data.fire):
-					# Update the position the player is hitting
-					self.player_prev_fire_cmd_list[msg_data.player_id] = self.player_curr_fire_cmd_list[msg_data.player_id]
-					self.player_curr_fire_cmd_list[msg_data.player_id] = msg_data.fire
-					self.game_status.remaining_action.remain_fire -= 1
-					ack = True
-				reply = cMessages.MsgRepAck(ack)
+				reply = self.state_exec_play_input_fire(msg_data)
 
 			# Check if message is MsgReqTurnSatAct
 			elif isinstance(msg_data, cMessages.MsgReqTurnSatAct):
-				ack = False
-				ship_list = self.player_status_list[msg_data.player_id].ship_list
-				bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
-									key is not msg_data.player_id]
-				map_data = self.generate_map_data() * self.turn_map_mask
-
-				if self.game_status.remaining_action.remain_satcom > 0:
-					# compute the map data
-					map_data = self.generate_map_data()
-
-					# TODO: get the satcom mask
-					satcom_mask = np.ones((self.game_setting.map_size.y, self.game_setting.map_size.x))
-
-					# update the turn_map_mask
-					self.turn_map_mask = np.maximum(self.turn_map_mask, satcom_mask)
-
-					# update map data with cloud
-					cloud_layer = self.cloud_layer
-					if msg_data.satcom.is_sar:
-						cloud_layer = np.maximum(cloud_layer, satcom_mask)
-					map_data = np.maximum(map_data, cloud_layer)		# Add the cloud to the map
-
-					# update map data with user's mask
-					map_mask = self.turn_map_mask
-					map_data = map_data * map_mask						# Add the player default mask
-
-					ack = True
-				# Create the result
-				reply = cMessages.MsgRepTurnInfo(ack, ship_list, bombardment_data, map_data)
+				reply = self.state_exec_play_input_satcom(msg_data)
 
 			# Check if message is MsgReqConfig
 			elif isinstance(msg_data, cMessages.MsgReqConfig):
@@ -398,24 +416,149 @@ class WosBattleshipServer(threading.Thread):
 
 			# Check if message is MsgReqTurnInfo
 			else:
+				if msg_data.player_id != self.game_status.player_turn:
+					# Current turn is not for the player
+					print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+				else:
+					print("Receive wrong message from player %s, for the wrong state..." % msg_data.player_id)
 				reply = cMessages.MsgRepAck(False)
 
 		return reply
 
 
+	def state_exec_play_input_turn(self, msg_data):
+
+		if (msg_data.player_id == self.game_status.player_turn):
+			ship_list = list()
+			for ship_info in self.player_status_list[msg_data.player_id].ship_list:
+				if isinstance(ship_info, ShipInfo):
+					ship_info_dat = ShipInfoDat(ship_info.ship_id,
+												Position(ship_info.position.x, ship_info.position.y),
+												ship_info.heading,
+												ship_info.size,
+												ship_info.is_sunken)
+					ship_list.append(ship_info_dat)
+			bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
+								key is not msg_data.player_id]
+
+			# compute the map data
+			map_data = self.generate_map_data()
+			map_data = np.maximum(map_data, self.cloud_layer)  # Add the cloud to the map
+			map_data = map_data * self.turn_map_mask  # Add the player default mask
+
+			reply = cMessages.MsgRepTurnInfo(True, ship_list, bombardment_data, map_data.tolist())
+		else:
+			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+			reply = cMessages.MsgRepTurnInfo(False, [], [], [])
+
+		return reply
+
+
+	def state_exec_play_input_move(self, msg_data):
+		ack = False
+		if (self.game_status.remaining_action.remain_move >= len(msg_data.move)) and \
+				(msg_data.player_id == self.game_status.player_turn):
+			for action in msg_data.move:
+				if isinstance(action, ShipMovementInfo):
+					ship = self.player_status_list[msg_data.player_id].ship_list[action.ship_id]
+					if isinstance(ship, ShipInfo):
+						if action.get_enum_action() == Action.FWD:
+							# Check if the selected ship can move forward
+							if self.check_forward_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+								ship.move_forward()
+							else:
+								print("!!! Unable to move forward")
+						elif action.get_enum_action() == Action.CW:
+							# Check if the selected ship can turn clockwise
+							if self.check_turn_cw_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+								ship.turn_clockwise()
+							else:
+								print("!!! Unable to turn CW")
+						elif action.get_enum_action() == Action.CCW:
+							# Check if the selected ship can turn counter-clockwise
+							if self.check_turn_ccw_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+								ship.turn_counter_clockwise()
+							else:
+								print("!!! Unable to turn CCW")
+			# Update on the number of remaining move operation
+			self.game_status.remaining_action.remain_move -= len(msg_data.move)
+			ack = True
+		else:
+			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+
+		reply = cMessages.MsgRepAck(ack)
+		return reply
+
+	def state_exec_play_input_fire(self, msg_data):
+		ack = False
+		if self.game_status.remaining_action.remain_fire >= len(msg_data.fire) and \
+				(msg_data.player_id == self.game_status.player_turn):
+			# Update the position the player is hitting
+			self.player_prev_fire_cmd_list[msg_data.player_id] = self.player_curr_fire_cmd_list.get(msg_data.player_id)
+			self.player_curr_fire_cmd_list[msg_data.player_id] = msg_data.fire
+			self.game_status.remaining_action.remain_fire -= 1
+			ack = True
+		else:
+			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+
+		reply = cMessages.MsgRepAck(ack)
+		return reply
+
+
+	def state_exec_play_input_satcom(self, msg_data):
+		ack = False
+		# ship_list = self.player_status_list[msg_data.player_id].ship_list
+		# bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
+		# 					key is not msg_data.player_id]
+		map_data = []
+		if (self.game_status.remaining_action.remain_satcom > 0) and \
+				(msg_data.player_id == self.game_status.player_turn):
+			# compute the map data
+			map_data = self.generate_map_data()
+
+			# TODO: Compute the satcom mask
+			satcom_mask = np.ones((self.game_setting.map_size.y, self.game_setting.map_size.x))
+
+			# update the turn_map_mask w satcom data
+			self.turn_map_mask = np.maximum(self.turn_map_mask, satcom_mask)
+
+			# update map data with cloud
+			cloud_layer = self.cloud_layer
+			if msg_data.satcom.is_sar:
+				cloud_layer = np.maximum(cloud_layer, satcom_mask)
+			map_data = np.maximum(map_data, cloud_layer)  # Add the cloud to the map
+
+			# update map data with user's mask
+			map_mask = self.turn_map_mask
+			map_data = map_data * map_mask  # Add the player default mask
+
+			ack = True
+		else:
+			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+			map_data = self.generate_map_data() * self.player_mask_layer[msg_data.player_id]
+
+		# Create the result
+		# reply = cMessages.MsgRepTurnInfo(ack, ship_list, bombardment_data, map_data)
+		reply = cMessages.MsgRepAckMap(ack, map_data.tolist())
+		return reply
+
+
 	def state_exec_play_compute(self, msg_data):
-		# reply a negative acknowledgement for any message received
+		# We are not expected to receive any message at this state
+		# Hence, we shall reply a negative acknowledgement for any message received
+		reply = None
 		if msg_data is not None:
-			# Check if its previous fire hit any ships
-			# TODO: ...
-			pass
+			reply = cMessages.MsgRepAck(False);
+		return reply
 
 
 	def state_exec_stop(self, msg_data):
-		# reply a negative acknowledgement for any message received
+		# We are not expected to receive any message at this state
+		# Hence, we shall reply a negative acknowledgement for any message received
+		reply = None
 		if msg_data is not None:
-			# TODO: ...
-			pass
+			reply = cMessages.MsgRepAck(False)
+		return reply
 
 
 	# ---------------------------------------------------------------------------
@@ -424,24 +567,83 @@ class WosBattleshipServer(threading.Thread):
 		map_data = np.maximum(map_data, self.island_layer)  # Add the island onto the map
 		map_data = np.maximum(map_data, self.civilian_ship_layer)  # Add the ships onto the map
 		return map_data
+
+	#---------------------------------------------------------------------------
+
+	def check_ship_placement(self, player_id, ship_list):
+		is_ok = True
+		boundary = self.player_boundary[player_id]
+		if isinstance(ship_list, collections.Iterable):
+			for ship_info_dat in ship_list:
+				if isinstance(ship_info_dat, ShipInfoDat):
+					# if area is within boundary
+					for pos in ship_info_dat.area:
+						if (pos[0] < boundary[0][0]) or \
+								(pos[0] > boundary[0][1]) or \
+								(pos[1] < boundary[1][0]) or \
+								(pos[1] > boundary[1][1]):
+							print("!!! SHIP [NEW]: %s [%s]" % (ship_info_dat , player_id))
+							is_ok = False
+				else:
+					print("!!! SHIP [NEW]: Incorrect type [not ShipInfoDat] [%s]" % player_id)
+					is_ok = False
+		else:
+			print("!!! SHIP [NEW]: Incorrect type [not Iterable] [%s]" % player_id)
+			is_ok = False
+		return is_ok
+
+	def check_forward_action(self, player_id, pos, heading, size):
+		is_ok = True
+		boundary = self.player_boundary[player_id]
+		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship.move_forward()
+		# if area is within boundary
+		for pos in test_ship.area:
+			if (pos[0] < boundary[0][0]) or \
+					(pos[0] > boundary[0][1]) or \
+					(pos[1] < boundary[1][0]) or \
+					(pos[1] > boundary[1][1]):
+				is_ok = False
+				print("!!! SHIP [FWD]: %s" % test_ship)
+
+		return is_ok
+
+	def check_turn_cw_action(self, player_id, pos, heading, size):
+		is_ok = True
+		boundary = self.player_boundary[player_id]
+		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship.turn_clockwise()
+		# if area is within boundary
+		for pos in test_ship.area:
+			if (pos[0] < boundary[0][0]) or \
+					(pos[0] > boundary[0][1]) or \
+					(pos[1] < boundary[1][0]) or \
+					(pos[1] > boundary[1][1]):
+				is_ok = False
+				print("!!! SHIP [CW ]: %s" % test_ship)
+
+		return is_ok
+
+	def check_turn_ccw_action(self, player_id, pos, heading, size):
+		is_ok = True
+		boundary = self.player_boundary[player_id]
+		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship.turn_counter_clockwise()
+		# if area is within boundary
+		for pos in test_ship.area:
+			if (pos[0] < boundary[0][0]) or \
+					(pos[0] > boundary[0][1]) or \
+					(pos[1] < boundary[1][0]) or \
+					(pos[1] > boundary[1][1]):
+				is_ok = False
+				print("!!! SHIP [CCW]: %s" % test_ship)
+		return is_ok
+
 	#---------------------------------------------------------------------------
 
 	def load_server_setting(self, filename):
 		write_config = False
 		game_setting = None
-		# try:
-		#     fp = open(filename, 'r')
-		#     game_setting = json.load(fp, cls=SvrCfgJsonDecoder)
-		# except:
-		#     print("Unable to load server setting")
-		#     write_config = True
-		#
-		# if write_config:
-		#     try:
-		#         fp = open(filename, 'w')
-		#         json.dump(fp, game_setting, cls=SvrCfgJsonEncoder)
-		#     except:
-		#         print("Unable to write server setting")
 		try:
 			with open(filename) as infile:
 				game_setting = json.load(infile, cls=SvrCfgJsonDecoder)
@@ -460,32 +662,34 @@ class WosBattleshipServer(threading.Thread):
 		return game_setting
 
 	#---------------------------------------------------------------------------
-	def generate_player_mask(self):
+	def generate_player_mask(self, player_mask_dict, player_boundary):
 
-		player_mask_dict = dict()
+		# player_mask_dict = dict()
 		# player_mask_list = list()
 
-		col_count = int(np.ceil(self.game_setting.num_of_player / self.game_setting.num_of_row))
-		#row_count = int(self.game_setting.num_of_player / col_count)
-		row_count = self.game_setting.num_of_row
+		if isinstance(player_mask_dict, dict) and isinstance(player_boundary, dict):
+			col_count = int(np.ceil(self.game_setting.num_of_player / self.game_setting.num_of_row))
+			#row_count = int(self.game_setting.num_of_player / col_count)
+			row_count = self.game_setting.num_of_row
 
-		player_x_sz = int(self.game_setting.map_size.x / col_count)
-		player_y_sz = int(self.game_setting.map_size.y / row_count)
+			player_x_sz = int(self.game_setting.map_size.x / col_count)
+			player_y_sz = int(self.game_setting.map_size.y / row_count)
 
-		for i in range(self.game_setting.num_of_player):
-			x1 = int((i % col_count) * player_x_sz)
-			x2 = x1 + player_x_sz
-			y1 = int((i // col_count) * player_y_sz)
-			y2 = y1 + player_y_sz
-			# print(i, x1, x2, y1, y2)
+			for i in range(self.game_setting.num_of_player):
+				x1 = int((i % col_count) * player_x_sz)
+				x2 = x1 + player_x_sz
+				y1 = int((i // col_count) * player_y_sz)
+				y2 = y1 + player_y_sz
+				# print(i, x1, x2, y1, y2)
 
-			mask = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
-			mask[y1:y2, x1:x2] = 1
-			player_mask_dict[i+1] = mask
-			# player_mask_list.append(mask)
-			# print(mask)
+				mask = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
+				mask[y1:y2, x1:x2] = 1
+				player_mask_dict[i+1] = mask
+				player_boundary[i+1] = [[x1, x2], [y1, y2]]
+				# player_mask_list.append(mask)
+				# print(mask)
 
-		return player_mask_dict
+		# return player_mask_dict
 
 
 def main():
