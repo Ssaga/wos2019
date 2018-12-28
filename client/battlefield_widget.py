@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QWidget
-from battlefield_view import WosBattleFieldView
+from client.battlefield_view import WosBattleFieldView
 
 
 class WosBattlefieldWidget(QWidget):
@@ -16,3 +16,6 @@ class WosBattlefieldWidget(QWidget):
 
     def generate_scene(self, width, height):
         self.battle_scene.set_dimension(width, height)
+
+    def update_map(self, map_data):
+        self.battle_scene.update_map(map_data)

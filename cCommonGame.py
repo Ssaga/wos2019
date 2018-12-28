@@ -76,13 +76,20 @@ class ShipInfo(QObject):
         self.area = self.get_placement()
         self.moved.emit(self.position.x, self.position.y)
 
+    def set_heading(self, heading):
+        self.heading = heading
+        self.area = self.get_placement()
+        self.rotated.emit(self.heading)
+
     def set_position(self, x, y):
         self.position.x = x
         self.position.y = y
+        self.area = self.get_placement()
         self.moved.emit(self.position.x, self.position.y)
 
     def turn_clockwise(self):
         self.heading += 90
+        self.area = self.get_placement()
         self.area = self.get_placement()
         self.rotated.emit(self.heading)
 

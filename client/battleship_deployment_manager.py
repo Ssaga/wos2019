@@ -1,20 +1,27 @@
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
-from battleship_item import WosBattleShipItem
-from client_interface_manager import WosClientInterfaceManager
-from phase_manager import WosPhaseManager
+from client.battleship_item import WosBattleShipItem
+from client.client_interface_manager import WosClientInterfaceManager
+from client.phase_manager import WosPhaseManager
 
+import cCommonGame
 
 class WosBattleShipDeploymentManager(WosPhaseManager):
+    UPDATE_INTERVAL_IN_MS = 1000
+
     deployment_ended = pyqtSignal()
 
     def __init__(self, wos_interface, parent=None):
         WosPhaseManager.__init__(self, wos_interface, parent)
         self.ships_items = []
         self.tools = None
+        self.update_timer = QTimer(self)
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.update_game_event)
 
     def deployment_button_pressed(self):
         self.wos_interface.log("Sending deployment to server..")
@@ -32,12 +39,14 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         ships = []
         for ship_item in self.ships_items:
             ships.append(ship_item.get_ship_info())
-        if WosClientInterfaceManager().send_deployment(ships):
+        if WosClientInterfaceManager().send_deployment(ships) or self.wos_interface.is_debug:
             self.wos_interface.log("Server acknowledged")
+            self.wos_interface.log("Please wait for all the players to deploy their ships")
+            self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
         else:
             self.wos_interface.log("Server declined")
         # todo; Don't end if server did not acknowledged
-        self.end()
+        # self.end()
 
     def start(self):
         self.wos_interface.log("<b>Deployment phase</b>.")
@@ -45,18 +54,29 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
                                "reposition with left mouse button, rotate the ships with right mouse button.")
 
         scene = self.wos_interface.battlefield.battle_scene.scene()
-        self.wos_interface.battlefield.generate_scene(60, 60)
+        # todo: remove hard code 120
+        self.wos_interface.battlefield.generate_scene(120, 120)
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
-        # Read config file for squad list, stub for now
-        self.ships_items = [WosBattleShipItem(field_info, 2), WosBattleShipItem(field_info, 2),
-                            WosBattleShipItem(field_info, 3), WosBattleShipItem(field_info, 3),
-                            WosBattleShipItem(field_info, 4), WosBattleShipItem(field_info, 4),
-                            WosBattleShipItem(field_info, 5), WosBattleShipItem(field_info, 5)]
+        # todo: Read config file for squad list, stub for now
+        self.ships_items = [WosBattleShipItem(field_info, 1, 2), WosBattleShipItem(field_info, 2, 2),
+                            WosBattleShipItem(field_info, 3, 3), WosBattleShipItem(field_info, 4, 3),
+                            WosBattleShipItem(field_info, 5, 4), WosBattleShipItem(field_info, 6, 4),
+                            WosBattleShipItem(field_info, 7, 5), WosBattleShipItem(field_info, 8, 5)]
+
+        # todo: Consider making a helper function
+        start_position = cCommonGame.Position()
+        if self.wos_interface.player_info.player_id == 2:
+            start_position.y += 60
+        elif self.wos_interface.player_info.player_id == 3:
+            start_position.x += 60
+        elif self.wos_interface.player_info.player_id == 4:
+            start_position.x += 60
+            start_position.y += 60
 
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
-            self.ships_items[i].set_grid_position(i, 0)
+            self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 0)
 
         self.update_action_widget()
 
@@ -76,3 +96,10 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         layout.addWidget(deployment_button)
 
         actions_widget.append_widget(self.tools)
+
+    def update_game_event(self):
+        turn_info = WosClientInterfaceManager().get_turn_info()
+        if turn_info:
+            self.end()
+        else:
+            self.update_timer.start()
