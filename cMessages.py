@@ -1,5 +1,6 @@
 import cCommonGame
 import collections
+import numpy as np
 import json
 
 from copy import deepcopy
@@ -90,12 +91,16 @@ class MsgRepGameConfig(MsgRep):
 class MsgRepTurnInfo(MsgRep):
 	def __init__(self,
 				 ack=False,
-				 ship_list=[],
+				 self_ship_list=[],
+				 enemy_ship_list=[],
+				 other_ship_list=[],
 				 bombardment_list=[],
 				 map_data=[]):
 		MsgRep.__init__(self, 130)
 		self.ack = ack
-		self.ship_list = ship_list
+		self.self_ship_list = self_ship_list
+		self.enemy_ship_list = enemy_ship_list
+		self.other_ship_list = other_ship_list
 		self.bombardment_list = bombardment_list
 		self.map_data = map_data
 		
@@ -186,7 +191,14 @@ class MsgJsonEncoder(json.JSONEncoder):
 		elif isinstance(obj, cCommonGame.GameConfig):
 			result = {
 				"__class__": "GameConfig",
+				"num_of_players": obj.num_of_players,
 				"num_of_rounds": obj.num_of_rounds,
+				"num_of_fire_act": obj.num_of_fire_act,
+				"num_of_move_act": obj.num_of_move_act,
+				"num_of_satc_act": obj.num_of_satc_act,
+				"num_of_rows": obj.num_of_rows,
+				"polling_rate": obj.polling_rate,
+				"map_size": obj.map_size,
 				"en_satillite": obj.en_satillite,
 				"en_submarine": obj.en_submarine
 			}
@@ -270,11 +282,26 @@ class MsgJsonEncoder(json.JSONEncoder):
 				"__class__": "MsgRepTurnInfo",
 				"type_id": obj.type_id,
 				"ack": obj.ack,
-				"ship_list": obj.ship_list,
+				"self_ship_list": obj.self_ship_list,
+				"enemy_ship_list": obj.enemy_ship_list,
+				"other_ship_list": obj.other_ship_list,
 				"bombardment_list": obj.bombardment_list,
 				"map_data": obj.map_data
 			}
+
+		# TODO: remove the following numpy conversion by checking for
+		#  		the cause of the numpy integer if time permit
+		elif isinstance(obj, np.integer):
+			result = int(obj)
+
+		elif isinstance(obj, np.floating):
+			result = float(obj)
+
+		elif isinstance(obj, np.ndarray):
+			result = obj.tolist()
+
 		else:
+			print(type(obj))
 			result = super().default(obj)
 
 		return result
@@ -373,7 +400,14 @@ class MsgJsonDecoder(json.JSONDecoder):
 
 	def parse_game_config(self, obj):
 		return cCommonGame.GameConfig(
+			obj['num_of_players'],
 			obj['num_of_rounds'],
+			obj['num_of_fire_act'],
+			obj['num_of_move_act'],
+			obj['num_of_satc_act'],
+			obj['num_of_rows'],
+			obj['polling_rate'],
+			obj['map_size'],
 			obj['en_satillite'],
 			obj['en_submarine']
 		)

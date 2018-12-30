@@ -12,6 +12,7 @@ from cServerCommEngine import ServerCommEngine
 from wosBattleshipServer.cCmdCommEngineSvr import CmdServerCommEngine
 
 from cCommonGame import Position
+from cCommonGame import Size
 from cCommonGame import GameState
 from cCommonGame import GameStatus
 from cCommonGame import GameConfig
@@ -376,7 +377,14 @@ class WosBattleshipServer(threading.Thread):
 
 			# Check if message is MsgReqConfig
 			elif isinstance(msg_data, cMessages.MsgReqConfig):
-				game_config = GameConfig(self.game_setting.num_of_rounds,
+				game_config = GameConfig(self.game_setting.num_of_player,
+										 self.game_setting.num_of_rounds,
+										 self.game_setting.num_fire_act,
+										 self.game_setting.num_move_act,
+										 self.game_setting.num_satcom_act,
+										 self.game_setting.num_of_row,
+										 self.game_setting.polling_rate,
+										 Size(self.game_setting.map_size.x, self.game_setting.map_size.y),
 										 self.game_setting.en_satillite,
 										 self.game_setting.en_submarine)
 				reply = cMessages.MsgRepGameConfig(True, game_config)
@@ -409,7 +417,14 @@ class WosBattleshipServer(threading.Thread):
 
 			# Check if message is MsgReqConfig
 			elif isinstance(msg_data, cMessages.MsgReqConfig):
-				game_config = GameConfig(self.game_setting.num_of_rounds,
+				game_config = GameConfig(self.game_setting.num_of_player,
+										 self.game_setting.num_of_rounds,
+										 self.game_setting.num_fire_act,
+										 self.game_setting.num_move_act,
+										 self.game_setting.num_satcom_act,
+										 self.game_setting.num_of_row,
+										 self.game_setting.polling_rate,
+										 Size(self.game_setting.map_size.x, self.game_setting.map_size.y),
 										 self.game_setting.en_satillite,
 										 self.game_setting.en_submarine)
 				reply = cMessages.MsgRepGameConfig(True, game_config)
@@ -429,7 +444,7 @@ class WosBattleshipServer(threading.Thread):
 	def state_exec_play_input_turn(self, msg_data):
 
 		if (msg_data.player_id == self.game_status.player_turn):
-			ship_list = list()
+			self_ship_list = list()
 			for ship_info in self.player_status_list[msg_data.player_id].ship_list:
 				if isinstance(ship_info, ShipInfo):
 					ship_info_dat = ShipInfoDat(ship_info.ship_id,
@@ -437,7 +452,26 @@ class WosBattleshipServer(threading.Thread):
 												ship_info.heading,
 												ship_info.size,
 												ship_info.is_sunken)
-					ship_list.append(ship_info_dat)
+					self_ship_list.append(ship_info_dat)
+
+			enemy_ship_list = list()
+			other_ship_list = list()
+
+			# Generate the list of civilian ships
+			for ship_info in self.civilian_ship_list:
+				if isinstance(ship_info, ShipInfo):
+					ship_info_dat = ShipInfoDat(ship_info.ship_id,
+												Position(ship_info.position.x, ship_info.position.y),
+												ship_info.heading,
+												ship_info.size,
+												ship_info.is_sunken)
+					self_ship_list.append(ship_info_dat)
+
+
+			# TODO: Generate the list of enemy ships
+			# ...
+
+
 			bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
 								key is not msg_data.player_id]
 
@@ -446,7 +480,7 @@ class WosBattleshipServer(threading.Thread):
 			map_data = np.maximum(map_data, self.cloud_layer)  # Add the cloud to the map
 			map_data = map_data * self.turn_map_mask  # Add the player default mask
 
-			reply = cMessages.MsgRepTurnInfo(True, ship_list, bombardment_data, map_data.tolist())
+			reply = cMessages.MsgRepTurnInfo(True, self_ship_list, bombardment_data, map_data.tolist())
 		else:
 			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
 			reply = cMessages.MsgRepTurnInfo(False, [], [], [])
@@ -565,7 +599,7 @@ class WosBattleshipServer(threading.Thread):
 	def generate_map_data(self):
 		map_data = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
 		map_data = np.maximum(map_data, self.island_layer)  # Add the island onto the map
-		map_data = np.maximum(map_data, self.civilian_ship_layer)  # Add the ships onto the map
+		#map_data = np.maximum(map_data, self.civilian_ship_layer)  # Add the ships onto the map
 		return map_data
 
 	#---------------------------------------------------------------------------

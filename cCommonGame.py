@@ -4,6 +4,10 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
+class MapData(IntEnum):
+	ISLAND = 1
+	CLOUD_HOSTILE = 2
+	CLOUD_FRIENDLY = 4
 
 class Action(Enum):
     NOP = 0
@@ -155,8 +159,15 @@ class SatcomInfo:
 
 
 class GameConfig:
-    def __init__(self, num_of_rounds=0, en_satillite=False, en_submarine=False):
+    def __init__(self, num_of_players = 0, num_of_rounds = 0, num_of_fire_act = 0, num_of_move_act = 0, num_of_satc_act = 0, num_of_rows = 2, polling_rate = 1000, map_size = Size(150, 150), en_satillite=False, en_submarine=False):
+	self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
+	self.num_of_fire_act = int(num_of_fire_act)
+	self.num_of_move_act = int(num_of_move_act)
+	self.num_of_satc_act = int(num_of_satc_act)
+	self.num_of_rows = int(num_of_rows)
+	self.polling_rate = float(polling_rate)
+	self.map_size = Size(map_size.x, map_size.y)
         self.en_satillite = bool(en_satillite)
         self.en_submarine = bool(en_submarine)
 
