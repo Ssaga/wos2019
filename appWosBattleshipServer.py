@@ -445,6 +445,9 @@ class WosBattleshipServer(threading.Thread):
 
 		if (msg_data.player_id == self.game_status.player_turn):
 			self_ship_list = list()
+			enemy_ship_list = list()
+			other_ship_list = list()
+
 			for ship_info in self.player_status_list[msg_data.player_id].ship_list:
 				if isinstance(ship_info, ShipInfo):
 					ship_info_dat = ShipInfoDat(ship_info.ship_id,
@@ -454,10 +457,7 @@ class WosBattleshipServer(threading.Thread):
 												ship_info.is_sunken)
 					self_ship_list.append(ship_info_dat)
 
-			enemy_ship_list = list()
-			other_ship_list = list()
-
-			# Generate the list of civilian ships
+			# Get the list of civilian ships
 			for ship_info in self.civilian_ship_list:
 				if isinstance(ship_info, ShipInfo):
 					ship_info_dat = ShipInfoDat(ship_info.ship_id,
@@ -465,11 +465,27 @@ class WosBattleshipServer(threading.Thread):
 												ship_info.heading,
 												ship_info.size,
 												ship_info.is_sunken)
-					self_ship_list.append(ship_info_dat)
+					other_ship_list.append(ship_info_dat)
 
-
-			# TODO: Generate the list of enemy ships
-			# ...
+			# TODO: Get the list of enemy ships
+			# TODO: Do we need to differ the enemy and civilian ship? if so, how???
+			if True:
+				enemy_data_list = [value for key, value in self.player_status_list.items() if
+							   key is not msg_data.player_id]
+				print("****** %s" % enemy_data_list)
+				for enemy_data in enemy_data_list:
+					print("****** %s" % enemy_data)
+					for ship_info in enemy_data.ship_list:
+						if isinstance(ship_info, ShipInfo):
+							ship_info_dat = ShipInfoDat(ship_info.ship_id,
+														Position(ship_info.position.x, ship_info.position.y),
+														ship_info.heading,
+														ship_info.size,
+														ship_info.is_sunken)
+							other_ship_list.append(ship_info_dat)
+				print("****** %s" % other_ship_list)
+			else:
+				pass
 
 
 			bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
@@ -480,7 +496,7 @@ class WosBattleshipServer(threading.Thread):
 			map_data = np.maximum(map_data, self.cloud_layer)  # Add the cloud to the map
 			map_data = map_data * self.turn_map_mask  # Add the player default mask
 
-			reply = cMessages.MsgRepTurnInfo(True, self_ship_list, bombardment_data, map_data.tolist())
+			reply = cMessages.MsgRepTurnInfo(True, self_ship_list, enemy_ship_list, other_ship_list, bombardment_data, map_data.tolist())
 		else:
 			print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
 			reply = cMessages.MsgRepTurnInfo(False, [], [], [])

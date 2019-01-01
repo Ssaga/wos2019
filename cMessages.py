@@ -478,7 +478,9 @@ class MsgJsonDecoder(json.JSONDecoder):
 	def parse_ack_turn_info(self, obj):
 		return MsgRepTurnInfo(
 			obj['ack'],
-			obj['ship_list'],
+			obj['self_ship_list'],
+			obj['enemy_ship_list'],
+			obj['other_ship_list'],
 			obj['bombardment_list'],
 			obj['map_data']
 		)

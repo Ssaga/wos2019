@@ -159,7 +159,17 @@ class SatcomInfo:
 
 
 class GameConfig:
-    def __init__(self, num_of_players = 0, num_of_rounds = 0, num_of_fire_act = 0, num_of_move_act = 0, num_of_satc_act = 0, num_of_rows = 2, polling_rate = 1000, map_size = Size(150, 150), en_satillite=False, en_submarine=False):
+	def __init__(self,
+				 num_of_players = 0,
+				 num_of_rounds = 0,
+				 num_of_fire_act = 0,
+				 num_of_move_act = 0,
+				 num_of_satc_act = 0,
+				 num_of_rows = 2,
+				 polling_rate = 1000,
+				 map_size = Size(150, 150),
+				 en_satillite=False,
+				 en_submarine=False):
 	self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
 	self.num_of_fire_act = int(num_of_fire_act)

@@ -18,7 +18,7 @@ def wos_test_client():
 
 	# Setup
 	# Test setting
-	num_of_rounds = 1
+	num_of_rounds = 2
 	num_of_player = 4
 	list_client_comm_engine = dict()
 
