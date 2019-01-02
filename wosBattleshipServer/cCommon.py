@@ -53,7 +53,8 @@ class ServerGameConfig:
 class PlayerStatus:
 	def __init__(self):
 		self.ship_list = []
-		self.hit_count = 0
+		self.hit_enemy_count = 0
+		self.hit_civilian_count = 0
 
 	def __repr__(self):
 		return str(vars(self))
@@ -80,7 +81,9 @@ class GameTurnStatus:
 				 player_turn=0
 				 ):
 		self.game_state = game_state
+		# game round start count from 1
 		self.game_round = game_round
+		# player turn start count from 1
 		self.player_turn = player_turn
 		self.allowed_action = PlayerTurnActionCount(default_move, default_fire, default_satcom)
 		self.remaining_action = PlayerTurnActionCount(0, 0, 0)

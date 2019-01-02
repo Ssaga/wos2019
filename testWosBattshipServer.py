@@ -162,21 +162,21 @@ def wos_test_client():
 
 					assert(isinstance(test_reply, cMessages.MsgRepTurnInfo))
 
-					# Test 4 ii : Request satcom action
-					satcom_act = cCommonGame.SatcomInfo(1, 2, 3, 4, 5, 6, False, False)
-					test_reply = client_comm_engine.req_action_satcom(satcom_act)
-					if isinstance(test_reply, cMessages.MsgRepAckMap):
-						print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
-						if (game_status.player_turn == player_id) and \
-								(game_config_list[player_id].config.en_satillite):
-							assert (test_reply.ack is True)
-						else:
-							assert (test_reply.ack is False)
-					else:
-						print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
-						print("Incorrect Msg type")
-
-					assert (isinstance(test_reply, cMessages.MsgRepAckMap))
+					# # Test 4 ii : Request satcom action
+					# satcom_act = cCommonGame.SatcomInfo(1, 2, 3, 4, 5, 6, False, False)
+					# test_reply = client_comm_engine.req_action_satcom(satcom_act)
+					# if isinstance(test_reply, cMessages.MsgRepAckMap):
+					# 	print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+					# 	if (game_status.player_turn == player_id) and \
+					# 			(game_config_list[player_id].config.en_satillite):
+					# 		assert (test_reply.ack is True)
+					# 	else:
+					# 		assert (test_reply.ack is False)
+					# else:
+					# 	print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+					# 	print("Incorrect Msg type")
+					#
+					# assert (isinstance(test_reply, cMessages.MsgRepAckMap))
 
 					# Test 4 iii: Request move action
 					move_list = list()
@@ -198,7 +198,7 @@ def wos_test_client():
 
 					# Test 4 iv : Request fire action
 					fire_list = list()
-					fire_list.append(cCommonGame.FireInfo(cCommonGame.Position(1, 1)))
+					fire_list.append(cCommonGame.FireInfo(cCommonGame.Position(0, 0)))
 					test_reply = client_comm_engine.req_action_fire(fire_list)
 					if isinstance(test_reply, cMessages.MsgRepAck):
 						print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))

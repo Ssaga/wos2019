@@ -244,7 +244,6 @@ class WosBattleshipServer(threading.Thread):
 
 	def state_setup_play_input(self):
 		self.game_status.player_turn = (self.game_status.player_turn % self.game_setting.num_of_player) + 1
-		self.game_status.game_round = self.game_status.game_round + 1
 		self.game_status.reset_turn_remaining_action()
 
 		# initial the mask required for this turn
@@ -252,6 +251,9 @@ class WosBattleshipServer(threading.Thread):
 
 		# check if this is a beginning of a new round; if so, update the civilian ship and cloud
 		if self.game_status.player_turn == 1:
+			# Update the game round count
+			self.game_status.game_round = self.game_status.game_round + 1
+
 			# generate the cloud to be used for this round
 			cloud_generation(self.cloud_layer, self.game_setting.cloud_coverage)
 
@@ -284,24 +286,54 @@ class WosBattleshipServer(threading.Thread):
 
 	def state_setup_play_compute_fire(self, fire_cmd, player_status):
 		if isinstance(fire_cmd, FireInfo):
+			fire_pos = [fire_cmd.pos.x, fire_cmd.pos.y]
+			player_radar_cross_table_index = self.game_status.player_turn - 1
 			for other_player_id, other_player_info in self.player_status_list.items():
 				if other_player_id is not self.game_status.player_turn:
 					for other_player_ship_info in other_player_info.ship_list:
-						fire_pos = [fire_cmd.pos.x, fire_cmd.pos.y]
 						if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
+							# Compute if the ship has been hit
+							if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
 							other_player_ship_info.is_sunken = True
-							player_status.hit_count += 1
-							print("DEUG: Player did hit %s:%s [%s] @ [%s, %s]" % (
+								player_status.hit_enemy_count += 1
+								print("HIT SUCC: Player did hit %s:%s [%s] @ [%s, %s]" % (
 								other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area, fire_cmd.pos.x, fire_cmd.pos.y))
 						else:
-							print("DEUG: Player did not hit %s:%s [%s] @ [%s, %s]" % (
+								print("HIT FAIL: Player is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
+									other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area,
+									fire_cmd.pos.x, fire_cmd.pos.y))
+						# Else the other player ship is not within the fire area
+						else:
+							print("MISSED  : Player did not hit %s:%s [%s] @ [%s, %s]" % (
 								other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area, fire_cmd.pos.x, fire_cmd.pos.y))
 					# end of for..loop player_ship_list
 				# end of Check to skip self
 			# end of for..loop player_status_list
+
+			# Check if the player hit any civilian ship
+			for civilian_ship_info in self.civilian_ship_list:
+				if (not civilian_ship_info.is_sunken) and (fire_pos in civilian_ship_info.area):
+					# Compute if the ship has been hit
+					if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
+						civilian_ship_info.is_sunken = True
+						player_status.hit_civilian_count += 1
+						print("HIT SUCC: Player did hit civilian:%s [%s] @ [%s, %s]" % (
+							civilian_ship_info.ship_id, civilian_ship_info.area, fire_cmd.pos.x,
+							fire_cmd.pos.y))
+					else:
+						print("HIT FAIL: Player didn'ti sink the civilian:%s [%s] @ [%s, %s]" % (
+							civilian_ship_info.ship_id, civilian_ship_info.area,
+							fire_cmd.pos.x, fire_cmd.pos.y))
+				# Else the civilian is not within the fire area
 		# Else Do nothing
 		bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, self.game_status.player_turn)
 		self.comm_engine.set_game_status(bc_game_status)
+
+	def compute_if_ship_sunk(self, hit_possibility):
+		is_sunk = False
+		if np.random.rand() < hit_possibility:
+			is_sunk = True
+		return is_sunk
 
 
 	def state_setup_stop(self):
@@ -314,8 +346,9 @@ class WosBattleshipServer(threading.Thread):
 			for ship_info in player.ship_list:
 				if ship_info.is_sunken:
 					sunken_count += 1
-			score = player.hit_count - (sunken_count * 0.5)
-			print("** \tPlayer %s : score:%s | hit:%s | sunken:%s" % (key, score, player.hit_count, sunken_count))
+			score = (player.hit_enemy_count * 1.0) - (player.hit_civilian_count * 0.0) - (sunken_count * 0.5)
+			print("** \tPlayer %s : score:%s | hit:%s - %s | sunken:%s" %
+				  (key, score, player.hit_enemy_count, player.hit_civilian_count, sunken_count))
 		print("** ---------------------------------------------")
 
 	#---------------------------------------------------------------------------
