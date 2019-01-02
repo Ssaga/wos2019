@@ -90,7 +90,7 @@ def wos_test_client():
 			for ship_id in range(3):
 				ship_info = cCommonGame.ShipInfo(ship_id,
 												 cCommonGame.Position(int(np.random.random_integers(x1+3, x2-3)),
-																	  int(np.random.random_integers(y1+3, y2-3).astype(int))),
+																	  int(np.random.random_integers(y1+3, y2-3))),
 												 0, 3, False)
 				if ship_id == 1:
 					ship_info.position.x = x1 + 0

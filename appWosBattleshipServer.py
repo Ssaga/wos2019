@@ -6,6 +6,7 @@ import logging
 import sys
 import select
 import collections
+import copy
 
 import cMessages
 from cServerCommEngine import ServerCommEngine
@@ -75,10 +76,10 @@ class WosBattleshipServer(threading.Thread):
 
 		# Game Setup --------------------------------------------------------------
 		# Generate the array required
-		self.island_layer = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
-		self.cloud_layer = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
+		self.island_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y))
+		self.cloud_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y))
 		self.civilian_ship_list = []
-		self.civilian_ship_layer = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
+		self.civilian_ship_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y))
 
 		# Generate Player mask
 		self.generate_player_mask(self.player_mask_layer, self.player_boundary)
@@ -678,7 +679,7 @@ class WosBattleshipServer(threading.Thread):
 	def check_forward_action(self, player_id, pos, heading, size):
 		is_ok = True
 		boundary = self.player_boundary[player_id]
-		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
 		test_ship.move_forward()
 		# if area is within boundary
 		for pos in test_ship.area:
@@ -694,7 +695,8 @@ class WosBattleshipServer(threading.Thread):
 	def check_turn_cw_action(self, player_id, pos, heading, size):
 		is_ok = True
 		boundary = self.player_boundary[player_id]
-		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
+		test_ship.turn_clockwise()
 		test_ship.turn_clockwise()
 		# if area is within boundary
 		for pos in test_ship.area:
@@ -710,7 +712,7 @@ class WosBattleshipServer(threading.Thread):
 	def check_turn_ccw_action(self, player_id, pos, heading, size):
 		is_ok = True
 		boundary = self.player_boundary[player_id]
-		test_ship = ShipInfo(0, pos, heading, size)
+		test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
 		test_ship.turn_counter_clockwise()
 		# if area is within boundary
 		for pos in test_ship.area:
@@ -766,10 +768,11 @@ class WosBattleshipServer(threading.Thread):
 				# print(i, x1, x2, y1, y2)
 
 				mask = np.zeros((self.game_setting.map_size.y, self.game_setting.map_size.x))
-				mask[y1:y2, x1:x2] = 1
+				mask[x1:x2, y1:y2] = 1
 				player_mask_dict[i+1] = mask
 				player_boundary[i+1] = [[x1, x2], [y1, y2]]
 				# player_mask_list.append(mask)
+				# print("player %s" % (i+1))
 				# print(mask)
 
 		# return player_mask_dict
