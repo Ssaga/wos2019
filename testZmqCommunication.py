@@ -134,7 +134,7 @@ def perform_client_task(list_client_comm_engine, cnt):
         # when the game status is in init
         rep = list_client_comm_engine[player_turn].req_register()
         if rep is not None:
-        print(vars(rep))
+            print(vars(rep))
         else:
             print("No reply from server")
 
