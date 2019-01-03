@@ -160,7 +160,7 @@ class ServerCommEnginePublisher(threading.Thread):
 		while self.is_running:
 			if (self.game_status is not None) and (self.socket is not None):
 				# send the game status to the client
-				print("\tPublish game status: %s" % vars(self.game_status));
+				# print("\tPublish game status: %s" % vars(self.game_status));
 				# self.socket.send_json(self.game_status, 0, cls=MsgJsonEncoder);
 				msg_str = json.dumps(self.game_status, cls=MsgJsonEncoder)
 				self.socket.send_string(msg_str)

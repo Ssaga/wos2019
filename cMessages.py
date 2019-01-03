@@ -152,6 +152,15 @@ class MsgJsonEncoder(json.JSONEncoder):
 				"y":obj.y
 			}
 
+		elif isinstance(obj, cCommonGame.Boundary):
+			result = {
+				"__class__": "Boundary",
+				"min_x":obj.min_x,
+				"max_x":obj.max_x,
+				"min_y":obj.min_y,
+				"max_y":obj.max_y
+			}
+
 		elif isinstance(obj, cCommonGame.ShipInfo):
 			result = {
 				"__class__": "ShipInfo",
@@ -199,6 +208,7 @@ class MsgJsonEncoder(json.JSONEncoder):
 				"num_of_rows": obj.num_of_rows,
 				"polling_rate": obj.polling_rate,
 				"map_size": obj.map_size,
+				"boundary": obj.boundary,
 				"en_satillite": obj.en_satillite,
 				"en_submarine": obj.en_submarine
 			}
@@ -321,6 +331,8 @@ class MsgJsonDecoder(json.JSONDecoder):
 				result = self.parse_position(obj)
 			elif class_type == 'Size':
 				result = self.parse_size(obj)
+			elif class_type == 'Boundary':
+				result = self.parse_boundary(obj)
 			elif class_type == 'ShipInfo':
 				 result = self.parse_ship_info(obj)
 			elif class_type == 'ShipMovementInfo':
@@ -361,11 +373,24 @@ class MsgJsonDecoder(json.JSONDecoder):
 		return result
 
 	def parse_position(self, obj):
-		return cCommonGame.Position(obj['x'], obj['y'])
+		return cCommonGame.Position(
+			obj['x'],
+			obj['y']
+		)
 
 	def parse_size(self, obj):
-		return cCommonGame.Size(obj['x'], obj['y'])
+		return cCommonGame.Size(
+			obj['x'],
+			obj['y']
+		)
 
+	def parse_boundary(self, obj):
+		return cCommonGame.Boundary(
+			obj['min_x'],
+			obj['max_x'],
+			obj['min_y'],
+			obj['max_y']
+		)
 	def parse_ship_info(self, obj):
 		return cCommonGame.ShipInfo(
 			obj['ship_id'],
@@ -408,6 +433,7 @@ class MsgJsonDecoder(json.JSONDecoder):
 			obj['num_of_rows'],
 			obj['polling_rate'],
 			obj['map_size'],
+			obj['boundary'],
 			obj['en_satillite'],
 			obj['en_submarine']
 		)

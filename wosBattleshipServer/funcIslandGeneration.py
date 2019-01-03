@@ -22,7 +22,7 @@ def island_generation(map_data, island_coverage):
         bb = np.transpose(bb)
         print("index: [%s]\r\n%s" % (__file__, bb))
         for c in bb:
-            map_data[c[1]][c[0]] = 1
+            map_data[c[0]][c[1]] = 1
 
     else:
         print("input data is not np.array type")
