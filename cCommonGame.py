@@ -5,11 +5,11 @@ from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
 class MapData(IntEnum):
-	WATER = 0				# Sea / Uncovered
-	ISLAND = 1
-	CLOUD_FRIENDLY = 2		# Cloud in friendly area
-	CLOUD_HOSTILE = 4		# Cloud in hostile area
-	FOG_OF_WAR = 128
+    WATER = 0				# Sea / Uncovered
+    ISLAND = 1
+    CLOUD_FRIENDLY = 2		# Cloud in friendly area
+    CLOUD_HOSTILE = 4		# Cloud in hostile area
+    FOG_OF_WAR = 128
 
 class Action(Enum):
     NOP = 0
@@ -21,7 +21,7 @@ class Action(Enum):
 class GameState(Enum):
     INIT = 0
     PLAY_INPUT = 1
-	PLAY_COMPUTE = 2
+    PLAY_COMPUTE = 2
     STOP = 3
 
 
@@ -44,14 +44,14 @@ class Size:
 
 
 class Boundary:
-	def __init__(self, min_x=0, max_x=0, min_y=0, max_y=0):
-		self.min_x = min_x
-		self.max_x = max_x
-		self.min_y = min_y
-		self.max_y = max_y
+    def __init__(self, min_x=0, max_x=0, min_y=0, max_y=0):
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
 
-	def __repr__(self):
-		return str(vars(self))
+    def __repr__(self):
+        return str(vars(self))
 
 class Heading(IntEnum):
     NORTH = 0
@@ -132,8 +132,8 @@ class ShipInfo(QObject):
         # remove the negative 0
         placement += 0.
 
-		#TODO: How to convert the items of placement to python type from numpy type???
-		#...
+        #TODO: How to convert the items of placement to python type from numpy type???
+        #...
 
         return placement.tolist()
 
@@ -174,27 +174,27 @@ class SatcomInfo:
 
 
 class GameConfig:
-	def __init__(self,
-				 num_of_players = 0,
-				 num_of_rounds = 0,
-				 num_of_fire_act = 0,
-				 num_of_move_act = 0,
-				 num_of_satc_act = 0,
-				 num_of_rows = 2,
-				 polling_rate = 1000,
-				 map_size = Size(150, 150),
-				 boundary = Boundary(),
-				 en_satillite=False,
-				 en_submarine=False):
-	self.num_of_players = int(num_of_players)
+    def __init__(self,
+                 num_of_players = 0,
+                 num_of_rounds = 0,
+                 num_of_fire_act = 0,
+                 num_of_move_act = 0,
+                 num_of_satc_act = 0,
+                 num_of_rows = 2,
+                 polling_rate = 1000,
+                 map_size = Size(150, 150),
+                 boundary = Boundary(),
+                 en_satillite=False,
+                 en_submarine=False):
+    self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
-	self.num_of_fire_act = int(num_of_fire_act)
-	self.num_of_move_act = int(num_of_move_act)
-	self.num_of_satc_act = int(num_of_satc_act)
-	self.num_of_rows = int(num_of_rows)
-	self.polling_rate = float(polling_rate)
-	self.map_size = Size(map_size.x, map_size.y)
-		self.boundary = boundary
+    self.num_of_fire_act = int(num_of_fire_act)
+    self.num_of_move_act = int(num_of_move_act)
+    self.num_of_satc_act = int(num_of_satc_act)
+    self.num_of_rows = int(num_of_rows)
+    self.polling_rate = float(polling_rate)
+    self.map_size = Size(map_size.x, map_size.y)
+        self.boundary = boundary
         self.en_satillite = bool(en_satillite)
         self.en_submarine = bool(en_submarine)
 
