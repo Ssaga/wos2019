@@ -4,12 +4,14 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
+
 class MapData(IntEnum):
     WATER = 0				# Sea / Uncovered
     ISLAND = 1
     CLOUD_FRIENDLY = 2		# Cloud in friendly area
     CLOUD_HOSTILE = 4		# Cloud in hostile area
     FOG_OF_WAR = 128
+
 
 class Action(Enum):
     NOP = 0
@@ -131,6 +133,7 @@ class ShipInfo(QObject):
         placement = np.round(placement)
         # remove the negative 0
         placement += 0.
+        placement = placement.astype(int)
 
         #TODO: How to convert the items of placement to python type from numpy type???
         #...
@@ -183,9 +186,13 @@ class GameConfig:
                  num_of_rows = 2,
                  polling_rate = 1000,
                  map_size = Size(150, 150),
-                 boundary = Boundary(),
+                 boundary = dict(),
                  en_satillite=False,
                  en_submarine=False):
+
+        if not isinstance(boundary, dict) or not isinstance(map_size, Size):
+            raise ValueError("Invalid input parameter")
+
         self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
         self.num_of_fire_act = int(num_of_fire_act)

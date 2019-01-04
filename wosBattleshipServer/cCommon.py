@@ -15,6 +15,7 @@ class ServerGameConfig:
                  map_size=Size(120, 120),
                  island_coverage=0,
                  cloud_coverage=0,
+                 cloud_seed_cnt=0,
                  civilian_ship_count=0,
                  civilian_ship_move_probility=0.25,
                  num_of_rounds=0,
@@ -33,6 +34,7 @@ class ServerGameConfig:
         self.map_size = map_size
         self.island_coverage = island_coverage
         self.cloud_coverage = cloud_coverage
+        self.cloud_seed_cnt = cloud_seed_cnt
         self.civilian_ship_count = civilian_ship_count
         self.civilian_ship_move_probility = civilian_ship_move_probility
         self.num_of_rounds = int(num_of_rounds)
@@ -188,6 +190,7 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "map_size": obj.map_size,
                 "island_coverage": obj.island_coverage,
                 "cloud_coverage": obj.cloud_coverage,
+                "cloud_seed_cnt": obj.cloud_seed_cnt,
                 "civilian_ship_count": obj.civilian_ship_count,
                 "civilian_ship_move_probility": obj.civilian_ship_move_probility,
                 "num_of_rounds": obj.num_of_rounds,
@@ -248,6 +251,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             obj['map_size'],
             obj['island_coverage'],
             obj['cloud_coverage'],
+            obj['cloud_seed_cnt'],
             obj['civilian_ship_count'],
             obj['civilian_ship_move_probility'],
             obj['num_of_rounds'],
