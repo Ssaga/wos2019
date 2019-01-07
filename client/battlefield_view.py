@@ -110,8 +110,8 @@ class WosBattleFieldView(QGraphicsView):
             for col in range(0, len(map_data)):
                 for row in range(0, len(map_data[0])):
                     val = int(map_data[col][row])
-                    # item = WosTerrainItem(self.field_info, col, row, val)
-                    # scene.addItem(item)
+                    item = WosTerrainItem(self.field_info, col, row, val)
+                    scene.addItem(item)
 
     def grid_to_pixel(self, x, y):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \

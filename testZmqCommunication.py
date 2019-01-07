@@ -116,80 +116,6 @@ def client_thread(commEngine=ClientCommEngine()):
 # ---------------------------------------------------------------------
 #
 def perform_client_task(list_client_comm_engine, cnt):
-<<<<<<< HEAD
-	global total_turn_cnt
-	global total_round_cnt
-	player_turn = cnt % total_turn_cnt
-	round_num = (cnt - total_turn_cnt) // total_turn_cnt + 1
-	print("Round %s... Turn %s..." % (round_num, player_turn + 1))
-
-	# Print publisher data
-	obj = list_client_comm_engine[player_turn].recv_from_publisher()
-	if (obj is not None):
-		print("*** Recv Fr Publisher: %s" % obj.__dict__)
-	else:
-		print("*** Recv Fr Publisher: -- No Publish --")
-
-	# Sending request to the server for reply
-	if cnt < total_turn_cnt:
-		# when the game status is in init
-		rep = list_client_comm_engine[player_turn].req_register()
-		if rep is not None:
-		    print(vars(rep))
-		else:
-			print("No reply from server")
-
-		ship_list = []
-		ship_list.append(ShipInfo(1, Position(36, 20), 0, 3, False))
-		ship_list.append(ShipInfo(2, Position(2, 2), 90, 3, False))
-
-		rep = list_client_comm_engine[player_turn].req_register_ships(ship_list)
-		if rep is not None:
-			print(vars(rep))
-		else:
-			print("No reply from server")
-
-	# elif cnt < (total_round_cnt * total_turn_cnt) + total_turn_cnt:
-	elif cnt < total_exec_cnt:
-		# when the game status is in play
-		# Req turn info
-		rep = list_client_comm_engine[player_turn].req_turn_info()
-		if rep is None:
-			print("No valid reply from server")
-		else:
-			print(vars(rep))
-		# Satcom
-		rep = list_client_comm_engine[player_turn].req_action_satcom(
-			SatcomInfo(1, 2, 3, 4, 5, 6, False, False))
-		if rep is None:
-			print("No valid reply from server")
-		else:
-			print(vars(rep))
-		# Move ship
-		# move_action = []
-		# move_action.append(ShipMovementInfo(1, Action.FWD))
-		# move_action.append(ShipMovementInfo(1, Action.CW))
-		rep = list_client_comm_engine[player_turn].req_action_move([ShipMovementInfo(1, Action.FWD),
-																	ShipMovementInfo(2, Action.CW),
-																	ShipMovementInfo(3, Action.CCW)])
-		if rep is None:
-			print("No valid reply from server")
-		else:
-			print(vars(rep))
-		# Fire at the enemy
-		# fire_action = []
-		# fire_action.append(FireInfo(Position(1, 1)))
-		# fire_action.append(FireInfo(Position(2, 2)))
-		rep = list_client_comm_engine[player_turn].req_action_fire([FireInfo(Position(1, 1)),
-																	FireInfo(Position(2, 2))])
-		if rep is None:
-			print("No valid reply from server")
-		else:
-			print(vars(rep))
-	else:
-		# when the game status is in end
-		pass
-=======
     global total_turn_cnt
     global total_round_cnt
     player_turn = cnt % total_turn_cnt
@@ -262,7 +188,79 @@ def perform_client_task(list_client_comm_engine, cnt):
     else:
         # when the game status is in end
         pass
->>>>>>> 00981ef5bc6db319946510612dad0e3d6584e541
+
+    global total_turn_cnt
+    global total_round_cnt
+    player_turn = cnt % total_turn_cnt
+    round_num = (cnt - total_turn_cnt) // total_turn_cnt + 1
+    print("Round %s... Turn %s..." % (round_num, player_turn + 1))
+
+    # Print publisher data
+    obj = list_client_comm_engine[player_turn].recv_from_publisher()
+    if (obj is not None):
+        print("*** Recv Fr Publisher: %s" % obj.__dict__)
+    else:
+        print("*** Recv Fr Publisher: -- No Publish --")
+
+    # Sending request to the server for reply
+    if cnt < total_turn_cnt:
+        # when the game status is in init
+        rep = list_client_comm_engine[player_turn].req_register()
+        if rep is not None:
+            print(vars(rep))
+        else:
+            print("No reply from server")
+
+        ship_list = []
+        ship_list.append(ShipInfo(1, Position(36, 20), 0, 3, False))
+        ship_list.append(ShipInfo(2, Position(2, 2), 90, 3, False))
+
+        rep = list_client_comm_engine[player_turn].req_register_ships(ship_list)
+        if rep is not None:
+            print(vars(rep))
+        else:
+            print("No reply from server")
+
+    # elif cnt < (total_round_cnt * total_turn_cnt) + total_turn_cnt:
+    elif cnt < total_exec_cnt:
+        # when the game status is in play
+        # Req turn info
+        rep = list_client_comm_engine[player_turn].req_turn_info()
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+        # Satcom
+        rep = list_client_comm_engine[player_turn].req_action_satcom(
+            SatcomInfo(1, 2, 3, 4, 5, 6, False, False))
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+        # Move ship
+        # move_action = []
+        # move_action.append(ShipMovementInfo(1, Action.FWD))
+        # move_action.append(ShipMovementInfo(1, Action.CW))
+        rep = list_client_comm_engine[player_turn].req_action_move([ShipMovementInfo(1, Action.FWD),
+                                                                    ShipMovementInfo(2, Action.CW),
+                                                                    ShipMovementInfo(3, Action.CCW)])
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+        # Fire at the enemy
+        # fire_action = []
+        # fire_action.append(FireInfo(Position(1, 1)))
+        # fire_action.append(FireInfo(Position(2, 2)))
+        rep = list_client_comm_engine[player_turn].req_action_fire([FireInfo(Position(1, 1)),
+                                                                    FireInfo(Position(2, 2))])
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+    else:
+        # when the game status is in end
+        pass
 
 
 # ---------------------------------------------------------------------

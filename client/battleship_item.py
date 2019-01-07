@@ -16,34 +16,37 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.ship_info.rotated.connect(self.ship_rotated)
         self.ship_info.moved.connect(self.ship_moved)
 
-        self.start_pos = QPointF(field_info.size.x() * 0.2, field_info.size.y() * 0.2)
-        self.end_pos = QPointF(field_info.size.x() * 0.8,
-                               self.ship_info.size * field_info.size.y() - self.start_pos.y())
-
-        head_end_y = field_info.size.y() * 0.8
-        self.head = QPolygonF(
-            [QPointF(self.start_pos.x(), head_end_y),
-             QPointF((self.end_pos.x() + self.start_pos.x()) / 2, self.start_pos.y()),
-             QPointF(self.end_pos.x(), head_end_y)])
-
-        self.tail = QPolygonF(
-            [QPointF(self.start_pos.x(), head_end_y),
-             QPointF(self.start_pos.x(), self.end_pos.y()),
-             QPointF(self.end_pos.x(), self.end_pos.y()),
-             QPointF(self.end_pos.x(), head_end_y)])
-
-        self.body = QPolygonF(self.head + self.tail)
+        self.start_pos = QPointF()
+        self.end_pos = QPointF()
+        self.head = QPolygonF()
+        self.tail = QPolygonF()
+        self.body = QPolygonF()
+        self.update_body()
 
         self.brushes = dict()
         self.brushes[ShipInfo.Type.FRIENDLY] = QBrush(QColor(0, 200, 0, 255))
         self.brushes[ShipInfo.Type.HOSTILE] = QBrush(QColor(200, 0, 0, 255))
         self.brushes[ShipInfo.Type.CIVILIAN] = QBrush(QColor(200, 200, 200, 255))
         self.brushes[ShipInfo.Type.UNKNOWN] = QBrush(QColor(200, 200, 0, 255))
-        self.brushes[ShipInfo.Type.SHADOW] = QBrush(QColor(0, 0, 0, 128))
+        self.brushes[ShipInfo.Type.SHADOW] = QBrush(QColor(0, 0, 0, 0))
+        self.pens = dict()
+        self.pens[ShipInfo.Type.FRIENDLY] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.HOSTILE] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.CIVILIAN] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.UNKNOWN] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.SHADOW] = QPen(QColor(255, 0, 0, 255), 2, Qt.DashLine)
         self.pen = QPen(QColor(0, 0, 0, 255))
 
     def boundingRect(self):
         return QRectF(self.start_pos, self.end_pos)
+
+    def clone(self):
+        ship_item = WosBattleShipItem(self.field_info, self.ship_info.ship_id, self.ship_info.size,
+                                      self.ship_info.is_sunken)
+        ship_item.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)
+        ship_item.set_heading(self.ship_info.heading)
+        ship_item.set_is_draggable(self.is_draggable)
+        return ship_item
 
     def draw_cross(self, painter):
         painter.setPen(QPen(QColor(255, 0, 0, 255), 3))
@@ -55,19 +58,32 @@ class WosBattleShipItem(WosBattlefieldItem):
         return self.ship_info
 
     def hoverEnterEvent(self, event):
-        # self.brush = QBrush(QColor(200, 0, 0, 255))
-        self.pen = QPen(QColor(0, 0, 0, 255), 2)
+        self.pens[self.ship_info.type].setWidth(2)
         self.show_tool_tip(event)
         self.update()
 
     def hoverLeaveEvent(self, event):
-        # self.brush = QBrush(QColor(200, 0, 0, 255))
-        self.pen = QPen(QColor(0, 0, 0, 255))
+        self.pens[self.ship_info.type].setWidth(1)
         QToolTip.hideText()
         self.update()
 
     def hoverMoveEvent(self, event):
         self.show_tool_tip(event)
+
+    def make_shadow(self, ship, action):
+        ship.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)
+        ship.set_heading(self.ship_info.heading)
+        ship.set_size(self.ship_info.size)
+        ship.set_ship_type(ShipInfo.Type.SHADOW)
+        ship.set_is_hoverable(False)
+        # todo: Consider depth manager class
+        ship.setZValue(2)
+        if action == cCommonGame.Action.FWD:
+            ship.ship_info.move_forward()
+        elif action == cCommonGame.Action.CW:
+            ship.ship_info.turn_clockwise()
+        elif action == cCommonGame.Action.CCW:
+            ship.ship_info.turn_counter_clockwise()
 
     def mouseReleaseEvent(self, event):
         if self.drag_delta is not None:
@@ -79,7 +95,7 @@ class WosBattleShipItem(WosBattlefieldItem):
 
     def paint(self, painter, style, widget=None):
         painter.setBrush(self.brushes[self.ship_info.type])
-        painter.setPen(self.pen)
+        painter.setPen(self.pens[self.ship_info.type])
         painter.drawPolygon(self.body)
         if self.ship_info.is_sunken:
             self.draw_cross(painter)
@@ -102,6 +118,10 @@ class WosBattleShipItem(WosBattlefieldItem):
     def set_ship_type(self, t):
         self.ship_info.set_type(t)
 
+    def set_size(self, length):
+        self.ship_info.size = length
+        self.update_body()
+
     def show_tool_tip(self, event):
         tool_tip = ''
         if self.ship_info.type is ShipInfo.Type.FRIENDLY:
@@ -121,3 +141,22 @@ class WosBattleShipItem(WosBattlefieldItem):
     def snap_to_grid(self, pos_x, pos_y):
         p = self.map_position_to_grid(pos_x, pos_y)
         self.set_grid_position(p.x(), p.y())
+
+    def update_body(self):
+        self.start_pos = QPointF(self.field_info.size.x() * 0.2, self.field_info.size.y() * 0.2)
+        self.end_pos = QPointF(self.field_info.size.x() * 0.8,
+                               self.ship_info.size * self.field_info.size.y() - self.start_pos.y())
+
+        head_end_y = self.field_info.size.y() * 0.8
+        self.head = QPolygonF(
+            [QPointF(self.start_pos.x(), head_end_y),
+             QPointF((self.end_pos.x() + self.start_pos.x()) / 2, self.start_pos.y()),
+             QPointF(self.end_pos.x(), head_end_y)])
+
+        self.tail = QPolygonF(
+            [QPointF(self.start_pos.x(), head_end_y),
+             QPointF(self.start_pos.x(), self.end_pos.y()),
+             QPointF(self.end_pos.x(), self.end_pos.y()),
+             QPointF(self.end_pos.x(), head_end_y)])
+
+        self.body = QPolygonF(self.head + self.tail)

@@ -30,7 +30,8 @@ class WosBattleManager(WosPhaseManager):
         self.num_sat_actions = 1
         self.map_size_x = 120
         self.map_size_y = 120
-        self.ships_items = []
+        self.ships_items = dict()
+        self.ships_shadow_items = dict()
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_game_event)
@@ -55,12 +56,18 @@ class WosBattleManager(WosPhaseManager):
 
     def insert_annotations_to_scene(self, scene):
         actions_widget = self.wos_interface.actions
-        for i in range(1, self.num_move_actions):
-            ship_item = WosBattleShipItem(self.field_info, 20, 2, False)
-            ship_item.set_grid_position(4, 5)
-            ship_item.set_ship_type(ShipInfo.Type.SHADOW)
-            ship_item.set_is_draggable(False)
-            scene.addItem(ship_item)
+
+        for i in range(1, self.num_move_actions + 1):
+            ship_shadow = self.ships_items[0].clone()
+            combo = actions_widget.findChildren(QComboBox, "action_%s_combo" % i)
+            if len(combo) > 0:
+                combo[0].currentTextChanged.connect(self.update_ship_shadow)
+            combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
+            if len(combo) > 0:
+                combo[0].currentTextChanged.connect(self.update_ship_shadow)
+            scene.addItem(ship_shadow)
+            self.ships_shadow_items[i] = ship_shadow
+        self.update_ship_shadow()
 
         for i in range(1, self.num_fire_actions + 1):
             x = 1
@@ -77,6 +84,23 @@ class WosBattleManager(WosPhaseManager):
             if len(y_combo) > 0:
                 y_combo[0].currentTextChanged.connect(fire.set_y)
             scene.addItem(fire)
+
+    def update_ship_shadow(self):
+        actions_widget = self.wos_interface.actions
+        for i in range(1, self.num_move_actions + 1):
+            action_combo = actions_widget.findChildren(QComboBox, "action_%s_combo" % i)
+            action = cCommonGame.Action.NOP
+            if len(action_combo) > 0:
+                action_combo = action_combo[0]
+                action = action_combo.currentData()
+            ship_combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
+            if len(ship_combo) > 0:
+                ship_combo = ship_combo[0]
+                ship_id = ship_combo.currentData()
+                ship = self.ships_items[ship_id]
+                ship_shadow = self.ships_shadow_items[i]
+                ship.make_shadow(ship_shadow, action)
+                ship_shadow.update()
 
     def is_current_turn(self, game_status):
         return game_status.player_turn == self.wos_interface.player_info.player_id
@@ -146,10 +170,12 @@ class WosBattleManager(WosPhaseManager):
         self.wos_interface.battlefield.update_map(turn_info.map_data)
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
-        self.ships_items = list()
+        self.ships_items = dict()
         for i in range(0, len(turn_info.self_ship_list)):
             ship_item = self.insert_ship_to_scene(scene, turn_info.self_ship_list[i], ShipInfo.Type.FRIENDLY)
-            self.ships_items.append(ship_item)
+            if ship_item is not None:
+                id = ship_item.ship_info.ship_id
+                self.ships_items[id] = ship_item
 
         for i in range(0, len(turn_info.enemy_ship_list)):
             self.insert_ship_to_scene(scene, turn_info.enemy_ship_list[i], ShipInfo.Type.HOSTILE)
@@ -164,9 +190,9 @@ class WosBattleManager(WosPhaseManager):
             if len(combo) > 0:
                 combo = combo[0]
                 combo.clear()
-                for ship_item in self.ships_items:
-                    if ship_item.ship_info.is_sunken:
-                        combo.addItem(str(ship_item.ship_info.ship_id), ship_item.ship_info.ship_id)
+                for ship_id, ship in self.ships_items.items():
+                    if not ship.ship_info.is_sunken:
+                        combo.addItem(str(ship_id), ship_id)
 
         self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
 

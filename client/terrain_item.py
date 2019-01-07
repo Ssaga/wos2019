@@ -27,7 +27,7 @@ class WosTerrainItem(WosBattlefieldItem):
         self.brushes[cCommonGame.MapData.ISLAND] = QBrush(QColor(194, 194, 64, 255), Qt.Dense1Pattern)
         self.brushes[cCommonGame.MapData.CLOUD_FRIENDLY] = QBrush(QColor(240, 240, 240, 128), Qt.Dense1Pattern)
         self.brushes[cCommonGame.MapData.CLOUD_HOSTILE] = QBrush(QColor(240, 240, 240, 255), Qt.Dense1Pattern)
-        self.brushes[cCommonGame.MapData.FOG_OF_WAR] = QBrush(QColor(200, 200, 200, 255), Qt.Dense1Pattern)
+        self.brushes[cCommonGame.MapData.FOG_OF_WAR] = QBrush(QColor(100, 100, 100, 255), Qt.Dense1Pattern)
 
         self.pen = QPen(QColor(0, 0, 0, 255))
 

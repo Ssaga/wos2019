@@ -20,6 +20,10 @@ class WosFireAnnotationItem(WosBattlefieldItem):
         self.set_position(x, y)
 
         self.set_is_draggable(False)
+        self.set_is_hoverable(False)
+
+        # todo: Consider depth manager class
+        self.setZValue(2)
 
         self.brush = QBrush(QColor(255, 0, 0, 255))
         self.pen = QPen(QColor(255, 0, 0, 255), 2)

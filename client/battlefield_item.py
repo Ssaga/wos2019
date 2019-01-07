@@ -40,6 +40,9 @@ class WosBattlefieldItem(QGraphicsItem):
             self.drag_delta = None
             self.snap_to_grid(self.pos().x(), self.pos().y())
 
+    def set_is_hoverable(self, is_hoverable):
+        self.setAcceptHoverEvents(is_hoverable)
+
     def set_is_draggable(self, is_draggable):
         self.is_draggable = is_draggable
 
