@@ -261,7 +261,7 @@ class ClientCommEngineSubscriber(threading.Thread):
 				# msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
 				msg_str = self.socket.recv_string()
 				msg = json.loads(msg_str, cls=MsgJsonDecoder)
-				print("\tsubscriber-recv: %s" % msg)
+				# print("\tsubscriber-recv: %s" % msg)
 
 				# set  game status
 				if (msg is not None) and (isinstance(msg, cCommonGame.GameStatus)):

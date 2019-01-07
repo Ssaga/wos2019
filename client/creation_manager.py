@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QToolButton
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
 from client.player_info import PlayerInfo
+import cCommonGame
 
 
 class WosCreationManager(WosPhaseManager):
@@ -19,7 +20,7 @@ class WosCreationManager(WosPhaseManager):
         WosPhaseManager.__init__(self, wos_interface, parent)
         self.dialog = None
         # todo: Read from config file or get from server
-        self.num_of_players = 2
+        self.num_of_players = 8
 
     def start(self):
         self.dialog = QDialog(self.wos_interface.main_window(), Qt.WindowTitleHint)
@@ -53,6 +54,7 @@ class WosCreationManager(WosPhaseManager):
             self.wos_interface.player_info = PlayerInfo(player_id)
             self.wos_interface.cfg = WosClientInterfaceManager().get_config()
             self.wos_interface.log('<font color="green">Success!</font>')
+            self.wos_interface.log(vars(self.wos_interface.cfg), cCommonGame.LogType.DEBUG)
             self.end()
         else:
             self.wos_interface.log(

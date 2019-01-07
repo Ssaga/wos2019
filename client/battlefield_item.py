@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import QGraphicsItem
 
 
 class WosBattlefieldItem(QGraphicsItem):
-    def __init__(self, field_info, ship_id=0):
+    def __init__(self, field_info):
         QGraphicsItem.__init__(self)
         self.field_info = field_info
+        self.is_draggable = True
 
         self.setAcceptDrops(True)
         self.setAcceptHoverEvents(True)
@@ -27,7 +28,8 @@ class WosBattlefieldItem(QGraphicsItem):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             # self.drag_delta = self.mapToItem(self, event.pos())
-            self.drag_delta = self.field_info.size / 2
+            if self.is_draggable:
+                self.drag_delta = self.field_info.size / 2
 
     def mouseMoveEvent(self, event):
         if self.drag_delta is not None:
@@ -37,6 +39,9 @@ class WosBattlefieldItem(QGraphicsItem):
         if self.drag_delta is not None:
             self.drag_delta = None
             self.snap_to_grid(self.pos().x(), self.pos().y())
+
+    def set_is_draggable(self, is_draggable):
+        self.is_draggable = is_draggable
 
     def snap_to_grid(self, pos_x, pos_y):
         pass

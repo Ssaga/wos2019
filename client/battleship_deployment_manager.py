@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QWidget
 from client.battleship_item import WosBattleShipItem
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
+from client.ship_info import ShipInfo
 
 import cCommonGame
 
@@ -54,28 +55,35 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
                                "reposition with left mouse button, rotate the ships with right mouse button.")
 
         scene = self.wos_interface.battlefield.battle_scene.scene()
-        # todo: remove hard code 120
-        self.wos_interface.battlefield.generate_scene(120, 120)
+        cfg = self.wos_interface.cfg
+        map_size_x = 120
+        map_size_y = 120
+        if cfg is not None:
+            map_size_x = cfg.map_size.x
+            map_size_y = cfg.map_size.y
+
+        self.wos_interface.battlefield.generate_scene(map_size_x, map_size_y)
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
         # todo: Read config file for squad list, stub for now
-        self.ships_items = [WosBattleShipItem(field_info, 1, 2), WosBattleShipItem(field_info, 2, 2),
-                            WosBattleShipItem(field_info, 3, 3), WosBattleShipItem(field_info, 4, 3),
-                            WosBattleShipItem(field_info, 5, 4), WosBattleShipItem(field_info, 6, 4),
-                            WosBattleShipItem(field_info, 7, 5), WosBattleShipItem(field_info, 8, 5)]
+        self.ships_items = [WosBattleShipItem(field_info, 0, 2), WosBattleShipItem(field_info, 1, 2),
+                            WosBattleShipItem(field_info, 2, 3), WosBattleShipItem(field_info, 3, 3),
+                            WosBattleShipItem(field_info, 4, 4), WosBattleShipItem(field_info, 5, 4),
+                            WosBattleShipItem(field_info, 6, 5), WosBattleShipItem(field_info, 7, 5)]
 
-        # todo: Consider making a helper function
+        # todo: Need to get boundary from config
         start_position = cCommonGame.Position()
         if self.wos_interface.player_info.player_id == 2:
             start_position.y += 60
         elif self.wos_interface.player_info.player_id == 3:
-            start_position.x += 60
+            start_position.y += 60
         elif self.wos_interface.player_info.player_id == 4:
             start_position.x += 60
             start_position.y += 60
 
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
+            self.ships_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
             self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 0)
 
         self.update_action_widget()

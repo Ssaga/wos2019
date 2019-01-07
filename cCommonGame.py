@@ -4,10 +4,14 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
+
 class MapData(IntEnum):
-	ISLAND = 1
-	CLOUD_HOSTILE = 2
-	CLOUD_FRIENDLY = 4
+    WATER = 0
+    ISLAND = 1
+    CLOUD_HOSTILE = 2
+    CLOUD_FRIENDLY = 4
+    FOG_OF_WAR = 128
+
 
 class Action(Enum):
     NOP = 0
@@ -19,7 +23,7 @@ class Action(Enum):
 class GameState(Enum):
     INIT = 0
     PLAY_INPUT = 1
-    PLAY_COMPUTE = 1
+    PLAY_COMPUTE = 2
     STOP = 3
 
 
@@ -159,30 +163,31 @@ class SatcomInfo:
 
 
 class GameConfig:
-	def __init__(self,
-				 num_of_players = 0,
-				 num_of_rounds = 0,
-				 num_of_fire_act = 0,
-				 num_of_move_act = 0,
-				 num_of_satc_act = 0,
-				 num_of_rows = 2,
-				 polling_rate = 1000,
-				 map_size = Size(150, 150),
-				 en_satillite=False,
-				 en_submarine=False):
-	self.num_of_players = int(num_of_players)
+    def __init__(self,
+                 num_of_players=0,
+                 num_of_rounds=0,
+                 num_of_fire_act=0,
+                 num_of_move_act=0,
+                 num_of_satc_act=0,
+                 num_of_rows=2,
+                 polling_rate=1000,
+                 map_size=Size(150, 150),
+                 en_satillite=False,
+                 en_submarine=False):
+        self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
-	self.num_of_fire_act = int(num_of_fire_act)
-	self.num_of_move_act = int(num_of_move_act)
-	self.num_of_satc_act = int(num_of_satc_act)
-	self.num_of_rows = int(num_of_rows)
-	self.polling_rate = float(polling_rate)
-	self.map_size = Size(map_size.x, map_size.y)
+        self.num_of_fire_act = int(num_of_fire_act)
+        self.num_of_move_act = int(num_of_move_act)
+        self.num_of_satc_act = int(num_of_satc_act)
+        self.num_of_rows = int(num_of_rows)
+        self.polling_rate = float(polling_rate)
+        self.map_size = Size(map_size.x, map_size.y)
         self.en_satillite = bool(en_satillite)
         self.en_submarine = bool(en_submarine)
 
-    def __repr__(self):
-        return str(vars(self))
+
+def __repr__(self):
+    return str(vars(self))
 
 
 class GameStatus:
@@ -199,3 +204,9 @@ class GameStatus:
 
     def get_enum_game_state(self):
         return GameState[self.game_state_str]
+
+class LogType(IntEnum):
+    GAME = 1
+    DEBUG = 2
+    ALL = 3
+

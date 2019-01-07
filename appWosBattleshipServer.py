@@ -295,11 +295,11 @@ class WosBattleshipServer(threading.Thread):
 						if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
 							# Compute if the ship has been hit
 							if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
-							other_player_ship_info.is_sunken = True
+								other_player_ship_info.is_sunken = True
 								player_status.hit_enemy_count += 1
 								print("HIT SUCC: Player did hit %s:%s [%s] @ [%s, %s]" % (
 								other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area, fire_cmd.pos.x, fire_cmd.pos.y))
-						else:
+							else:
 								print("HIT FAIL: Player is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
 									other_player_id, other_player_ship_info.ship_id, other_player_ship_info.area,
 									fire_cmd.pos.x, fire_cmd.pos.y))

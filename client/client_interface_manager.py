@@ -66,7 +66,7 @@ class WosClientInterfaceManager(object):
         cfg = self.client_commEngine.req_config()
         # print(vars(cfg))
         if isinstance(cfg, cMessages.MsgRepGameConfig):
-            return cfg
+            return cfg.config
         return False
 
     def get_game_status(self):
@@ -82,21 +82,21 @@ class WosClientInterfaceManager(object):
 
     def send_action_attack(self, fire_list):
         rep = self.client_commEngine.req_action_fire(fire_list)
-        # print(vars(rep))
+        print(vars(rep))
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False
 
     def send_action_move(self, move_list):
         rep = self.client_commEngine.req_action_move(move_list)
-        # print(vars(rep))
+        print(vars(rep))
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False
 
     def send_deployment(self, ship_list):
         rep = self.client_commEngine.req_register_ships(ship_list)
-        # print(vars(rep))
+        print(vars(rep))
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False

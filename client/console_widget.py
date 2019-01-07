@@ -2,12 +2,16 @@ from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QTextEdit
 from PyQt5.QtWidgets import QDockWidget
 from PyQt5.QtWidgets import QWidget
+from enum import Enum
+import cCommonGame
 import datetime
 
 
 class WosConsoleWidget(QDockWidget):
     def __init__(self, parent=None):
         QDockWidget.__init__(self, parent)
+
+        self.mode = cCommonGame.LogType.ALL
 
         self.setWindowTitle('Console')
         self.setMinimumWidth(500)
@@ -24,10 +28,15 @@ class WosConsoleWidget(QDockWidget):
         self.log_simple("Welcome to World of Science.")
         self.log_simple("You have 30mins to solve the puzzles before the bomb explodes, all the best.")
 
-    def log_simple(self, text):
+    def log_simple(self, text, type=cCommonGame.LogType.GAME):
         now = datetime.datetime.now()
-        self.log(now.strftime("%d-%m-%Y %H:%M:%S"), text)
+        self.log(now.strftime("%d-%m-%Y %H:%M:%S"), text, type)
 
-    def log(self, date_and_time_string, text):
-        line = "{}: {}<br>".format(date_and_time_string, text)
-        self.console.insertHtml(line)
+    def log(self, date_and_time_string, text, type=cCommonGame.LogType.GAME):
+        if self.mode & type:
+            if type & cCommonGame.LogType.DEBUG:
+                line = "{}: <font color='brown'><i>{}</i></font><br>".format(date_and_time_string, text)
+            else:
+                line = "{}: {}<br>".format(date_and_time_string, text)
+            self.console.insertHtml(line)
+            self.console.ensureCursorVisible()
