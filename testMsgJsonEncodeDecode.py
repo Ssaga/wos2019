@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 import cMessages
 import cCommonGame
@@ -17,6 +18,14 @@ print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 print("Size:")
 a = cCommonGame.Size(1,2)
+b = MsgJsonEncoder().encode(a)
+c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
+print("Encoder: %s" % b)
+print("JSON  : %s" % c)
+print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
+
+print("Boundary:")
+a = cCommonGame.Boundary(0,12,12,24)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
@@ -61,8 +70,38 @@ print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
 print("GameConfig:")
-a = cCommonGame.GameConfig(0, cCommonGame.Action.FWD)
-b = MsgJsonEncoder().encode(a)
+num_of_players = 4
+num_of_rounds = 2
+num_of_fire_act = 2
+num_of_move_act = 1
+num_of_satc_act = 1
+num_of_rows = 2
+polling_rate = 500
+map_size = cCommonGame.Size(12, 12)
+boundary = dict()
+col_count = int(np.ceil(num_of_players / num_of_rows))
+row_count = num_of_rows
+player_x_sz = int(map_size.x / col_count)
+player_y_sz = int(map_size.y / row_count)
+for i in range(num_of_players):
+    x1 = int((i % col_count) * player_x_sz)
+    x2 = x1 + player_x_sz
+    y1 = int((i // col_count) * player_y_sz)
+    y2 = y1 + player_y_sz
+    boundary[i+1] = [[x1, x2], [y1, y2]]
+en_satillite=True
+en_submarine=False
+a = cCommonGame.GameConfig(num_of_players,
+                           num_of_rounds,
+                           num_of_fire_act,
+                           num_of_move_act,
+                           num_of_satc_act,
+                           num_of_rows,
+                           polling_rate,
+                           map_size,
+                           boundary,
+                           en_satillite,
+                           en_submarine)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)
 print("JSON  : %s" % c)
@@ -176,7 +215,7 @@ print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
 print("MsgRepGameConfig:")
-a = cMessages.MsgRepGameConfig(True, cCommonGame.GameConfig(5, True, True))
+a = cMessages.MsgRepGameConfig(True, cCommonGame.GameConfig())
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)

@@ -6,10 +6,17 @@ import numpy as np
 
 
 class MapData(IntEnum):
+<<<<<<< HEAD
     WATER = 0
     ISLAND = 1
     CLOUD_HOSTILE = 2
     CLOUD_FRIENDLY = 4
+=======
+    WATER = 0				# Sea / Uncovered
+    ISLAND = 1
+    CLOUD_FRIENDLY = 2		# Cloud in friendly area
+    CLOUD_HOSTILE = 4		# Cloud in hostile area
+>>>>>>> 00981ef5bc6db319946510612dad0e3d6584e541
     FOG_OF_WAR = 128
 
 
@@ -44,6 +51,16 @@ class Size:
     def __repr__(self):
         return str(vars(self))
 
+
+class Boundary:
+    def __init__(self, min_x=0, max_x=0, min_y=0, max_y=0):
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
+
+    def __repr__(self):
+        return str(vars(self))
 
 class Heading(IntEnum):
     NORTH = 0
@@ -123,6 +140,10 @@ class ShipInfo(QObject):
         placement = np.round(placement)
         # remove the negative 0
         placement += 0.
+        placement = placement.astype(int)
+
+        #TODO: How to convert the items of placement to python type from numpy type???
+        #...
 
         return placement.tolist()
 
@@ -164,6 +185,7 @@ class SatcomInfo:
 
 class GameConfig:
     def __init__(self,
+<<<<<<< HEAD
                  num_of_players=0,
                  num_of_rounds=0,
                  num_of_fire_act=0,
@@ -174,6 +196,23 @@ class GameConfig:
                  map_size=Size(150, 150),
                  en_satillite=False,
                  en_submarine=False):
+=======
+                 num_of_players = 0,
+                 num_of_rounds = 0,
+                 num_of_fire_act = 0,
+                 num_of_move_act = 0,
+                 num_of_satc_act = 0,
+                 num_of_rows = 2,
+                 polling_rate = 1000,
+                 map_size = Size(150, 150),
+                 boundary = dict(),
+                 en_satillite=False,
+                 en_submarine=False):
+
+        if not isinstance(boundary, dict) or not isinstance(map_size, Size):
+            raise ValueError("Invalid input parameter")
+
+>>>>>>> 00981ef5bc6db319946510612dad0e3d6584e541
         self.num_of_players = int(num_of_players)
         self.num_of_rounds = int(num_of_rounds)
         self.num_of_fire_act = int(num_of_fire_act)
@@ -182,6 +221,10 @@ class GameConfig:
         self.num_of_rows = int(num_of_rows)
         self.polling_rate = float(polling_rate)
         self.map_size = Size(map_size.x, map_size.y)
+<<<<<<< HEAD
+=======
+        self.boundary = boundary
+>>>>>>> 00981ef5bc6db319946510612dad0e3d6584e541
         self.en_satillite = bool(en_satillite)
         self.en_submarine = bool(en_submarine)
 
