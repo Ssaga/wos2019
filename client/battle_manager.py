@@ -189,10 +189,17 @@ class WosBattleManager(WosPhaseManager):
             if len(combo) > 0:
                 combo = combo[0]
                 combo.blockSignals(True)
+                # Preserve last command
+                old_text = combo.currentText()
                 combo.clear()
                 for ship_id, ship in self.ships_items.items():
                     if not ship.ship_info.is_sunken:
                         combo.addItem(str(ship_id), ship_id)
+                if not old_text:
+                    # Default index
+                    combo.setCurrentIndex(i - 1)
+                else:
+                    combo.setCurrentText(old_text)
                 combo.blockSignals(False)
 
         self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
@@ -219,7 +226,9 @@ class WosBattleManager(WosPhaseManager):
             action = cCommonGame.Action.NOP
             if len(combo) > 0:
                 action = combo[0].currentData()
-            move_list.append(cCommonGame.ShipMovementInfo(ship_id, action))
+            move_info = cCommonGame.ShipMovementInfo(ship_id, action)
+            move_list.append(move_info)
+            self.wos_interface.log(move_info.to_string())
 
         # Collate fire action(s)
         fire_list = list()
@@ -232,7 +241,9 @@ class WosBattleManager(WosPhaseManager):
             combo = actions_widget.findChildren(QComboBox, "attack_y_%s_combo" % i)
             if len(combo) > 0:
                 y = combo[0].currentData()
-            fire_list.append(cCommonGame.FireInfo(cCommonGame.Position(x, y)))
+            fire_info = cCommonGame.FireInfo(cCommonGame.Position(x, y))
+            fire_list.append(fire_info)
+            self.wos_interface.log(fire_info.to_string())
 
         self.wos_interface.log("Sending commands to server..")
 

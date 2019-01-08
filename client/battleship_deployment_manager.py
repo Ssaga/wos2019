@@ -45,7 +45,8 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
             self.wos_interface.log("Please wait for all the players to deploy their ships")
             self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
         else:
-            self.wos_interface.log("Server declined")
+            self.wos_interface.log("Server declined, please check that your deployments are valid")
+            self.sender().setEnabled(True)
         # todo; Don't end if server did not acknowledged
         # self.end()
 
@@ -63,6 +64,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
             map_size_y = cfg.map_size.y
 
         self.wos_interface.battlefield.generate_scene(map_size_x, map_size_y)
+        self.wos_interface.battlefield.battle_scene.update_boundaries(cfg.boundary)
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
         # todo: Read config file for squad list, stub for now
@@ -71,20 +73,15 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
                             WosBattleShipItem(field_info, 4, 4), WosBattleShipItem(field_info, 5, 4),
                             WosBattleShipItem(field_info, 6, 5), WosBattleShipItem(field_info, 7, 5)]
 
-        # todo: Need to get boundary from config
         start_position = cCommonGame.Position()
-        if self.wos_interface.player_info.player_id == 2:
-            start_position.y += 60
-        elif self.wos_interface.player_info.player_id == 3:
-            start_position.y += 60
-        elif self.wos_interface.player_info.player_id == 4:
-            start_position.x += 60
-            start_position.y += 60
-
+        player_id = str(self.wos_interface.player_info.player_id)
+        start_position.x = self.wos_interface.cfg.boundary[player_id].min_x
+        start_position.y = self.wos_interface.cfg.boundary[player_id].min_y
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
             self.ships_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
             self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 0)
+        self.wos_interface.battlefield.battle_scene.centerOn(self.ships_items[-1])
 
         self.update_action_widget()
 

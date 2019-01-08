@@ -17,6 +17,8 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.ship_info.rotated.connect(self.ship_rotated)
         self.ship_info.moved.connect(self.ship_moved)
 
+        self.set_type(ItemType.SHIP)
+
         self.start_pos = QPointF()
         self.end_pos = QPointF()
         self.head = QPolygonF()

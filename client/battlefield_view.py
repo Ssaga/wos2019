@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
+from PyQt5.QtCore import QRectF
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QColor
@@ -41,18 +42,12 @@ class WosBattleFieldView(QGraphicsView):
 
         self.field_info = WosFieldInfo(QPoint(40, 40), QPoint(20, 20), field_count)
 
-        self.field_lines = []
-        self.labels = []
+        self.field_lines = list()
+        self.labels = list()
+        self.boundaries = dict()
 
         self.field_types = [cCommonGame.MapData.ISLAND, cCommonGame.MapData.CLOUD_FRIENDLY,
                             cCommonGame.MapData.CLOUD_HOSTILE, cCommonGame.MapData.ISLAND]
-
-        self.brushes = dict()
-        self.brushes[cCommonGame.MapData.WATER] = QBrush(QColor(0, 0, 0, 0))
-        self.brushes[cCommonGame.MapData.ISLAND] = QBrush(QColor(194, 194, 64, 255), Qt.Dense1Pattern)
-        self.brushes[cCommonGame.MapData.CLOUD_FRIENDLY] = QBrush(QColor(240, 240, 240, 128), Qt.Dense1Pattern)
-        self.brushes[cCommonGame.MapData.CLOUD_HOSTILE] = QBrush(QColor(240, 240, 240, 255), Qt.Dense1Pattern)
-        self.brushes[cCommonGame.MapData.FOG_OF_WAR] = QBrush(QColor(200, 200, 200, 255), Qt.Dense1Pattern)
 
         self.update_field()
 
@@ -86,7 +81,9 @@ class WosBattleFieldView(QGraphicsView):
         smaller_font = QFont('Calibri', self.field_info.size.x() / 2.5)
         for i in range(0, self.field_info.dimension.x()):
             text_item = QGraphicsTextItem(str(i))
-            text_item.setPos(self.grid_to_pos(QPointF(i, -1)))
+            pos = self.grid_to_pos(QPointF(i, -1))
+            pos += QPointF(0, -self.field_info.size.y() / 4)
+            text_item.setPos(pos)
             if i < 100:
                 text_item.setFont(font)
             else:
@@ -94,27 +91,55 @@ class WosBattleFieldView(QGraphicsView):
             scene.addItem(text_item)
         for i in range(0, self.field_info.dimension.y()):
             text_item = QGraphicsTextItem(str(i))
-            text_item.setPos(self.grid_to_pos(QPointF(-1, i)))
-            if i < 100:
-                text_item.setFont(font)
-            else:
-                text_item.setFont(smaller_font)
+            text_item.setFont(font)
+            pos = self.grid_to_pos(QPointF(-1, i))
+            if i >= 10:
+                pos += QPointF(-self.field_info.size.x() / 3, 0)
+            if i >= 100:
+                pos += QPointF(-self.field_info.size.x() / 3, 0)
+            text_item.setPos(pos)
             scene.addItem(text_item)
 
-        dark_gray_pen = QPen(QColor(25, 25, 25))
+        # Draw grids
+        pen = QPen(QColor(25, 25, 25))
         for i in self.field_lines:
-            scene.addLine(i, dark_gray_pen)
+            scene.addLine(i, pen)
 
+        # Draw boundaries
+        pen = QPen(QColor(0, 0, 0), 2)
+        for i in self.boundaries.values():
+            scene.addRect(i, pen)
+
+        # Draw grid data like water, island or clouds
         if map_data is not None:
             for col in range(0, len(map_data)):
                 for row in range(0, len(map_data[0])):
                     val = int(map_data[col][row])
                     item = WosTerrainItem(self.field_info, col, row, val)
                     scene.addItem(item)
+        else:
+            for col in range(0, self.field_info.dimension.x()):
+                for row in range(0, self.field_info.dimension.y()):
+                    item = WosTerrainItem(self.field_info, col, row, cCommonGame.MapData.WATER)
+                    scene.addItem(item)
 
     def grid_to_pixel(self, x, y):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \
                self.field_info.top_left.y() + y * self.field_info.size.y()
+
+    def update_boundaries(self, boundaries):
+        if boundaries is None:
+            return
+
+        self.boundaries.clear()
+
+        for player_id, boundary in boundaries.items():
+            x1, y1 = self.grid_to_pixel(boundary.min_x, boundary.min_y)
+            x2, y2 = self.grid_to_pixel(boundary.max_x, boundary.max_y)
+            rect = QRectF(QPointF(x1, y1), QPointF(x2, y2))
+            self.boundaries[player_id] = rect
+
+        self.update_field()
 
     def update_map(self, map_data):
         self.field_info.set_dimension(QPoint(len(map_data), len(map_data[0])))

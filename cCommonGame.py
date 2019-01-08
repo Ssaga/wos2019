@@ -153,6 +153,12 @@ class ShipMovementInfo:
     def get_enum_action(self):
         return Action[self.action_str]
 
+    def to_string(self):
+        if self.action_str == Action.NOP:
+            return "Hold movement for ship id %s" % self.ship_id
+        else:
+            return "Move ship (Id: %s) %s" % (self.ship_id, self.action_str)
+
 
 class FireInfo:
     def __init__(self, pos=Position()):
@@ -160,6 +166,9 @@ class FireInfo:
 
     def __repr__(self):
         return str(vars(self))
+
+    def to_string(self):
+        return "Fire position: (%s, %s)" % (self.pos.x, self.pos.y)
 
 
 class SatcomInfo:
