@@ -6,10 +6,10 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
-from client.battleship_item import WosBattleShipItem
+from client.scene_item.battleship_item import WosBattleShipItem
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
-from client.fire_annotation_item import WosFireAnnotationItem
+from client.scene_item.fire_annotation_item import WosFireAnnotationItem
 from client.ship_info import ShipInfo
 import cCommonGame
 
@@ -24,7 +24,6 @@ class WosBattleManager(WosPhaseManager):
         self.current_player_turn = 0
         self.current_player_round = 0
         self.field_info = None
-        # todo: Read from config file or get from server
         self.num_fire_actions = 1
         self.num_move_actions = 2
         self.num_sat_actions = 1
@@ -189,10 +188,12 @@ class WosBattleManager(WosPhaseManager):
             combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
             if len(combo) > 0:
                 combo = combo[0]
+                combo.blockSignals(True)
                 combo.clear()
                 for ship_id, ship in self.ships_items.items():
                     if not ship.ship_info.is_sunken:
                         combo.addItem(str(ship_id), ship_id)
+                combo.blockSignals(False)
 
         self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
 

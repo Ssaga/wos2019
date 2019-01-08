@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
-from client.player_info import PlayerInfo
+from client.wos import PlayerInfo
 import cCommonGame
 
 

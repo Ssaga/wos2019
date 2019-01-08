@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
-from client.battleship_item import WosBattleShipItem
+from client.scene_item.battleship_item import WosBattleShipItem
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
 from client.ship_info import ShipInfo

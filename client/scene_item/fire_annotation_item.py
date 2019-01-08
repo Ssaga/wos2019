@@ -1,12 +1,10 @@
 from PyQt5.QtCore import QRectF
-from PyQt5.QtCore import QRect
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QToolTip
-from client.battlefield_item import WosBattlefieldItem
-import cCommonGame
+from client.scene_item.battlefield_item import WosBattlefieldItem
+from client.wos import ItemType
 
 
 class WosFireAnnotationItem(WosBattlefieldItem):
@@ -21,9 +19,7 @@ class WosFireAnnotationItem(WosBattlefieldItem):
 
         self.set_is_draggable(False)
         self.set_is_hoverable(False)
-
-        # todo: Consider depth manager class
-        self.setZValue(2)
+        self.set_type(ItemType.ANNOTATION)
 
         self.brush = QBrush(QColor(255, 0, 0, 255))
         self.pen = QPen(QColor(255, 0, 0, 255), 2)

@@ -1,21 +1,27 @@
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGraphicsItem
+from client.item_depth_manager import WosItemDepthManager
+from client.wos import ItemType
 
 
 class WosBattlefieldItem(QGraphicsItem):
+
     def __init__(self, field_info):
         QGraphicsItem.__init__(self)
         self.field_info = field_info
+        self.terrain_type = ItemType.UNKNOWN
         self.is_draggable = True
+        # Used as a boolean to determine whether item is being moved, also used as the delta between the control point
+        # of the item and the mouse cursor
+        self.drag_delta = None
 
         self.setAcceptDrops(True)
         self.setAcceptHoverEvents(True)
         self.setTransformOriginPoint(self.field_info.size.x() / 2, self.field_info.size.y() / 2)
 
-        # Used as a boolean to determine whether item is being moved, also used as the delta between the control point
-        # of the item and the mouse cursor
-        self.drag_delta = None
+    def get_type(self):
+        return self.terrain_type
 
     def map_grid_to_position(self, x, y):
         return QPoint(self.field_info.top_left.x() + x * self.field_info.size.x(),
@@ -45,6 +51,10 @@ class WosBattlefieldItem(QGraphicsItem):
 
     def set_is_draggable(self, is_draggable):
         self.is_draggable = is_draggable
+
+    def set_type(self, t):
+        self.terrain_type = t
+        WosItemDepthManager().set_depth(self)
 
     def snap_to_grid(self, pos_x, pos_y):
         pass

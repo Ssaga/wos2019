@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
-from PyQt5.QtCore import QRectF
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QColor
@@ -10,7 +9,7 @@ from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
-from client.terrain_item import WosTerrainItem
+from client.scene_item.terrain_item import WosTerrainItem
 import cCommonGame
 
 

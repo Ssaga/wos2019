@@ -1,8 +1,9 @@
 from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QBrush, QColor, QPen, QPolygonF
 from PyQt5.QtWidgets import QToolTip
-from client.battlefield_item import WosBattlefieldItem
+from client.scene_item.battlefield_item import WosBattlefieldItem
 from client.ship_info import ShipInfo
+from client.wos import ItemType
 import cCommonGame
 
 
@@ -75,9 +76,8 @@ class WosBattleShipItem(WosBattlefieldItem):
         ship.set_heading(self.ship_info.heading)
         ship.set_size(self.ship_info.size)
         ship.set_ship_type(ShipInfo.Type.SHADOW)
+        ship.set_type(ItemType.ANNOTATION)
         ship.set_is_hoverable(False)
-        # todo: Consider depth manager class
-        ship.setZValue(2)
         if action == cCommonGame.Action.FWD:
             ship.ship_info.move_forward()
         elif action == cCommonGame.Action.CW:

@@ -5,7 +5,7 @@ from client.battlefield_widget import WosBattlefieldWidget
 from client.console_widget import WosConsoleWidget
 from client.client_interface_manager import WosClientInterfaceManager
 from client.game_manager import WosGameManager
-from client.player_info import PlayerInfo
+from client.wos import PlayerInfo
 from client.wos_interface import WosInterface
 
 
