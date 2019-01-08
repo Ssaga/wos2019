@@ -7,7 +7,7 @@ class WosInterface(object):
         self.battlefield = None
         self.cfg = None
         self.console = None
-        self.is_debug = True
+        self.is_debug = False
         self.player_info = None
         self.window = None
 

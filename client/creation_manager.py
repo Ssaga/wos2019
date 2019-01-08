@@ -26,6 +26,7 @@ class WosCreationManager(WosPhaseManager):
         self.dialog = QDialog(self.wos_interface.main_window(), Qt.WindowTitleHint)
         self.dialog.setWindowTitle('Please Select An ID')
         self.dialog.setMinimumWidth(250)
+        self.dialog.accepted.connect(self.submit_button_pressed)
 
         layout = QGridLayout(self.dialog)
         self.dialog.setLayout(layout)
@@ -39,14 +40,14 @@ class WosCreationManager(WosPhaseManager):
         submit_button = QToolButton(self.dialog)
         submit_button.setText("Submit")
         submit_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        submit_button.released.connect(self.submit_button_pressed)
+        submit_button.released.connect(self.dialog.accept)
         layout.addWidget(submit_button, 1, 0, 1, 2)
 
         self.dialog.show()
         self.dialog.raise_()
+        self.dialog.activateWindow()
 
     def submit_button_pressed(self):
-        self.dialog.close()
         player_id = self.dialog.combo.currentData()
         self.wos_interface.log("Creating player with ID: %s.." % player_id)
         is_success = WosClientInterfaceManager().connect_to_server(player_id)
@@ -60,3 +61,5 @@ class WosCreationManager(WosPhaseManager):
             self.wos_interface.log(
                 "<font color='red'>Fail to connect to server / register player with ID: %s</font>" % player_id)
             self.dialog.show()
+            self.dialog.raise_()
+            self.dialog.activateWindow()
