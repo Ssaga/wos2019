@@ -11,6 +11,7 @@ from client.ship_info import ShipInfo
 
 import cCommonGame
 
+
 class WosBattleShipDeploymentManager(WosPhaseManager):
     UPDATE_INTERVAL_IN_MS = 1000
 
@@ -51,20 +52,18 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         # self.end()
 
     def start(self):
+        rep = WosClientInterfaceManager().register_player()
+        if not rep and not self.wos_interface.is_debug:
+            return
+
         self.wos_interface.log("<b>Deployment phase</b>.")
         self.wos_interface.log("Please assign the ships to a desired location in the map. Click and drag the ships to "
                                "reposition with left mouse button, rotate the ships with right mouse button.")
 
-        scene = self.wos_interface.battlefield.battle_scene.scene()
         cfg = self.wos_interface.cfg
-        map_size_x = 120
-        map_size_y = 120
-        if cfg is not None:
-            map_size_x = cfg.map_size.x
-            map_size_y = cfg.map_size.y
-
-        self.wos_interface.battlefield.generate_scene(map_size_x, map_size_y)
         self.wos_interface.battlefield.battle_scene.update_boundaries(cfg.boundary)
+        self.wos_interface.battlefield.update_map(rep.map_data)
+
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
         # todo: Read config file for squad list, stub for now
@@ -73,6 +72,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
                             WosBattleShipItem(field_info, 4, 4), WosBattleShipItem(field_info, 5, 4),
                             WosBattleShipItem(field_info, 6, 5), WosBattleShipItem(field_info, 7, 5)]
 
+        scene = self.wos_interface.battlefield.battle_scene.scene()
         start_position = cCommonGame.Position()
         player_id = str(self.wos_interface.player_info.player_id)
         start_position.x = self.wos_interface.cfg.boundary[player_id].min_x

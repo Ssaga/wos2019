@@ -48,13 +48,7 @@ class WosClientInterfaceManager(object):
         self.thread_client = threading.Thread(name='client-thread', target=self.client_thread,
                                               args=(self.client_commEngine,))
         self.thread_client.start()
-        time.sleep(1)
-
-        rep = self.client_commEngine.req_register()
-        # print(vars(rep))
-        if isinstance(rep, cMessages.MsgRepAckMap):
-            return rep.ack
-        return False
+        return True
 
     def disconnect_from_server(self):
         print("Terminating connection from server...")
@@ -77,6 +71,13 @@ class WosClientInterfaceManager(object):
         rep = self.client_commEngine.req_turn_info()
         # print(vars(rep))
         if isinstance(rep, cMessages.MsgRepTurnInfo):
+            return rep
+        return False
+
+    def register_player(self):
+        rep = self.client_commEngine.req_register()
+        # print(vars(rep))
+        if isinstance(rep, cMessages.MsgRepAckMap):
             return rep
         return False
 

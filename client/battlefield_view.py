@@ -139,8 +139,6 @@ class WosBattleFieldView(QGraphicsView):
             rect = QRectF(QPointF(x1, y1), QPointF(x2, y2))
             self.boundaries[player_id] = rect
 
-        self.update_field()
-
     def update_map(self, map_data):
         self.field_info.set_dimension(QPoint(len(map_data), len(map_data[0])))
         self.update_field(map_data)
