@@ -6,9 +6,11 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
-from client.scene_item.battleship_item import WosBattleShipItem
 from client.client_interface_manager import WosClientInterfaceManager
+from client.fire_action_widget import WosFireActionWidget
+from client.move_action_widget import WosMoveActionWidget
 from client.phase_manager import WosPhaseManager
+from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.fire_annotation_item import WosFireAnnotationItem
 from client.ship_info import ShipInfo
 import cCommonGame
@@ -29,6 +31,8 @@ class WosBattleManager(WosPhaseManager):
         self.num_sat_actions = 1
         self.map_size_x = 120
         self.map_size_y = 120
+        self.fire_action_widgets = list()
+        self.move_action_widgets = list()
         self.ships_items = dict()
         self.ships_shadow_items = dict()
         self.update_timer = QTimer(self)
@@ -45,52 +49,26 @@ class WosBattleManager(WosPhaseManager):
         return ship_item
 
     def insert_annotations_to_scene(self, scene):
-        actions_widget = self.wos_interface.actions
-
-        for i in range(1, self.num_move_actions + 1):
+        for widget in self.move_action_widgets:
             ship_shadow = self.ships_items[0].clone()
-            combo = actions_widget.findChildren(QComboBox, "action_%s_combo" % i)
-            if len(combo) > 0:
-                combo[0].currentTextChanged.connect(self.update_ship_shadow)
-            combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
-            if len(combo) > 0:
-                combo[0].currentTextChanged.connect(self.update_ship_shadow)
             scene.addItem(ship_shadow)
-            self.ships_shadow_items[i] = ship_shadow
+            self.ships_shadow_items[widget.get_index()] = ship_shadow
+            widget.combo_updated.connect(self.update_ship_shadow)
         self.update_ship_shadow()
 
-        for i in range(1, self.num_fire_actions + 1):
-            x = 1
-            x_combo = actions_widget.findChildren(QComboBox, "attack_x_%s_combo" % i)
-            if len(x_combo) > 0:
-                x = x_combo[0].currentData()
-            y = 1
-            y_combo = actions_widget.findChildren(QComboBox, "attack_y_%s_combo" % i)
-            if len(y_combo) > 0:
-                y = y_combo[0].currentData()
-            fire = WosFireAnnotationItem(self.field_info, "Bomb %s" % i, x, y)
-            if len(x_combo) > 0:
-                x_combo[0].currentTextChanged.connect(fire.set_x)
-            if len(y_combo) > 0:
-                y_combo[0].currentTextChanged.connect(fire.set_y)
+        for widget in self.fire_action_widgets:
+            x, y = widget.get_fire_info()
+            fire = WosFireAnnotationItem(self.field_info, "Bomb %s" % widget.get_index(), x, y)
+            widget.location_changed.connect(fire.set_position)
             scene.addItem(fire)
 
     def update_ship_shadow(self):
-        actions_widget = self.wos_interface.actions
-        for i in range(1, self.num_move_actions + 1):
-            action_combo = actions_widget.findChildren(QComboBox, "action_%s_combo" % i)
-            action = cCommonGame.Action.NOP
-            if len(action_combo) > 0:
-                action_combo = action_combo[0]
-                action = action_combo.currentData()
-            ship_combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
-            if len(ship_combo) > 0:
-                ship_combo = ship_combo[0]
-                ship_id = ship_combo.currentData()
-                ship = self.ships_items[ship_id]
-                ship_shadow = self.ships_shadow_items[i]
-                ship.make_shadow(ship_shadow, action)
-                ship_shadow.update()
+        for widget in self.move_action_widgets:
+            ship_id, action = widget.get_move_info()
+            ship = self.ships_items[ship_id]
+            ship_shadow = self.ships_shadow_items[widget.get_index()]
+            ship.make_shadow(ship_shadow, action)
+            ship_shadow.update()
 
     def is_current_turn(self, game_status):
         return game_status.player_turn == self.wos_interface.player_info.player_id
@@ -111,31 +89,15 @@ class WosBattleManager(WosPhaseManager):
         form_row = 0
 
         for i in range(1, self.num_move_actions + 1):
-            layout.addWidget(QLabel("Move %s:" % i), form_row, 0)
-            move_ship_combo = QComboBox(widget)
-            move_ship_combo.setObjectName("ship_%s_combo" % i)
-            layout.addWidget(move_ship_combo, form_row, 1)
-            move_action_combo = QComboBox(widget)
-            move_action_combo.setObjectName("action_%s_combo" % i)
-            move_action_combo.addItem('Forward', cCommonGame.Action.FWD)
-            move_action_combo.addItem('Turn clockwise', cCommonGame.Action.CW)
-            move_action_combo.addItem('Turn anti-clockwise', cCommonGame.Action.CCW)
-            move_action_combo.addItem('Skip', cCommonGame.Action.NOP)
-            layout.addWidget(move_action_combo, form_row, 2)
+            move_action_widget = WosMoveActionWidget(i)
+            layout.addWidget(move_action_widget, form_row, 0, 1, 3)
+            self.move_action_widgets.append(move_action_widget)
             form_row += 1
 
         for i in range(1, self.num_fire_actions + 1):
-            layout.addWidget(QLabel("Bomb %s:" % i), form_row, 0)
-            attack_x_combo = QComboBox(widget)
-            attack_x_combo.setObjectName("attack_x_%s_combo" % i)
-            for j in range(0, self.map_size_x):
-                attack_x_combo.addItem(str(j), j)
-            layout.addWidget(attack_x_combo, form_row, 1)
-            attack_y_combo = QComboBox(widget)
-            attack_y_combo.setObjectName("attack_y_%s_combo" % i)
-            for j in range(0, self.map_size_y):
-                attack_y_combo.addItem(str(j), j)
-            layout.addWidget(attack_y_combo, form_row, 2)
+            fire_action_widget = WosFireActionWidget(i, self.map_size_x, self.map_size_y)
+            layout.addWidget(fire_action_widget, form_row, 0, 1, 3)
+            self.fire_action_widgets.append(fire_action_widget)
             form_row += 1
 
         submit_button = QToolButton(widget)
@@ -183,25 +145,8 @@ class WosBattleManager(WosPhaseManager):
         for i in range(0, len(turn_info.other_ship_list)):
             self.insert_ship_to_scene(scene, turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
 
-        actions_widget = self.wos_interface.actions
-        # Update combo box based on number of ships left
-        for i in range(1, self.num_move_actions + 1):
-            combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
-            if len(combo) > 0:
-                combo = combo[0]
-                combo.blockSignals(True)
-                # Preserve last command
-                old_text = combo.currentText()
-                combo.clear()
-                for ship_id, ship in self.ships_items.items():
-                    if not ship.ship_info.is_sunken:
-                        combo.addItem(str(ship_id), ship_id)
-                if not old_text:
-                    # Default index
-                    combo.setCurrentIndex(i - 1)
-                else:
-                    combo.setCurrentText(old_text)
-                combo.blockSignals(False)
+        for widget in self.move_action_widgets:
+            widget.update_move_ship_combo(self.ships_items)
 
         self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
 
@@ -218,40 +163,24 @@ class WosBattleManager(WosPhaseManager):
 
         # Collate move action(s)
         move_list = list()
-        for i in range(1, self.num_move_actions + 1):
-            combo = actions_widget.findChildren(QComboBox, "ship_%s_combo" % i)
-            ship_id = 0
-            if len(combo) > 0:
-                ship_id = combo[0].currentData()
-            combo = actions_widget.findChildren(QComboBox, "action_%s_combo" % i)
-            action = cCommonGame.Action.NOP
-            if len(combo) > 0:
-                action = combo[0].currentData()
+        for widget in self.move_action_widgets:
+            ship_id, action = widget.get_move_info()
             move_info = cCommonGame.ShipMovementInfo(ship_id, action)
             move_list.append(move_info)
             self.wos_interface.log(move_info.to_string())
 
         # Collate fire action(s)
         fire_list = list()
-        for i in range(1, self.num_fire_actions + 1):
-            x = 1
-            combo = actions_widget.findChildren(QComboBox, "attack_x_%s_combo" % i)
-            if len(combo) > 0:
-                x = combo[0].currentData()
-            y = 1
-            combo = actions_widget.findChildren(QComboBox, "attack_y_%s_combo" % i)
-            if len(combo) > 0:
-                y = combo[0].currentData()
+        for widget in self.fire_action_widgets:
+            x, y = widget.get_fire_info()
             fire_info = cCommonGame.FireInfo(cCommonGame.Position(x, y))
             fire_list.append(fire_info)
             self.wos_interface.log(fire_info.to_string())
 
         self.wos_interface.log("Sending commands to server..")
-
         # Consider doing validations
         WosClientInterfaceManager().send_action_move(move_list)
         WosClientInterfaceManager().send_action_attack(fire_list)
-
         self.wos_interface.log("Sent")
 
         self.update_timer.start()
