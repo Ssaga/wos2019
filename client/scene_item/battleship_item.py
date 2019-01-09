@@ -37,7 +37,7 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.pens[ShipInfo.Type.HOSTILE] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.CIVILIAN] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.UNKNOWN] = QPen(QColor(0, 0, 0, 255))
-        self.pens[ShipInfo.Type.SHADOW] = QPen(QColor(255, 0, 0, 255), 2, Qt.DashLine)
+        self.pens[ShipInfo.Type.SHADOW] = QPen(QColor(0, 255, 0, 255), 2, Qt.DashLine)
         self.pen = QPen(QColor(0, 0, 0, 255))
 
     def boundingRect(self):

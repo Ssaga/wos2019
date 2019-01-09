@@ -56,6 +56,8 @@ class WosCreationManager(WosPhaseManager):
             self.wos_interface.cfg = WosClientInterfaceManager().get_config()
             self.wos_interface.log('<font color="green">Success!</font>')
             self.wos_interface.log(vars(self.wos_interface.cfg), cCommonGame.LogType.DEBUG)
+            self.dialog.deleteLater()
+            self.dialog = None
             self.end()
         else:
             self.wos_interface.log(

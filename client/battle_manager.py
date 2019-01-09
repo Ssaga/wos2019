@@ -35,15 +35,6 @@ class WosBattleManager(WosPhaseManager):
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_game_event)
 
-        # Update variables from config
-        cfg = self.wos_interface.cfg
-        if cfg is not None:
-            self.num_fire_actions = cfg.num_of_fire_act
-            self.num_move_actions = cfg.num_of_move_act
-            self.num_sat_actions = cfg.num_of_satc_act
-            self.map_size_x = cfg.map_size.x
-            self.map_size_y = cfg.map_size.y
-
     def insert_ship_to_scene(self, scene, ship_info, ship_type):
         ship_item = WosBattleShipItem(self.field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
         ship_item.set_grid_position(ship_info.position.x, ship_info.position.y)
@@ -106,6 +97,7 @@ class WosBattleManager(WosPhaseManager):
 
     def start(self):
         self.wos_interface.log("<b>Battle phase</b>.")
+        self.update_configurations()
         self.update_action_widget()
         self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
 
@@ -156,6 +148,15 @@ class WosBattleManager(WosPhaseManager):
 
         actions_widget.setEnabled(False)
 
+    def update_configurations(self):
+        cfg = self.wos_interface.cfg
+        if cfg is not None:
+            self.num_fire_actions = cfg.num_of_fire_act
+            self.num_move_actions = cfg.num_of_move_act
+            self.num_sat_actions = cfg.num_of_satc_act
+            self.map_size_x = cfg.map_size.x
+            self.map_size_y = cfg.map_size.y
+
     def update_turn(self):
         turn_info = WosClientInterfaceManager().get_turn_info()
         # Handle case where update_turn was wrongly called
@@ -173,8 +174,8 @@ class WosBattleManager(WosPhaseManager):
         for i in range(0, len(turn_info.self_ship_list)):
             ship_item = self.insert_ship_to_scene(scene, turn_info.self_ship_list[i], ShipInfo.Type.FRIENDLY)
             if ship_item is not None:
-                id = ship_item.ship_info.ship_id
-                self.ships_items[id] = ship_item
+                ship_id = ship_item.ship_info.ship_id
+                self.ships_items[ship_id] = ship_item
 
         for i in range(0, len(turn_info.enemy_ship_list)):
             self.insert_ship_to_scene(scene, turn_info.enemy_ship_list[i], ShipInfo.Type.HOSTILE)

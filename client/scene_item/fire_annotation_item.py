@@ -15,27 +15,27 @@ class WosFireAnnotationItem(WosBattlefieldItem):
         self.x = 0
         self.y = 0
         self.body = QRectF()
+        self.is_friendly = True
         self.set_position(x, y)
 
         self.set_is_draggable(False)
         self.set_is_hoverable(False)
         self.set_type(ItemType.ANNOTATION)
 
-        self.brush = QBrush(QColor(255, 0, 0, 255))
-        self.pen = QPen(QColor(255, 0, 0, 255), 2)
+        self.pens = dict()
+        self.pens[True] = QPen(QColor(0, 255, 0, 255), 2)
+        self.pens[False] = QPen(QColor(255, 0, 0, 255), 2)
 
     def boundingRect(self):
         return self.body
 
     def hoverEnterEvent(self, event):
-        # self.brush = QBrush(QColor(200, 0, 0, 255))
-        self.pen = QPen(QColor(255, 0, 0, 255), 3)
+        self.pens[self.is_friendly].setWidth(3)
         # self.show_tool_tip(event)
         self.update()
 
     def hoverLeaveEvent(self, event):
-        # self.brush = QBrush(QColor(200, 0, 0, 255))
-        self.pen = QPen(QColor(255, 0, 0, 255), 2)
+        self.pens[self.is_friendly].setWidth(2)
         QToolTip.hideText()
         self.update()
 
@@ -43,7 +43,7 @@ class WosFireAnnotationItem(WosBattlefieldItem):
         self.show_tool_tip(event)
 
     def paint(self, painter, style, widget=None):
-        painter.setPen(self.pen)
+        painter.setPen(self.pens[self.is_friendly])
         rect = self.body
         painter.drawEllipse(rect)
         painter.drawLine(rect.topLeft(), rect.bottomRight())
