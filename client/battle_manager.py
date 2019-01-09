@@ -63,12 +63,26 @@ class WosBattleManager(WosPhaseManager):
             scene.addItem(fire)
 
     def update_ship_shadow(self):
+        moves = dict()
+        ship_shadows = dict()
+        # For every ship, get all the actions to be taken and store them in a list (as one ship can perform more than
+        # one action per turn)
         for widget in self.move_action_widgets:
             ship_id, action = widget.get_move_info()
+            moves.setdefault(ship_id, [])
+            moves[ship_id].append(action)
+            ship_shadows.setdefault(ship_id, [])
+            ship_shadows[ship_id].append(self.ships_shadow_items[widget.get_index()])
+
+        for ship_id, actions in moves.items():
             ship = self.ships_items[ship_id]
-            ship_shadow = self.ships_shadow_items[widget.get_index()]
-            ship.make_shadow(ship_shadow, action)
+            ship_shadow = ship_shadows[ship_id][0]
+            ship.make_shadow(ship_shadow, actions)
+            ship_shadow.show()
             ship_shadow.update()
+            # When one ship contains more than one action, we hide any outstanding shadows
+            for i in range(1, len(ship_shadows[ship_id])):
+                ship_shadows[ship_id][i].hide()
 
     def is_current_turn(self, game_status):
         return game_status.player_turn == self.wos_interface.player_info.player_id

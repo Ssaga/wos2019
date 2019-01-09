@@ -73,19 +73,20 @@ class WosBattleShipItem(WosBattlefieldItem):
     def hoverMoveEvent(self, event):
         self.show_tool_tip(event)
 
-    def make_shadow(self, ship, action):
+    def make_shadow(self, ship, actions):
         ship.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)
         ship.set_heading(self.ship_info.heading)
         ship.set_size(self.ship_info.size)
         ship.set_ship_type(ShipInfo.Type.SHADOW)
         ship.set_type(ItemType.ANNOTATION)
         ship.set_is_hoverable(False)
-        if action == cCommonGame.Action.FWD:
-            ship.ship_info.move_forward()
-        elif action == cCommonGame.Action.CW:
-            ship.ship_info.turn_clockwise()
-        elif action == cCommonGame.Action.CCW:
-            ship.ship_info.turn_counter_clockwise()
+        for action in actions:
+            if action == cCommonGame.Action.FWD:
+                ship.ship_info.move_forward()
+            elif action == cCommonGame.Action.CW:
+                ship.ship_info.turn_clockwise()
+            elif action == cCommonGame.Action.CCW:
+                ship.ship_info.turn_counter_clockwise()
 
     def mouseReleaseEvent(self, event):
         if self.drag_delta is not None:

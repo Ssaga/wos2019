@@ -62,7 +62,8 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
 
         cfg = self.wos_interface.cfg
         self.wos_interface.battlefield.battle_scene.update_boundaries(cfg.boundary)
-        self.wos_interface.battlefield.update_map(rep.map_data)
+        if rep:
+            self.wos_interface.battlefield.update_map(rep.map_data)
 
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
