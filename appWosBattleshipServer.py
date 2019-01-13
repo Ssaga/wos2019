@@ -70,7 +70,7 @@ class WosBattleshipServer(threading.Thread):
         num_move_act = self.game_setting.num_move_act
         num_fire_act = self.game_setting.num_fire_act
         num_satcom_act = self.game_setting.num_satcom_act
-        if not self.game_setting.en_satillite:
+        if not self.game_setting.en_satellite:
             num_satcom_act = 0
         self.game_status = GameTurnStatus(GameState.INIT, num_move_act, num_fire_act, num_satcom_act)
 
@@ -527,7 +527,8 @@ class WosBattleshipServer(threading.Thread):
                                          Size(self.game_setting.map_size.x,
                                               self.game_setting.map_size.y),
                                          self.player_boundary,
-                                         self.game_setting.en_satillite,
+                                         self.game_setting.en_satellite,
+                                         self.game_setting.en_satellite_func2,
                                          self.game_setting.en_submarine)
                 reply = cMessages.MsgRepGameConfig(True, game_config)
             else:
@@ -569,7 +570,8 @@ class WosBattleshipServer(threading.Thread):
                                          Size(self.game_setting.map_size.x,
                                               self.game_setting.map_size.y),
                                          self.player_boundary,
-                                         self.game_setting.en_satillite,
+                                         self.game_setting.en_satellite,
+                                         self.game_setting.en_satellite_func2,
                                          self.game_setting.en_submarine)
                 reply = cMessages.MsgRepGameConfig(True, game_config)
 

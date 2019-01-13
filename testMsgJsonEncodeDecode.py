@@ -89,7 +89,8 @@ for i in range(num_of_players):
     y1 = int((i // col_count) * player_y_sz)
     y2 = y1 + player_y_sz
     boundary[i+1] = [[x1, x2], [y1, y2]]
-en_satillite=True
+en_satellite=True
+en_satellite_func2=True
 en_submarine=False
 a = cCommonGame.GameConfig(num_of_players,
                            num_of_rounds,
@@ -100,7 +101,8 @@ a = cCommonGame.GameConfig(num_of_players,
                            polling_rate,
                            map_size,
                            boundary,
-                           en_satillite,
+                           en_satellite,
+                           en_satellite_func2,
                            en_submarine)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)

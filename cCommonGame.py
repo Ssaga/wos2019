@@ -198,6 +198,7 @@ class GameConfig:
                  map_size=Size(150, 150),
                  boundary=dict(),
                  en_satellite=False,
+                 en_satellite_func2=False,
                  en_submarine=False):
 
         if not isinstance(boundary, dict) or not isinstance(map_size, Size):
@@ -213,6 +214,7 @@ class GameConfig:
         self.map_size = Size(map_size.x, map_size.y)
         self.boundary = boundary
         self.en_satillite = bool(en_satellite)
+        self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_submarine = bool(en_submarine)
 
     def __repr__(self):
@@ -223,10 +225,12 @@ class GameStatus:
     def __init__(self,
                  game_state=GameState.INIT,
                  game_round=0,
-                 player_turn=0):
+                 player_turn=0,
+                 time_remain=0):
         self.game_state_str = game_state.name
         self.game_round = game_round
         self.player_turn = player_turn
+        self.time_remain = time_remain
 
     def __repr__(self):
         return str(vars(self))

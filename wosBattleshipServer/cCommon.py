@@ -26,7 +26,8 @@ class ServerGameConfig:
                  num_fire_act=1,
                  num_satcom_act=1,
                  radar_cross_table=[1.0, 1.0, 1.0, 1.0],
-                 en_satillite=False,
+                 en_satellite=False,
+                 en_satellite_func2=False,
                  en_submarine=False):
         self.req_rep_conn = req_rep_conn
         self.pub_sub_conn = pub_sub_conn
@@ -47,7 +48,8 @@ class ServerGameConfig:
         self.num_satcom_act = int(num_satcom_act)
         self.radar_cross_table = []
         self.radar_cross_table.extend(radar_cross_table)
-        self.en_satillite = bool(en_satillite)
+        self.en_satellite = bool(en_satellite)
+        self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_submarine = bool(en_submarine)
 
     def __repr__(self):
@@ -207,7 +209,8 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "num_fire_act": obj.num_fire_act,
                 "num_satcom_act": obj.num_satcom_act,
                 "radar_cross_table": obj.radar_cross_table,
-                "en_satillite": obj.en_satillite,
+                "en_satellite": obj.en_satellite,
+                "en_satellite_func2": obj.en_satellite_func2,
                 "en_submarine": obj.en_submarine
             }
         else:
@@ -269,6 +272,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             obj["num_fire_act"],
             obj["num_satcom_act"],
             obj['radar_cross_table'],
-            obj['en_satillite'],
+            obj['en_satellite'],
+            obj['en_satellite_func2'],
             obj['en_submarine']
         )

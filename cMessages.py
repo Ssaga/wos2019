@@ -215,6 +215,7 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "map_size": obj.map_size,
                 "boundary": obj.boundary,
                 "en_satillite": obj.en_satillite,
+                "en_satellite_func2": obj.en_satellite_func2,
                 "en_submarine": obj.en_submarine
             }
 
@@ -453,6 +454,7 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['map_size'],
             obj['boundary'],
             obj['en_satillite'],
+            obj['en_satellite_func2'],
             obj['en_submarine']
         )
 
