@@ -197,8 +197,9 @@ class GameConfig:
                  polling_rate=1000,
                  map_size=Size(150, 150),
                  boundary=dict(),
-                 en_satillite=False,
+                 en_satellite=False,
                  en_submarine=False):
+
         if not isinstance(boundary, dict) or not isinstance(map_size, Size):
             raise ValueError("Invalid input parameter")
 
@@ -211,12 +212,11 @@ class GameConfig:
         self.polling_rate = float(polling_rate)
         self.map_size = Size(map_size.x, map_size.y)
         self.boundary = boundary
-        self.en_satillite = bool(en_satillite)
+        self.en_satillite = bool(en_satellite)
         self.en_submarine = bool(en_submarine)
 
-
-def __repr__(self):
-    return str(vars(self))
+    def __repr__(self):
+        return str(vars(self))
 
 
 class GameStatus:

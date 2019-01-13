@@ -10,9 +10,10 @@ class ServerGameConfig:
     def __init__(self,
                  req_rep_conn=ConnInfo('127.0.0.1', 5556),
                  pub_sub_conn=ConnInfo('127.0.0.1', 5557),
-                 polling_rate=1000,
-                 bc_rate=1000,
+                 polling_rate=1000,                             # Unit in milliseconds
+                 bc_rate=1000,                                  # Unit in milliseconds
                  map_size=Size(120, 120),
+                 countdown_duration=30,                         # Unit in seconds
                  island_coverage=0,
                  cloud_coverage=0,
                  cloud_seed_cnt=0,
@@ -32,6 +33,7 @@ class ServerGameConfig:
         self.polling_rate = polling_rate
         self.bc_rate = bc_rate
         self.map_size = map_size
+        self.countdown_duration = countdown_duration
         self.island_coverage = island_coverage
         self.cloud_coverage = cloud_coverage
         self.cloud_seed_cnt = cloud_seed_cnt
@@ -80,13 +82,17 @@ class GameTurnStatus:
                  default_fire = 0,
                  default_satcom=0,
                  game_round=0,
-                 player_turn=0
+                 player_turn=0,
+                 time_remaining=0
                  ):
         self.game_state = game_state
         # game round start count from 1
         self.game_round = game_round
         # player turn start count from 1
         self.player_turn = player_turn
+        # added by ttl, 2019-01-13
+        self.time_remaining = time_remaining
+        # end of modification
         self.allowed_action = PlayerTurnActionCount(default_move, default_fire, default_satcom)
         self.remaining_action = PlayerTurnActionCount(0, 0, 0)
         self.clear_turn_remaining_action()
@@ -188,6 +194,7 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "polling_rate": obj.polling_rate,
                 "bc_rate": obj.bc_rate,
                 "map_size": obj.map_size,
+                "countdown_duration": obj.countdown_duration,
                 "island_coverage": obj.island_coverage,
                 "cloud_coverage": obj.cloud_coverage,
                 "cloud_seed_cnt": obj.cloud_seed_cnt,
@@ -249,6 +256,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             obj['polling_rate'],
             obj['bc_rate'],
             obj['map_size'],
+            obj['countdown_duration'],
             obj['island_coverage'],
             obj['cloud_coverage'],
             obj['cloud_seed_cnt'],

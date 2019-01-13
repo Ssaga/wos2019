@@ -132,6 +132,15 @@ def wos_test_client():
         time.sleep(1)
         game_status = client_comm_engine.recv_from_publisher()
 
+    # Test timeout for round 1
+    game_status = client_comm_engine.recv_from_publisher()
+    while game_status.game_round < 2:
+        print("*** *** Round %s - Turn %s - Time remain %s" % (game_status.game_round,
+                                                               game_status.player_turn,
+                                                               game_status.time_remain))
+        time.sleep(1)
+        game_status = client_comm_engine.recv_from_publisher()
+
 
     # Test 4: Test Game Play
     for rounds_cnt in range(num_of_rounds):
@@ -141,7 +150,9 @@ def wos_test_client():
             while game_status.player_turn != (turn_cnt + 1):
                 game_status = client_comm_engine.recv_from_publisher()
 
-            print("*** *** Round %s - Turn %s" % (game_status.game_round , game_status.player_turn))
+            print("*** *** Round %s - Turn %s - Time remain %s" % (game_status.game_round,
+                                                                   game_status.player_turn,
+                                                                   game_status.time_remain))
 
             # Test 4 i  : Get the Game Turn from the server
             for i in range(num_of_player):

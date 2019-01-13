@@ -65,8 +65,13 @@ class ClientCommEngine:
 
     def recv_from_publisher(self):
         data = None
-        if (self.sub_thread is not None):
-            data = self.sub_thread.get()
+        if self.sub_thread is not None:
+            recv_data = self.sub_thread.get()
+            if isinstance(recv_data, cMessages.MsgPubGameStatus):
+                data = cCommonGame.GameStatus(recv_data.game_state,
+                                              recv_data.game_round,
+                                              recv_data.player_turn,
+                                              recv_data.time_remain)
         else:
             print("Subscription thread in no available...")
         return data
@@ -227,11 +232,16 @@ class ClientCommEngine:
     # 	pass
 
 
-    def req_from_publisher(self):
-        data = None
-        if (self.sub_thread is not None):
-            data = self.sub_thread.get()
-        return data
+    # def req_from_publisher(self):
+    #     data = None
+    #     if (self.sub_thread is not None):
+    #         recv_data = self.sub_thread.get()
+    #         if isinstance(recv_data, cMessages.MsgPubGameStatus):
+    #             data = cCommonGame.GameStatus(recv_data.game_state,
+    #                                           recv_data.game_round,
+    #                                           recv_data.player_turn,
+    #                                           recv_data.time_remain)
+    #     return data
 
 
 
@@ -264,64 +274,7 @@ class ClientCommEngineSubscriber(threading.Thread):
                 # print("\tsubscriber-recv: %s" % msg)
 
                 # set  game status
-                if (msg is not None) and (isinstance(msg, cCommonGame.GameStatus)):
-                    self.game_status = msg
-
-        # teardown the connection
-        self.teardown()
-
-        print("\tClientCommEngineSubscriber thread has exited")
-
-    # Stop the execution of this thread
-    def stop(self):
-        self.is_running = False
-
-    # Subscribe to the Server Publishing/Billboard
-    def setup(self):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.SUB)
-        connString = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
-        print("\tSubscribing to server... [%s]" % connString)
-        self.socket.connect(connString)
-        self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.setsockopt(zmq.SUBSCRIBE, b"");
-        self.poller = zmq.Poller()
-        self.poller.register(self.socket, zmq.POLLIN)
-
-    # Teardown the connection
-    def teardown(self):
-        self.poller.unregister(self.socket)
-        self.socket.close()
-        self.context.term()
-
-    def get(self):
-        return self.game_status
-
-    def __init__(self, addr_svr, port_pub, polling_rate):
-        threading.Thread.__init__(self)
-        self.addr_svr = addr_svr
-        self.port_pub = port_pub
-        self.polling_rate = polling_rate
-        self.is_running = False
-        self.game_status = None
-
-    # Main Thread body
-    def run(self):
-        # setup the connection with the publisher from game server
-        self.setup()
-
-        self.is_running = True
-        while self.is_running:
-            # Poll from the socket
-            socks = dict(self.poller.poll(self.polling_rate))
-            if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
-                # msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
-                msg_str = self.socket.recv_string()
-                msg = json.loads(msg_str, cls=MsgJsonDecoder)
-                # print("\tsubscriber-recv: %s" % msg)
-
-                # set  game status
-                if (msg is not None) and (isinstance(msg, cCommonGame.GameStatus)):
+                if (msg is not None) and (isinstance(msg, cMessages.MsgPubGameStatus)):
                     self.game_status = msg
 
         # teardown the connection

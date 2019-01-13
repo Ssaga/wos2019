@@ -108,8 +108,8 @@ print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 
-print("GameStatus:")
-a = cCommonGame.GameStatus(cCommonGame.GameState.PLAY_INPUT, 10, 3)
+print("MsgGameStatus:")
+a = cMessages.MsgPubGameStatus(cCommonGame.GameState.PLAY_INPUT, 10, 3, 1000)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)

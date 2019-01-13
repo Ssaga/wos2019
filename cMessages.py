@@ -121,15 +121,20 @@ class MsgRepAck(MsgRep):
 #----------------------------------------------------------
 
 
-class MsgPubGameStatus(MsgRep):
+class MsgPubGameStatus(Msg):
     def __init__(self,
-                 game_state = cCommonGame.GameState.INIT,
-                 player_turn = 0,
-                 game_round = 0):
-        MsgRep.__init__(self, 255)
+                 game_state=cCommonGame.GameState.INIT,
+                 game_round=0,
+                 player_turn=0,
+                 time_remain=0):
+        Msg.__init__(self, 255)
         self.game_state = game_state
-        self.player_turn = player_turn
         self.game_round =  game_round
+        self.player_turn = player_turn
+        self.time_remain = time_remain
+
+    def to_string(self):
+        return "Round: %s, Turn: %s, Time Remain: %s" % (self.game_round, self.player_turn, self.time_remain)
 
 
 #----------------------------------------------------------
@@ -213,13 +218,14 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "en_submarine": obj.en_submarine
             }
 
-        elif isinstance(obj, cCommonGame.GameStatus):
-            result = {
-                "__class__": "GameStatus",
-                "game_state_str": obj.game_state_str,
-                "game_round": obj.game_round,
-                "player_turn": obj.player_turn
-            }
+        # elif isinstance(obj, cCommonGame.GameStatus):
+        #     result = {
+        #         "__class__": "GameStatus",
+        #         "game_state": obj.game_state,
+        #         "game_round": obj.game_round,
+        #         "player_turn": obj.player_turn,
+        #         "time_remain": obj.time_remain
+        #     }
 
         elif isinstance(obj, MsgReqRegister):
             result = {
@@ -299,6 +305,16 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "map_data": obj.map_data
             }
 
+        elif isinstance(obj, MsgPubGameStatus):
+            result = {
+                "__class__": "MsgPubGameStatus",
+                "type_id": obj.type_id,
+                "game_state": obj.game_state.name,
+                "game_round": obj.game_round,
+                "player_turn": obj.player_turn,
+                "time_remain": obj.time_remain
+            }
+
         # TODO: remove the following numpy conversion by checking for
         #  		the cause of the numpy integer if time permit
         elif isinstance(obj, np.integer):
@@ -343,8 +359,8 @@ class MsgJsonDecoder(json.JSONDecoder):
                  result = self.parse_satcom_info(obj)
             elif class_type == 'GameConfig':
                  result = self.parse_game_config(obj)
-            elif class_type == 'GameStatus':
-                 result = self.parse_game_status(obj)
+            # elif class_type == 'GameStatus':
+            #      result = self.parse_game_status(obj)
             elif class_type == 'MsgReqRegister':
                  result = self.parse_req_client_register(obj)
             elif class_type == 'MsgReqRegShips':
@@ -367,6 +383,8 @@ class MsgJsonDecoder(json.JSONDecoder):
                  result = self.parse_ack_game_config(obj)
             elif class_type == 'MsgRepTurnInfo':
                  result = self.parse_ack_turn_info(obj)
+            elif class_type == 'MsgPubGameStatus':
+                result = self.parse_pub_game_status(obj)
             else:
                 print("Unsupported class type")
 
@@ -438,12 +456,13 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['en_submarine']
         )
 
-    def parse_game_status(self, obj):
-        return cCommonGame.GameStatus(
-            cCommonGame.GameState[obj['game_state_str']],
-            obj['game_round'],
-            obj['player_turn']
-        )
+    # def parse_game_status(self, obj):
+    #     return cCommonGame.GameStatus(
+    #         cCommonGame.GameState[obj['game_state']],
+    #         obj['game_round'],
+    #         obj['player_turn'],
+    #         obj['time_remain']
+    #     )
 
     def parse_req_client_register(self, obj):
         return MsgReqRegister(
@@ -509,4 +528,12 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['other_ship_list'],
             obj['bombardment_list'],
             obj['map_data']
+        )
+
+    def parse_pub_game_status(self, obj):
+        return MsgPubGameStatus(
+            cCommonGame.GameState[obj['game_state']],
+            obj['game_round'],
+            obj['player_turn'],
+            obj['time_remain']
         )

@@ -103,7 +103,11 @@ class ServerCommEngine:
 
 
     def set_game_status(self, game_status=GameStatus()):
-        self.pub_thread.set_game_status(game_status)
+        msg_game_status = cMessages.MsgPubGameStatus(game_status.get_enum_game_state(),
+                                                     game_status.game_round,
+                                                     game_status.player_turn,
+                                                     game_status.time_remain)
+        self.pub_thread.set_game_status(msg_game_status)
 
 
     def recv(self):
@@ -196,7 +200,7 @@ class ServerCommEnginePublisher(threading.Thread):
 
 
     # Update game status data
-    def set_game_status(self, game_status=GameStatus()):
+    def set_game_status(self, game_status=cMessages.MsgPubGameStatus()):
         self.game_status = game_status
 
 
