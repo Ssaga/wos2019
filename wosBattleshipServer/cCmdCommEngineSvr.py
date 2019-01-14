@@ -73,7 +73,7 @@ class CmdServerCommEngine:
                 if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
                     msg_str = self.socket.recv_string()
                     print("\tServer: RECV: %s" % msg_str)
-                    self.socket.send_string("OK")
+                    # self.socket.send_string("OK")
             except zmq.ZMQError:
                 self.reset_conn = True
         else:
@@ -82,5 +82,16 @@ class CmdServerCommEngine:
 
 
     def send(self, msg):
-        # do nothing
-        print("\tSend operation is not supported")
+        if isinstance(msg, str):
+            if self.socket is not None:
+                try:
+                    self.socket.send_string(msg)
+                    print("\tServer: SEND: %s" % msg)
+                except zmq.ZMQError:
+                    self.reset_conn = True
+            else:
+                print("\tCommEngine is not started")
+        else:
+            print("\tInput is not string")
+        # # do nothing
+        # print("\tSend operation is not supported")

@@ -5,7 +5,10 @@ import numpy as np
 from wosBattleshipServer.cCommon import ShipInfo
 from cCommonGame import Position
 
-def civilian_ship_movement(civilian_ship_list, move_possibility=0.25):
+def civilian_ship_movement(civilian_ship_list,
+                           map_data_array,
+                           player_ship_dict,
+                           move_possibility=0.25):
     if isinstance(civilian_ship_list, collections.Iterable):
         for ship_info in civilian_ship_list:
             if isinstance(ship_info, ShipInfo) and (not ship_info.is_sunken):

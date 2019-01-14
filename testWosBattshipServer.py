@@ -179,7 +179,7 @@ def wos_test_client():
                     if isinstance(test_reply, cMessages.MsgRepAckMap):
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
                         if (game_status.player_turn == player_id) and \
-                                (game_config_list[player_id].config.en_satillite):
+                                (game_config_list[player_id].config.en_satellite):
                             assert (test_reply.ack is True)
                         else:
                             assert (test_reply.ack is False)

@@ -198,7 +198,7 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "d": obj.d,
                 "e": obj.e,
                 "f": obj.f,
-                "is_sar": obj.is_sar,
+                "is_enable": obj.is_enable,
                 "is_rhs": obj.is_rhs
             }
 
@@ -214,7 +214,7 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "polling_rate": obj.polling_rate,
                 "map_size": obj.map_size,
                 "boundary": obj.boundary,
-                "en_satillite": obj.en_satillite,
+                "en_satellite": obj.en_satellite,
                 "en_satellite_func2": obj.en_satellite_func2,
                 "en_submarine": obj.en_submarine
             }
@@ -438,7 +438,7 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['d'],
             obj['e'],
             obj['f'],
-            obj['is_sar'],
+            obj['is_enable'],
             obj['is_rhs']
         )
 
@@ -453,7 +453,7 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['polling_rate'],
             obj['map_size'],
             obj['boundary'],
-            obj['en_satillite'],
+            obj['en_satellite'],
             obj['en_satellite_func2'],
             obj['en_submarine']
         )

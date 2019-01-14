@@ -172,14 +172,14 @@ class FireInfo:
 
 
 class SatcomInfo:
-    def __init__(self, a=0, b=0, c=0, d=0, e=0, f=0, is_sar=False, is_rhs=False):
+    def __init__(self, a=0, b=0, c=0, d=0, e=0, f=0, is_enable=False, is_rhs=False):
         self.a = a
         self.b = b
         self.c = c
         self.d = d
         self.e = e
         self.f = f
-        self.is_sar = bool(is_sar)
+        self.is_enable = bool(is_enable)
         self.is_rhs = bool(is_rhs)
 
     def __repr__(self):
@@ -213,7 +213,7 @@ class GameConfig:
         self.polling_rate = float(polling_rate)
         self.map_size = Size(map_size.x, map_size.y)
         self.boundary = boundary
-        self.en_satillite = bool(en_satellite)
+        self.en_satellite = bool(en_satellite)
         self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_submarine = bool(en_submarine)
 
