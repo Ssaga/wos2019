@@ -65,9 +65,10 @@ def generate_island(board, seed_pos, island_size):
                 np.subtract(1, rel_pos_grid))
             valid_and_adj_grid = np.multiply(adj_grid, valid_grid)
             poss_pos = [(i, j) for i in range(side_size) for j in range(side_size) if valid_and_adj_grid[i, j] == 1]
-            rel_pos = poss_pos[np.random.randint(len(poss_pos))]
-            rel_pos_grid[rel_pos] = 1
-            all_pos += [tuple(map(sum, zip(*[seed_pos, [i - island_size for i in rel_pos]])))]
+            if len(poss_pos) > 0:
+                rel_pos = poss_pos[np.random.randint(len(poss_pos))]
+                rel_pos_grid[rel_pos] = 1
+                all_pos += [tuple(map(sum, zip(*[seed_pos, [i - island_size for i in rel_pos]])))]
 
         # Update the board
         for pos in all_pos:
@@ -76,7 +77,7 @@ def generate_island(board, seed_pos, island_size):
 
         print("*** %s\r\n%s" % (type(rel_pos_grid), rel_pos_grid))
         print("*** %s\r\n%s" % (type(all_pos), all_pos))
-        print("*** %s\r\n%s" % (type(board), board))
+        print("*** %s\r\n%s" % (type(board), board.T))
     else:
         raise ValueError("Invalid input parameters")
 
@@ -94,10 +95,10 @@ if __name__ == '__main__':
     x_len = 24
     y_len = 24
     map_data=np.zeros((x_len,y_len))
-    print("*** map_data:\r\n%s" % map_data)
+    print("*** map_data:\r\n%s" % map_data.T)
     island_generation(map_data[0:12, 0:12], 0.1)
     island_generation(map_data[0:12, 12:23], 0.1)
     island_generation(map_data[12:23, 0:12], 0.1)
     island_generation(map_data[12:23, 12:23], 0.1)
-    print("*** map_data:\r\n%s" % map_data)
+    print("*** map_data:\r\n%s" % map_data.T)
     print("*** END (%s)" % (time.ctime(time.time())))

@@ -2,8 +2,7 @@ import zmq
 
 from cCommonCommEngine import ConnInfo
 
-#
-#
+
 #
 class CmdClientCommEngine:
     #
@@ -30,7 +29,7 @@ class CmdClientCommEngine:
 
     def setup_connect(self):
         # create the req-rep i/f with the server
-        if (self.context is not None):
+        if self.context is not None:
             print("\tReset connection with server")
             self.teardown_connect()
         self.context = zmq.Context()
@@ -43,7 +42,7 @@ class CmdClientCommEngine:
 
     def teardown_connect(self):
         # close the connection of the req socket
-        if (self.socket is not None):
+        if self.socket is not None:
             try:
                 self.socket.close()
                 self.socket = None
@@ -51,17 +50,16 @@ class CmdClientCommEngine:
                 print("\tError closing the socket")
 
         # terminate the context
-        if (self.context is not None):
+        if self.context is not None:
             try:
                 self.context.term()
                 self.context = None
             except:
                 print("\tError terminating context")
 
-
     def send(self, msg):
         # reset the connection if required
-        if self.reset_conn == True:
+        if self.reset_conn:
             self.setup_connect()
             self.reset_conn = False
 
@@ -76,7 +74,6 @@ class CmdClientCommEngine:
                 print("\tUnsupported message-type. Only string is supported[%s]" % type(msg))
         except zmq.ZMQError:
             self.reset_conn = True
-
 
     def recv(self):
         # do nothing

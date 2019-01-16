@@ -5,6 +5,7 @@ import threading
 import logging
 import collections
 import copy
+import signal
 
 from cServerCommEngine import ServerCommEngine
 from wosBattleshipServer.cCmdCommEngineSvr import CmdServerCommEngine
@@ -36,12 +37,20 @@ from wosBattleshipServer.cCommon import GameTurnStatus
 from wosBattleshipServer.cCommon import ServerGameConfig
 from wosBattleshipServer.cCommon import SvrCfgJsonDecoder
 from wosBattleshipServer.cCommon import SvrCfgJsonEncoder
+from wosBattleshipServer.cCommon import check_collision
+
+from wosBattleshipServer.cTtsCommEngineSvr import TtsServerCommEngine
 
 import cMessages
 
 
 # Global Variable  ---------------------------------------------------------
+flag_quit_game = False
 
+# Global Function  ---------------------------------------------------------
+def signal_handler(sig, frame):
+    global flag_quit_game
+    flag_quit_game = True
 
 # --------------------------------------------------------------------------
 class WosBattleshipServer(threading.Thread):
@@ -56,6 +65,7 @@ class WosBattleshipServer(threading.Thread):
                                             self.game_setting.pub_sub_conn,
                                             self.game_setting.polling_rate,
                                             self.game_setting.bc_rate)
+        self.tts_comm_engine = TtsServerCommEngine()
         self.is_running = False
         self.flag_end_game = False
         self.flag_restart_game = False
@@ -83,13 +93,13 @@ class WosBattleshipServer(threading.Thread):
         self.player_prev_fire_cmd_dict = dict()
         # player_mask_layer is a dictionary of 2D list
         # dict: {'<player_id>': [[<row 1 mask list>],[<row 2 mask list>], ...]}
-        self.player_mask_layer = dict()
+        self.player_boundary_layer = dict()
         # player_fog_layer is a dictionary of 2D list
         # dict: {'<player_id>': [[<row 1 mask list>],[<row 2 mask list>], ...]}
         self.player_fog_layer = dict()
-        # player_boundary is a dictionary of 2D list
+        # player_boundary_dict is a dictionary of 2D list
         # dict: {'<player_id>': [[<min_x>, <max_x>],[<min_y>,<max_y>]]}
-        self.player_boundary = dict()
+        self.player_boundary_dict = dict()
 
         # turn_map_fog is a dictionary of 2D list
         # dict: {'<player_id>': np.array of type:np.int}
@@ -106,41 +116,41 @@ class WosBattleshipServer(threading.Thread):
         # Generate the array required
         self.island_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
         self.cloud_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
-        self.civilian_ship_list = []
+        self.civilian_ship_list = list()
         self.civilian_ship_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
 
         # Generate Player mask
-        self.generate_player_mask(self.player_mask_layer, self.player_boundary)
+        self.generate_player_mask(self.player_boundary_layer, self.player_boundary_dict)
         print("Player mask: ---------------------------------------------")
-        for mask_key in self.player_mask_layer.keys():
+        for mask_key in self.player_boundary_layer.keys():
             print("Player mask: %s" % mask_key)
-            print(self.player_mask_layer[mask_key])
+            print(self.player_boundary_layer[mask_key].T)
 
         # Generate the players' fog
-        for key in self.player_mask_layer.keys():
-            value = np.where(self.player_mask_layer[key] > 0, 0, int(MapData.FOG_OF_WAR))
+        for key in self.player_boundary_layer.keys():
+            value = np.where(self.player_boundary_layer[key] > 0, 0, int(MapData.FOG_OF_WAR))
             value = value.astype(np.int)
             self.player_fog_layer[key] = value
 
         for key in self.player_fog_layer.keys():
             print("Player Fog: %s" % key)
-            print(self.player_fog_layer[key])
+            print(self.player_fog_layer[key].T)
 
         # Generate the island on the map
-        for key in self.player_boundary:
-            player_boundary = self.player_boundary[key]
+        for key in self.player_boundary_dict:
+            player_boundary_dict = self.player_boundary_dict[key]
             # player_map_portion = self.island_layer[
-            #                      player_boundary[0][0]:player_boundary[0][1],
-            #                      player_boundary[1][0]:player_boundary[1][1]]
+            #                      player_boundary_dict[0][0]:player_boundary_dict[0][1],
+            #                      player_boundary_dict[1][0]:player_boundary_dict[1][1]]
             player_map_portion = self.island_layer[
-                                 player_boundary.min_x:player_boundary.max_x,
-                                 player_boundary.min_y:player_boundary.max_y]
+                                 player_boundary_dict.min_x:player_boundary_dict.max_x,
+                                 player_boundary_dict.min_y:player_boundary_dict.max_y]
             # island_generation(self.island_layer, self.game_setting.island_coverage)
             island_generation(player_map_portion, self.game_setting.island_coverage)
         self.island_layer = self.island_layer.astype(np.int)
         self.island_layer = self.island_layer * MapData.ISLAND
         print("Island data: ---------------------------------------------")
-        print(self.island_layer)
+        print(self.island_layer.T)
 
         # Generate the cloud
         cloud_generation(self.cloud_layer,
@@ -148,15 +158,16 @@ class WosBattleshipServer(threading.Thread):
                          self.game_setting.cloud_seed_cnt)
         self.cloud_layer = self.cloud_layer.astype(np.int)
         print("Cloud data: ---------------------------------------------")
-        print(self.cloud_layer)
+        print(self.cloud_layer.T)
 
         # Generate the civilian ships
-        for key in self.player_boundary:
-            player_boundary = self.player_boundary[key]
+        for key in self.player_boundary_dict:
+            player_boundary_dict = self.player_boundary_dict[key]
             civilian_ship_generation(self.civilian_ship_list,
                                      self.island_layer,
-                                     player_boundary,
+                                     player_boundary_dict,
                                      self.game_setting.civilian_ship_count)
+
         # Update the ship layer
         for civilian_ship in self.civilian_ship_list:
             if isinstance(civilian_ship, ShipInfo) and (civilian_ship.is_sunken == False):
@@ -165,7 +176,7 @@ class WosBattleshipServer(threading.Thread):
 
         print("Civilian data: ---------------------------------------------")
         print(self.civilian_ship_list)
-        print(self.civilian_ship_layer)
+        print(self.civilian_ship_layer.T)
 
     def stop(self):
         self.is_running = False
@@ -189,6 +200,7 @@ class WosBattleshipServer(threading.Thread):
 
         # start the communication engine
         self.comm_engine.start()
+        self.tts_comm_engine.start()
 
         while self.is_running:
             # Wait for data from the client
@@ -205,6 +217,7 @@ class WosBattleshipServer(threading.Thread):
             self.state_exec(msg_data)
 
         # stop the communication engine
+        self.tts_comm_engine.stop()
         self.comm_engine.stop()
 
     def update_countdown_time(self):
@@ -342,6 +355,7 @@ class WosBattleshipServer(threading.Thread):
             civilian_ship_movement(self.civilian_ship_list,
                                    self.island_layer,
                                    self.player_status_dict,
+                                   self.player_boundary_dict,
                                    self.game_setting.civilian_ship_move_probility)
 
             # update the layer for the civilian ship
@@ -414,6 +428,8 @@ class WosBattleshipServer(threading.Thread):
                                     other_player_ship_info.area,
                                     fire_cmd.pos.x,
                                     fire_cmd.pos.y))
+                                self.tts_comm_engine.send("Player %s sunk the Player %s ship" %
+                                                          (self.game_status.player_turn, other_player_id))
                             else:
                                 print("HIT FAIL: Player is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
                                     other_player_id,
@@ -421,6 +437,8 @@ class WosBattleshipServer(threading.Thread):
                                     other_player_ship_info.area,
                                     fire_cmd.pos.x,
                                     fire_cmd.pos.y))
+                                self.tts_comm_engine.send("Player %s missed the Player %s ship" %
+                                                          (self.game_status.player_turn, other_player_id))
                         # Else the other player ship is not within the fire area
                         else:
                             print("MISSED  : Player did not hit %s:%s [%s] @ [%s, %s] [is sunken: %s]" % (
@@ -444,10 +462,14 @@ class WosBattleshipServer(threading.Thread):
                         print("HIT SUCC: Player did hit civilian:%s [%s] @ [%s, %s]" % (
                             civilian_ship_info.ship_id, civilian_ship_info.area, fire_cmd.pos.x,
                             fire_cmd.pos.y))
+                        self.tts_comm_engine.send("Player %s sunk the target" %
+                                                  (self.game_status.player_turn))
                     else:
                         print("HIT FAIL: Player didn'ti sink the civilian:%s [%s] @ [%s, %s]" % (
                             civilian_ship_info.ship_id, civilian_ship_info.area,
                             fire_cmd.pos.x, fire_cmd.pos.y))
+                        self.tts_comm_engine.send("Player %s missed the target" %
+                                                  (self.game_status.player_turn))
                 # Else the civilian is not within the fire area
         # Else Do nothing
         bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round,
@@ -461,20 +483,15 @@ class WosBattleshipServer(threading.Thread):
         return is_sunk
 
     def state_setup_stop(self):
-        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round,
+        bc_game_status = GameStatus(self.game_status.game_state,
+                                    self.game_status.game_round,
                                     self.game_status.player_turn)
         self.comm_engine.set_game_status(bc_game_status)
         # Display the score of the game
         print("** Game end ------------------------------------")
-        for key, player in self.player_status_dict:
-            sunken_count = 0
-            for ship_info in player.ship_list:
-                if ship_info.is_sunken:
-                    sunken_count += 1
-            score = (player.hit_enemy_count * 1.0) - (player.hit_civilian_count * 0.0) - (sunken_count * 0.5)
-            print("** \tPlayer %s : score:%s | hit:%s - %s | sunken:%s" %
-                  (key, score, player.hit_enemy_count, player.hit_civilian_count, sunken_count))
+        print(self.get_player_score())
         print("** ---------------------------------------------")
+        self.tts_comm_engine.send("Game Ended")
 
     # ---------------------------------------------------------------------------
     def state_exec(self, msg_data):
@@ -518,18 +535,19 @@ class WosBattleshipServer(threading.Thread):
                     player_status = PlayerStatus()
                     player_status.ship_list.clear()
 
+                    for ship_info_dat in msg_data.ship_list:
+                        if isinstance(ship_info_dat, ShipInfoDat):
+                            ship_info = ShipInfo(ship_info_dat.ship_id,
+                                                 Position(ship_info_dat.position.x, ship_info_dat.position.y),
+                                                 ship_info_dat.heading,
+                                                 ship_info_dat.size,
+                                                 ship_info_dat.is_sunken)
+                            player_status.ship_list.append(ship_info)
+                            print(ship_info)
+
                     # check if the placement of the ships are ok before adding them to the list
-                    is_ok = self.check_ship_placement(msg_data.player_id, msg_data.ship_list)
+                    is_ok = self.check_ship_placement(msg_data.player_id, player_status.ship_list)
                     if is_ok:
-                        for ship_info_dat in msg_data.ship_list:
-                            if isinstance(ship_info_dat, ShipInfoDat):
-                                ship_info = ShipInfo(ship_info_dat.ship_id,
-                                                     Position(ship_info_dat.position.x, ship_info_dat.position.y),
-                                                     ship_info_dat.heading,
-                                                     ship_info_dat.size,
-                                                     ship_info_dat.is_sunken)
-                                player_status.ship_list.append(ship_info)
-                                print(ship_info)
                         self.player_status_dict[msg_data.player_id] = player_status
                         ack = True
                 reply = cMessages.MsgRepAck(ack)
@@ -545,7 +563,7 @@ class WosBattleshipServer(threading.Thread):
                                          self.game_setting.polling_rate,
                                          Size(self.game_setting.map_size.x,
                                               self.game_setting.map_size.y),
-                                         self.player_boundary,
+                                         self.player_boundary_dict,
                                          self.game_setting.en_satellite,
                                          self.game_setting.en_satellite_func2,
                                          self.game_setting.en_submarine)
@@ -587,7 +605,7 @@ class WosBattleshipServer(threading.Thread):
                                          self.game_setting.polling_rate,
                                          Size(self.game_setting.map_size.x,
                                               self.game_setting.map_size.y),
-                                         self.player_boundary,
+                                         self.player_boundary_dict,
                                          self.game_setting.en_satellite,
                                          self.game_setting.en_satellite_func2,
                                          self.game_setting.en_submarine)
@@ -668,7 +686,7 @@ class WosBattleshipServer(threading.Thread):
 
         # compute the map data
         map_data = self.generate_map_data(msg_data.player_id)
-        print("****** Map Data :\r\n%s" % map_data)
+        print("****** Player %s: Map Data :\r\n%s" % (msg_data.player_id, map_data.T))
 
         is_ack_ok = False
         if msg_data.player_id == self.game_status.player_turn:
@@ -760,20 +778,23 @@ class WosBattleshipServer(threading.Thread):
                     if isinstance(ship, ShipInfo):
                         if action.get_enum_action() == Action.FWD:
                             # Check if the selected ship can move forward
-                            if self.check_forward_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+                            if self.check_forward_action(ship, msg_data.player_id):
                                 ship.move_forward()
+                                self.tts_comm_engine.send("Player %s move ship forward")
                             else:
                                 print("!!! Unable to move forward")
                         elif action.get_enum_action() == Action.CW:
                             # Check if the selected ship can turn clockwise
-                            if self.check_turn_cw_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+                            if self.check_turn_cw_action(ship, msg_data.player_id):
                                 ship.turn_clockwise()
+                                self.tts_comm_engine.send("Player %s turn ship clockwise")
                             else:
                                 print("!!! Unable to turn CW")
                         elif action.get_enum_action() == Action.CCW:
                             # Check if the selected ship can turn counter-clockwise
-                            if self.check_turn_ccw_action(msg_data.player_id, ship.position, ship.heading, ship.size):
+                            if self.check_turn_ccw_action(ship, msg_data.player_id):
                                 ship.turn_counter_clockwise()
+                                self.tts_comm_engine.send("Player %s turn ship counter clockwise")
                             else:
                                 print("!!! Unable to turn CCW")
             # Update on the number of remaining move operation
@@ -799,6 +820,13 @@ class WosBattleshipServer(threading.Thread):
             self.player_curr_fire_cmd_dict[msg_data.player_id] = msg_data.fire
             # # end of modification
 
+            if isinstance(msg_data.fire, FireInfo):
+                self.state_exec_play_input_fire_send(msg_data.player_id, msg_data.fire.pos)
+            elif isinstance(msg_data.fire, collections.Iterable):
+                for fire in msg_data.fire:
+                    if isinstance(fire, FireInfo):
+                        self.state_exec_play_input_fire_send(msg_data.player_id, fire.pos)
+
             self.game_status.remaining_action.remain_fire -= 1
             ack = True
         else:
@@ -806,6 +834,14 @@ class WosBattleshipServer(threading.Thread):
 
         reply = cMessages.MsgRepAck(ack)
         return reply
+
+    # send the fire command to the tts server
+    def state_exec_play_input_fire_send(self, player_id, position):
+        if isinstance(position, Position):
+            self.tts_comm_engine.send("Player %s bombing %s %s" %
+                                      (player_id,
+                                       position.x,
+                                       position.y))
 
     # Operation to perform the satcom action
     def state_exec_play_input_satcom(self, msg_data):
@@ -833,7 +869,7 @@ class WosBattleshipServer(threading.Thread):
 
         # Compute the map data for the user
         map_data = self.generate_map_data(msg_data.player_id)
-        print("****** SATCOM Data :\r\n%s" % map_data)
+        print("****** SATCOM Data :\r\n%s" % map_data.T)
 
         # Create the result
         reply = cMessages.MsgRepAckMap(ack, map_data.tolist())
@@ -860,7 +896,7 @@ class WosBattleshipServer(threading.Thread):
     def generate_map_data(self, player_id):
 
         # Get the current map mask of the given user
-        player_map_mask = self.player_mask_layer[player_id]
+        player_map_mask = self.player_boundary_layer[player_id]
 
         # Get the cloud data
         cloud_friendly = self.cloud_layer * player_map_mask * MapData.CLOUD_FRIENDLY
@@ -895,113 +931,112 @@ class WosBattleshipServer(threading.Thread):
     # ---------------------------------------------------------------------------
     # Check if the placement of the ship are valid
     def check_ship_placement(self, player_id, ship_list):
+
         is_ok = True
-        boundary = self.player_boundary[player_id]
+        obstacle_dict = dict()
+
         if isinstance(ship_list, collections.Iterable):
-            for ship_info_dat in ship_list:
-                if isinstance(ship_info_dat, ShipInfoDat):
-                    # if area is within boundary
-                    for pos in ship_info_dat.area:
-                        if (pos[0] < boundary.min_x) or \
-                                (pos[0] > boundary.max_x) or \
-                                (pos[1] < boundary.min_y) or \
-                                (pos[1] > boundary.max_y):
-                            print("!!! SHIP [NEW]: OUT OF BOUND: %s [playerid=%s]" % (ship_info_dat, player_id))
-                            is_ok = False
-                        # elif self.island_layer[pos[0], pos[1]] > 0:
-                        #     print("!!! SHIP [NEW]: Collision with Land: %s [playerid=%s]" % (ship_info_dat, player_id))
-                        #     is_ok = False
-                        # elif self.civilian_ship_layer[pos[0], pos[1]] > 0:
-                        #     print("!!! SHIP [NEW]: Collision with other ship: %s [playerid=%s]" % (ship_info_dat, player_id))
-                        #     is_ok = False
+            # add the boundary
+            boundary = self.player_boundary_layer.get(player_id)
+            if isinstance(boundary, np.ndarray):
+                boundary = np.invert(boundary)
+                obstacle_dict["Boundary"] = boundary
+
+            # # add the island
+            # if isinstance(self.island_layer, np.ndarray):
+            #     obstacle_dict["Island"] = self.island_layer
+            #
+            # # add the civilian ship
+            # if isinstance(self.civilian_ship_layer, np.ndarray):
+            #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+
+            for ship_info in ship_list:
+                if isinstance(ship_info, ShipInfo):
+                    is_ok = is_ok and check_collision(ship_info, obstacle_dict)
                 else:
                     print("!!! SHIP [NEW]: Incorrect type [not ShipInfoDat] [playerid=%s]" % player_id)
                     is_ok = False
+            # end of for..loop
         else:
             print("!!! SHIP [NEW]: Incorrect type [not Iterable] [playerid=%s]" % player_id)
             is_ok = False
+
         return is_ok
 
     # Check if the given ship can move forward
-    def check_forward_action(self, player_id, pos, heading, size):
-        is_ok = True
-        boundary = self.player_boundary[player_id]
-        test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
-        test_ship.move_forward()
-        # if area is within boundary
-        for pos in test_ship.area:
-            # if (pos[0] < boundary[0][0]) or \
-            #         (pos[0] > boundary[0][1]) or \
-            #         (pos[1] < boundary[1][0]) or \
-            #         (pos[1] > boundary[1][1]):
-            if (pos[0] < boundary.min_x) or \
-                    (pos[0] > boundary.max_x) or \
-                    (pos[1] < boundary.min_y) or \
-                    (pos[1] > boundary.max_y):
+    def check_forward_action(self, ship_info, player_id):
 
-                is_ok = False
-                print("!!! SHIP [FWD]: %s" % test_ship)
-            # elif self.island_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with Land: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
-            # elif self.civilian_ship_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with other ship: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
+        is_ok = True
+        obstacle_dict = dict()
+        test_ship = copy.deepcopy(ship_info)
+        test_ship.move_forward()
+
+        # add the boundary
+        boundary = self.player_boundary_layer.get(player_id)
+        if isinstance(boundary, np.ndarray):
+            boundary = np.invert(boundary)
+            obstacle_dict["Boundary"] = boundary
+
+        # # add the island
+        # if isinstance(self.island_layer, np.ndarray):
+        #     obstacle_dict["Island"] = self.island_layer
+        #
+        # # add the civilian ship
+        # if isinstance(self.civilian_ship_layer, np.ndarray):
+        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+
+        is_ok = check_collision(test_ship, obstacle_dict)
 
         return is_ok
 
     # Check if the given ship can perform a clockwise turn
-    def check_turn_cw_action(self, player_id, pos, heading, size):
+    def check_turn_cw_action(self, ship_info, player_id):
+
         is_ok = True
-        boundary = self.player_boundary[player_id]
-        test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
+        obstacle_dict = dict()
+        test_ship = copy.deepcopy(ship_info)
         test_ship.turn_clockwise()
-        test_ship.turn_clockwise()
-        # if area is within boundary
-        for pos in test_ship.area:
-            # if (pos[0] < boundary[0][0]) or \
-            #         (pos[0] > boundary[0][1]) or \
-            #         (pos[1] < boundary[1][0]) or \
-            #         (pos[1] > boundary[1][1]):
-            if (pos[0] < boundary.min_x) or \
-                    (pos[0] > boundary.max_x) or \
-                    (pos[1] < boundary.min_y) or \
-                    (pos[1] > boundary.max_y):
-                is_ok = False
-                print("!!! SHIP [CW ]: %s" % test_ship)
-            # elif self.island_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with Land: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
-            # elif self.civilian_ship_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with other ship: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
+
+        # add the boundary
+        boundary = self.player_boundary_layer.get(player_id)
+        if isinstance(boundary, np.ndarray):
+            boundary = np.invert(boundary)
+            obstacle_dict["Boundary"] = boundary
+
+        # # add the island
+        # if isinstance(self.island_layer, np.ndarray):
+        #     obstacle_dict["Island"] = self.island_layer
+        #
+        # # add the civilian ship
+        # if isinstance(self.civilian_ship_layer, np.ndarray):
+        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+
+        is_ok = check_collision(test_ship, obstacle_dict)
 
         return is_ok
 
     # Check if the given ship can perform a counter-clockwise turn
-    def check_turn_ccw_action(self, player_id, pos, heading, size):
+    def check_turn_ccw_action(self, ship_info, player_id):
         is_ok = True
-        boundary = self.player_boundary[player_id]
-        test_ship = ShipInfo(0, copy.deepcopy(pos), copy.deepcopy(heading), copy.deepcopy(size))
+        obstacle_dict = dict()
+        test_ship = copy.deepcopy(ship_info)
         test_ship.turn_counter_clockwise()
-        # if area is within boundary
-        for pos in test_ship.area:
-            # if (pos[0] < boundary[0][0]) or \
-            #         (pos[0] > boundary[0][1]) or \
-            #         (pos[1] < boundary[1][0]) or \
-            #         (pos[1] > boundary[1][1]):
-            if (pos[0] < boundary.min_x) or \
-                    (pos[0] > boundary.max_x) or \
-                    (pos[1] < boundary.min_y) or \
-                    (pos[1] > boundary.max_y):
-                is_ok = False
-                print("!!! SHIP [CCW]: %s" % test_ship)
-            # elif self.island_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with Land: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
-            # elif self.civilian_ship_layer[pos[0], pos[1]] > 0:
-            #     print("!!! SHIP [NEW]: Collision with other ship: %s [playerid=%s]" % (ship_info_dat, player_id))
-            #     is_ok = False
+
+        # add the boundary
+        boundary = self.player_boundary_layer.get(player_id)
+        if isinstance(boundary, np.ndarray):
+            boundary = np.invert(boundary)
+            obstacle_dict["Boundary"] = boundary
+
+        # # add the island
+        # if isinstance(self.island_layer, np.ndarray):
+        #     obstacle_dict["Island"] = self.island_layer
+        #
+        # # add the civilian ship
+        # if isinstance(self.civilian_ship_layer, np.ndarray):
+        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+
+        is_ok = check_collision(test_ship, obstacle_dict)
 
         return is_ok
 
@@ -1027,8 +1062,8 @@ class WosBattleshipServer(threading.Thread):
         return game_setting
 
     # ---------------------------------------------------------------------------
-    def generate_player_mask(self, player_mask_dict, player_boundary):
-        if isinstance(player_mask_dict, dict) and isinstance(player_boundary, dict):
+    def generate_player_mask(self, player_mask_dict, player_boundary_dict):
+        if isinstance(player_mask_dict, dict) and isinstance(player_boundary_dict, dict):
             col_count = int(np.ceil(self.game_setting.num_of_player / self.game_setting.num_of_row))
             row_count = self.game_setting.num_of_row
 
@@ -1045,18 +1080,35 @@ class WosBattleshipServer(threading.Thread):
                 mask = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.bool)
                 mask[x1:x2, y1:y2] = True
                 player_mask_dict[i + 1] = mask
-                # player_boundary[i+1] = [[x1, x2], [y1, y2]]
-                player_boundary[i + 1] = Boundary(x1, x2, y1, y2)
+                # player_boundary_dict[i+1] = [[x1, x2], [y1, y2]]
+                player_boundary_dict[i + 1] = Boundary(x1, x2, y1, y2)
                 # player_mask_list.append(mask)
                 # print("player %s" % (i+1))
                 # print(mask)
 
         # return player_mask_dict
 
+    def get_player_score(self):
+        reply = ""
+        for key, player in self.player_status_dict.items():
+            sunken_count = 0
+            for ship_info in player.ship_list:
+                if ship_info.is_sunken:
+                    sunken_count += 1
+            score = (player.hit_enemy_count * 1.0) - (player.hit_civilian_count * 0.0) - (sunken_count * 0.5)
+            if len(reply) > 0:
+                reply += "\r\n"
+            reply += "** \tPlayer %2s : score:%6.1f | hit:%2d - %2d | sunken:%2d" % \
+                     (key, score, player.hit_enemy_count, player.hit_civilian_count, sunken_count)
+
+        return reply
+
 
 def main():
-
+    global flag_quit_game
     flag_quit_game = False
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     print("WOS Battlership Server -- started")
     wosServer = WosBattleshipServer()
@@ -1093,20 +1145,8 @@ def main():
             elif inp == 'SCORE':
                 reply = "SCORE\r\n"
                 reply += "-------------------------\r\n"
-                for key in wosServer.player_status_dict.keys():
-                    player_status = wosServer.player_status_dict[key]
-                    reply += "Player id: %s\r\n" % key
-                    reply += "\tHIT ENEMY: %s\r\n" % player_status.hit_enemy_count
-                    reply += "\tHIT CIVILIAN: %s\r\n" % player_status.hit_civilian_count
-                    reply += "\tHIT REMAINING: %s\r\n" % (len([i for i in player_status.ship_list
-                                                           if i.is_sunken is True]))
-                    reply += "-------------------------\r\n"
-                    # print("Player id: %s" % key)
-                    # print("\tHIT ENEMY: %s" % player_status.hit_enemy_count)
-                    # print("\tHIT CIVILIAN: %s" % player_status.hit_civilian_count)
-                    # print("\tHIT REMAINING: %s" % (len([i for i in player_status.ship_list
-                    #                                     if i.is_sunken is True])))
-                    # print("-------------------------")
+                reply += wosServer.get_player_score()
+                reply += "-------------------------\r\n"
             else:
                 print("Invalid command : %s" % inp)
                 reply = "NOK"

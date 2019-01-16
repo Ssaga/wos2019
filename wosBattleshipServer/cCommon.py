@@ -6,6 +6,7 @@ from cCommonGame import Size
 from cCommonGame import Position
 from cCommonGame import GameState
 
+
 class ServerGameConfig:
     def __init__(self,
                  req_rep_conn=ConnInfo('127.0.0.1', 5556),
@@ -170,6 +171,8 @@ class ShipInfo:
         # remove the negative 0
         placement += 0.
 
+        placement = placement.astype(np.int)
+
         return placement.tolist()
 
 #-----------------------------------------------------------------------
@@ -276,3 +279,38 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             obj['en_satellite_func2'],
             obj['en_submarine']
         )
+
+
+#-----------------------------------------------------------------------
+# Check if the given ship hit any obstacle mask
+def check_collision(test_ship, obstacle_mask_dict):
+    is_ok = True
+    if isinstance(test_ship, ShipInfo) and \
+            isinstance(obstacle_mask_dict, dict):
+        # check if test ship hit any obstacle
+        for obstacle_mask_key in obstacle_mask_dict.keys():
+            obstacle_mask = obstacle_mask_dict[obstacle_mask_key]
+            if isinstance(obstacle_mask, np.ndarray):
+                for pos in test_ship.area:
+                    if pos[0] >= obstacle_mask.shape[0] or \
+                            pos[1] >= obstacle_mask.shape[1] or \
+                            pos[0] < 0 or pos[1] < 0:
+                        is_ok = False
+                        print("!!! SHIP: %s \r\n!!!Out of boundary - %s:%s" % (test_ship, obstacle_mask_key, obstacle_mask.shape))
+                        break
+                    elif obstacle_mask[pos[0], pos[1]] > 0:
+                        is_ok = False
+                        print("!!! SHIP: %s \r\n!!!Collision with %s" % (test_ship, obstacle_mask_key))
+                        # print(obstacle_mask.T)
+                        break
+                    # Else the ship is safe to move to the required position
+                # end of for..loop
+            else:
+                # Unsupported obstacle mask type
+                is_ok = False
+                raise ValueError("Unsupported obstacle mask type")
+        # end of for..loop
+    else:
+        is_ok = False
+        raise ValueError("Incorrect input parameters")
+    return is_ok

@@ -153,7 +153,8 @@ class ServerCommEnginePublisher(threading.Thread):
         self.bc_rate = bc_rate / 1000
         self.is_running = False
         self.game_status = None
-
+        self.context = None
+        self.socket = None
 
     # Main Thread body
     def run(self):
@@ -187,9 +188,9 @@ class ServerCommEnginePublisher(threading.Thread):
     def setup(self):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
-        connString = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
-        print("\tRegistering publisher server... [%s]" % connString)
-        self.socket.bind(connString)
+        conn_string = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
+        print("\tRegistering publisher server... [%s]" % conn_string)
+        self.socket.bind(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
 
 

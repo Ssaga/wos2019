@@ -30,7 +30,6 @@ class ClientCommEngine:
         self.reset_conn = False
         self.is_ready = False
 
-
     def start(self):
         # create the thread for the subscriber & start it
         if (self.sub_thread is not None):
@@ -45,7 +44,6 @@ class ClientCommEngine:
         print("\tClient %s CommEngine Started..." % self.client_id)
         # set the flag to indicate that commEngine is ready
         self.is_ready = True
-
 
     def stop(self):
         self.is_ready = False
@@ -62,7 +60,6 @@ class ClientCommEngine:
         self.teardown_connect()
         print("\tClient %s CommEngine Stopped..." % self.client_id)
 
-
     def recv_from_publisher(self):
         data = None
         if self.sub_thread is not None:
@@ -75,7 +72,6 @@ class ClientCommEngine:
         else:
             print("Subscription thread in no available...")
         return data
-
 
     def setup_connect(self):
         # create the req-rep i/f with the server
@@ -116,7 +112,6 @@ class ClientCommEngine:
             except:
                 print("\tError terminating context")
         print("Teardown completed")
-
 
     def send(self, msg):
         # reset the connection if required
@@ -164,57 +159,51 @@ class ClientCommEngine:
             print("\tUnable to send unsupported message")
         return reply
 
-
     def req_register(self):
         request = cMessages.MsgReqRegister(self.client_id)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepAckMap)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
-
 
     def req_register_ships(self, ship_list):
         request = cMessages.MsgReqRegShips(self.client_id, ship_list)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepAck)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
-
 
     def req_config(self):
         request = cMessages.MsgReqConfig(self.client_id)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepGameConfig)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
-
 
     def req_turn_info(self):
         request = cMessages.MsgReqTurnInfo(self.client_id)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepTurnInfo)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
-
 
     def req_action_move(self, move):
         request = cMessages.MsgReqTurnMoveAct(self.client_id, move)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepAck)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
-
 
     def req_action_fire(self, fire):
         request = cMessages.MsgReqTurnFireAct(self.client_id, fire)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepAck)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
 
@@ -222,7 +211,7 @@ class ClientCommEngine:
         request = cMessages.MsgReqTurnSatAct(self.client_id, satcom)
         data = self.send(request)
         reply = None
-        if (data is not None) and (isinstance(data, cMessages.MsgRepAckMap)):
+        if isinstance(data, cMessages.MsgRep):
             reply = data
         return reply
 
@@ -257,6 +246,8 @@ class ClientCommEngineSubscriber(threading.Thread):
         self.polling_rate = polling_rate
         self.is_running = False
         self.game_status = None
+        self.context = None
+        self.socket = None
 
     # Main Thread body
     def run(self):
@@ -290,9 +281,9 @@ class ClientCommEngineSubscriber(threading.Thread):
     def setup(self):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        connString = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
-        print("\tSubscribing to server... [%s]" % connString)
-        self.socket.connect(connString)
+        conn_string = str("tcp://%s:%s" % (self.addr_svr, self.port_pub,))
+        print("\tSubscribing to server... [%s]" % conn_string)
+        self.socket.connect(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
         self.socket.setsockopt(zmq.SUBSCRIBE, b"");
         self.poller = zmq.Poller()

@@ -56,7 +56,7 @@ def cloud_change(map_data, cloud_coverage):
                                                   np.subtract(1, tmp_buf))) + tmp_buf
         map_data[:,:] = 0
         map_data[np.where(tmp_buf > 0)] = 1
-        print("cld_grid: %s\r\n%s" % (tmp_buf.shape, tmp_buf))
+        print("cld_grid: %s\r\n%s" % (tmp_buf.shape, tmp_buf.T))
         print("num of  : %s/%s" % (np.sum(tmp_buf), cloud_sz))
 
     else:

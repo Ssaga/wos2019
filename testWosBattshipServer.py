@@ -18,7 +18,7 @@ def wos_test_client():
 
     # Setup
     # Test setting
-    num_of_rounds = 2
+    num_of_rounds = 3
     num_of_player = 4
     list_client_comm_engine = dict()
 
@@ -63,7 +63,7 @@ def wos_test_client():
                 assert (test_reply.ack == True)
                 map_x_len, map_y_len = np.shape(test_reply.map_data)
             else:
-                print("Incorrect Msg type")
+                print("Incorrect Msg type : %s" % test_reply)
             assert(isinstance(test_reply, cMessages.MsgRepAckMap))
 
 
@@ -147,7 +147,8 @@ def wos_test_client():
         for turn_cnt in range(num_of_player):
 
             game_status = client_comm_engine.recv_from_publisher()
-            while game_status.player_turn != (turn_cnt + 1):
+            while game_status.player_turn != (turn_cnt + 1) and \
+                    game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
                 game_status = client_comm_engine.recv_from_publisher()
 
             print("*** *** Round %s - Turn %s - Time remain %s" % (game_status.game_round,
@@ -161,33 +162,49 @@ def wos_test_client():
                 client_comm_engine = list_client_comm_engine[player_id]
                 if isinstance(client_comm_engine, ClientCommEngine):
                     test_reply = client_comm_engine.req_turn_info()
-                    if isinstance(test_reply, cMessages.MsgRepTurnInfo):
+                    if (game_status.get_enum_game_state() != cCommonGame.GameState.STOP) and \
+                            isinstance(test_reply, cMessages.MsgRepTurnInfo):
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
                         if game_status.player_turn == player_id:
                             assert (test_reply.ack is True)
                         else:
                             assert (test_reply.ack is False)
+                    elif (game_status.get_enum_game_state() == cCommonGame.GameState.STOP) and \
+                            isinstance(test_reply, cMessages.MsgRepAck):
+                        print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+                        assert (test_reply.ack is False)
                     else:
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
                         print("Incorrect Msg type")
 
-                    assert(isinstance(test_reply, cMessages.MsgRepTurnInfo))
+                    if game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
+                        assert(isinstance(test_reply, cMessages.MsgRepTurnInfo))
+                    else:
+                        assert (isinstance(test_reply, cMessages.MsgRepAck))
 
                     # Test 4 ii : Request satcom action
                     satcom_act = cCommonGame.SatcomInfo(1, 2, 3, 4, 5, 6, False, False)
                     test_reply = client_comm_engine.req_action_satcom(satcom_act)
-                    if isinstance(test_reply, cMessages.MsgRepAckMap):
+                    if (game_status.get_enum_game_state() != cCommonGame.GameState.STOP) and \
+                            isinstance(test_reply, cMessages.MsgRepAckMap):
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
                         if (game_status.player_turn == player_id) and \
                                 (game_config_list[player_id].config.en_satellite):
                             assert (test_reply.ack is True)
                         else:
                             assert (test_reply.ack is False)
+                    elif (game_status.get_enum_game_state() == cCommonGame.GameState.STOP) and \
+                         isinstance(test_reply, cMessages.MsgRepAck):
+                        print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+                        assert (test_reply.ack is False)
                     else:
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
                         print("Incorrect Msg type")
 
-                    assert (isinstance(test_reply, cMessages.MsgRepAckMap))
+                    if game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
+                        assert (isinstance(test_reply, cMessages.MsgRepAckMap))
+                    else:
+                        assert (isinstance(test_reply, cMessages.MsgRepAck))
 
                     # Test 4 iii: Request move action
                     move_list = list()
@@ -196,7 +213,8 @@ def wos_test_client():
                     test_reply = client_comm_engine.req_action_move(move_list)
                     if isinstance(test_reply, cMessages.MsgRepAck):
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
-                        if game_status.player_turn == player_id:
+                        if game_status.get_enum_game_state() != cCommonGame.GameState.STOP and \
+                                game_status.player_turn == player_id:
                             assert (test_reply.ack is True)
                         else:
                             assert (test_reply.ack is False)
@@ -213,7 +231,8 @@ def wos_test_client():
                     test_reply = client_comm_engine.req_action_fire(fire_list)
                     if isinstance(test_reply, cMessages.MsgRepAck):
                         print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
-                        if game_status.player_turn == player_id:
+                        if game_status.get_enum_game_state() != cCommonGame.GameState.STOP and \
+                                game_status.player_turn == player_id:
                             assert (test_reply.ack is True)
                         else:
                             assert (test_reply.ack is False)
