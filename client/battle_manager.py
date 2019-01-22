@@ -1,8 +1,6 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QGridLayout
-from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
@@ -13,6 +11,7 @@ from client.phase_manager import WosPhaseManager
 from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.fire_annotation_item import WosFireAnnotationItem
 from client.ship_info import ShipInfo
+from client.time_widget import WosTimeWidget
 import cCommonGame
 
 
@@ -38,6 +37,12 @@ class WosBattleManager(WosPhaseManager):
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_game_event)
+        self.time_widget = None
+
+    def end_turn(self):
+        self.time_widget.setEnabled(False)
+        self.wos_interface.actions.setEnabled(False)
+
 
     def insert_ship_to_scene(self, scene, ship_info, ship_type):
         ship_item = WosBattleShipItem(self.field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
@@ -119,6 +124,10 @@ class WosBattleManager(WosPhaseManager):
         submit_button.setText("End Turn")
         submit_button.released.connect(self.submit_button_pressed)
         layout.addWidget(submit_button, form_row, 0, 1, 3)
+        form_row += 1
+
+        self.time_widget = WosTimeWidget(widget)
+        layout.addWidget(self.time_widget, form_row, 0, 1, 1)
 
         actions_widget.append_widget(widget)
 
@@ -172,9 +181,6 @@ class WosBattleManager(WosPhaseManager):
         self.wos_interface.log(turn_info_visual, cCommonGame.LogType.DEBUG)
 
     def submit_button_pressed(self):
-        actions_widget = self.wos_interface.actions
-        actions_widget.setEnabled(False)
-
         # Collate move action(s)
         move_list = list()
         for widget in self.move_action_widgets:
@@ -197,19 +203,26 @@ class WosBattleManager(WosPhaseManager):
         WosClientInterfaceManager().send_action_attack(fire_list)
         self.wos_interface.log("Sent")
 
+        self.end_turn()
+
         self.update_timer.start()
 
     def update_game_event(self):
         game_status = WosClientInterfaceManager().get_game_status()
         if game_status is not None:
             if self.current_player_turn != game_status.player_turn:
-                self.current_player_turn = game_status.player_turn
-                self.current_player_round = game_status.game_round
                 self.wos_interface.log(
                     "Round %s: Player %s turn" % (game_status.game_round, game_status.player_turn))
+                if self.is_current_turn(game_status):
+                    self.update_turn()
 
             if self.is_current_turn(game_status):
-                self.update_turn()
+                self.time_widget.set_time(game_status.time_remain)
             else:
-                # Update event again in x seconds time
-                self.update_timer.start()
+                self.end_turn()
+
+            self.current_player_turn = game_status.player_turn
+            self.current_player_round = game_status.game_round
+
+        # Update event again in x seconds time
+        self.update_timer.start()
