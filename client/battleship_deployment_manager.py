@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
-from client.scene_item.battleship_item import WosBattleShipItem
+from client.action_widget import WosActionWidget
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
+from client.scene_item.battleship_item import WosBattleShipItem
 from client.ship_info import ShipInfo
 
 import cCommonGame
@@ -101,7 +102,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         deployment_button.released.connect(self.deployment_button_pressed)
         layout.addWidget(deployment_button)
 
-        actions_widget.append_widget(self.tools)
+        actions_widget.add_widget(self.tools, WosActionWidget.WidgetType.ACTION_CORE)
 
     def update_game_event(self):
         turn_info = WosClientInterfaceManager().get_turn_info()

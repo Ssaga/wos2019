@@ -95,6 +95,13 @@ class WosClientInterfaceManager(object):
             return rep.ack
         return False
 
+    def send_action_satcom(self, satcom):
+        rep = self.client_commEngine.req_action_satcom(satcom)
+        print(vars(rep))
+        if isinstance(rep, cMessages.MsgRepAck):
+            return rep.ack
+        return False
+
     def send_deployment(self, ship_list):
         rep = self.client_commEngine.req_register_ships(ship_list)
         print(vars(rep))
