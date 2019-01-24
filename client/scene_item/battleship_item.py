@@ -80,6 +80,7 @@ class WosBattleShipItem(WosBattlefieldItem):
         ship.set_ship_type(ShipInfo.Type.SHADOW)
         ship.set_type(ItemType.ANNOTATION)
         ship.set_is_hoverable(False)
+        ship.set_is_sunken(self.ship_info.is_sunken)
         for action in actions:
             if action == cCommonGame.Action.FWD:
                 ship.ship_info.move_forward()
@@ -117,6 +118,9 @@ class WosBattleShipItem(WosBattlefieldItem):
 
     def set_heading(self, heading):
         self.ship_info.set_heading(heading)
+
+    def set_is_sunken(self, is_sunken):
+        self.ship_info.is_sunken = is_sunken
 
     def set_ship_type(self, t):
         self.ship_info.set_type(t)
