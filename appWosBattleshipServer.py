@@ -17,7 +17,7 @@ from cCommonGame import Boundary
 from cCommonGame import GameState
 from cCommonGame import GameStatus
 from cCommonGame import GameConfig
-from cCommonGame import ShipInfo as ShipInfoDat
+from cCommonGame import ShipInfo
 from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
 from cCommonGame import SatcomInfo
@@ -30,7 +30,6 @@ from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_genera
 from wosBattleshipServer.funcCivilianShipsMovement import civilian_ship_movement
 from wosBattleshipServer.funcSatcomScan import satcom_scan
 
-from wosBattleshipServer.cCommon import ShipInfo
 from wosBattleshipServer.cCommon import PlayerStatus
 from wosBattleshipServer.cCommon import PlayerTurnActionCount
 from wosBattleshipServer.cCommon import GameTurnStatus
@@ -139,13 +138,9 @@ class WosBattleshipServer(threading.Thread):
         # Generate the island on the map
         for key in self.player_boundary_dict:
             player_boundary_dict = self.player_boundary_dict[key]
-            # player_map_portion = self.island_layer[
-            #                      player_boundary_dict[0][0]:player_boundary_dict[0][1],
-            #                      player_boundary_dict[1][0]:player_boundary_dict[1][1]]
             player_map_portion = self.island_layer[
                                  player_boundary_dict.min_x:player_boundary_dict.max_x,
                                  player_boundary_dict.min_y:player_boundary_dict.max_y]
-            # island_generation(self.island_layer, self.game_setting.island_coverage)
             island_generation(player_map_portion, self.game_setting.island_coverage)
         self.island_layer = self.island_layer.astype(np.int)
         self.island_layer = self.island_layer * MapData.ISLAND
@@ -344,9 +339,6 @@ class WosBattleshipServer(threading.Thread):
             self.game_status.game_round = self.game_status.game_round + 1
 
             # generate the cloud to be used for this round
-            # cloud_generation(self.cloud_layer,
-            #                  self.game_setting.cloud_coverage,
-            #                  self.game_setting.cloud_seed_cnt)
             cloud_change(self.cloud_layer,
                          self.game_setting.cloud_coverage)
             self.cloud_layer = self.cloud_layer.astype(np.int)
@@ -536,7 +528,8 @@ class WosBattleshipServer(threading.Thread):
                     player_status.ship_list.clear()
 
                     for ship_info_dat in msg_data.ship_list:
-                        if isinstance(ship_info_dat, ShipInfoDat):
+                        if isinstance(ship_info_dat, ShipInfo):
+                            # clone the ship_info data
                             ship_info = ShipInfo(ship_info_dat.ship_id,
                                                  Position(ship_info_dat.position.x, ship_info_dat.position.y),
                                                  ship_info_dat.heading,
@@ -638,38 +631,39 @@ class WosBattleshipServer(threading.Thread):
 
         for ship_info in self.player_status_dict[msg_data.player_id].ship_list:
             if isinstance(ship_info, ShipInfo):
-                ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                            Position(ship_info.position.x, ship_info.position.y),
-                                            ship_info.heading,
-                                            ship_info.size,
-                                            ship_info.is_sunken)
+                # Clone the player ship information
+                ship_info_dat = ShipInfo(ship_info.ship_id,
+                                         Position(ship_info.position.x, ship_info.position.y),
+                                         ship_info.heading,
+                                         ship_info.size,
+                                         ship_info.is_sunken)
                 self_ship_list.append(ship_info_dat)
 
         # Get the list of civilian ships
         for ship_info in self.civilian_ship_list:
             if isinstance(ship_info, ShipInfo):
-                ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                            Position(ship_info.position.x, ship_info.position.y),
-                                            ship_info.heading,
-                                            ship_info.size,
-                                            ship_info.is_sunken)
+                # Clone the civilian ship information
+                ship_info_dat = ShipInfo(ship_info.ship_id,
+                                         Position(ship_info.position.x, ship_info.position.y),
+                                         ship_info.heading,
+                                         ship_info.size,
+                                         ship_info.is_sunken)
                 other_ship_list.append(ship_info_dat)
 
         # Get the list of enemy ships
         enemy_data_list = self.hist_enemy_data_dict.get(msg_data.player_id)
-        # enemy_data_list = [value for key, value in self.player_status_list.items() if
-        #                    key is not msg_data.player_id]
         print("****** Player %s: Enemy Data:\r\n%s" % (msg_data.player_id, enemy_data_list))
         if isinstance(enemy_data_list, collections.Iterable):
             for enemy_data in enemy_data_list:
                 print("****** %s" % enemy_data)
                 for ship_info in enemy_data.ship_list:
                     if isinstance(ship_info, ShipInfo):
-                        ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                                    Position(ship_info.position.x, ship_info.position.y),
-                                                    ship_info.heading,
-                                                    ship_info.size,
-                                                    ship_info.is_sunken)
+                        # Clone the enemy ship information
+                        ship_info_dat = ShipInfo(ship_info.ship_id,
+                                                 Position(ship_info.position.x, ship_info.position.y),
+                                                 ship_info.heading,
+                                                 ship_info.size,
+                                                 ship_info.is_sunken)
                         # TODO: Do we need to differ the enemy and civilian ship? if so, how???
                         if True:
                             other_ship_list.append(ship_info_dat)
@@ -702,70 +696,6 @@ class WosBattleshipServer(threading.Thread):
                                          bombardment_data,
                                          map_data.tolist())
         return reply
-
-    # def state_exec_play_input_turn(self, msg_data):
-    #     if msg_data.player_id == self.game_status.player_turn:
-    #         self_ship_list = list()
-    #         enemy_ship_list = list()
-    #         other_ship_list = list()
-    #
-    #         for ship_info in self.player_status_list[msg_data.player_id].ship_list:
-    #             if isinstance(ship_info, ShipInfo):
-    #                 ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                             Position(ship_info.position.x, ship_info.position.y),
-    #                                             ship_info.heading,
-    #                                             ship_info.size,
-    #                                             ship_info.is_sunken)
-    #                 self_ship_list.append(ship_info_dat)
-    #
-    #         # Get the list of civilian ships
-    #         for ship_info in self.civilian_ship_list:
-    #             if isinstance(ship_info, ShipInfo):
-    #                 ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                             Position(ship_info.position.x, ship_info.position.y),
-    #                                             ship_info.heading,
-    #                                             ship_info.size,
-    #                                             ship_info.is_sunken)
-    #                 other_ship_list.append(ship_info_dat)
-    #
-    #         # Get the list of enemy ships
-    #         enemy_data_list = [value for key, value in self.player_status_list.items() if
-    #                            key is not msg_data.player_id]
-    #         print("****** %s" % enemy_data_list)
-    #         for enemy_data in enemy_data_list:
-    #             print("****** %s" % enemy_data)
-    #             for ship_info in enemy_data.ship_list:
-    #                 if isinstance(ship_info, ShipInfo):
-    #                     ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                                 Position(ship_info.position.x, ship_info.position.y),
-    #                                                 ship_info.heading,
-    #                                                 ship_info.size,
-    #                                                 ship_info.is_sunken)
-    #                     # TODO: Do we need to differ the enemy and civilian ship? if so, how???
-    #                     if True:
-    #                         other_ship_list.append(ship_info_dat)
-    #                     else:
-    #                         enemy_ship_list.append(ship_info_dat)
-    #         print("****** other_ship_list :\r\n%s" % other_ship_list)
-    #         print("****** enemy_ship_list :\r\n%s" % enemy_ship_list)
-    #
-    #         bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
-    #                             key is not msg_data.player_id]
-    #
-    #         # compute the map data
-    #         map_data = self.generate_map_data(msg_data.player_id)
-    #
-    #         print("****** Map Data :\r\n%s" % map_data)
-    #
-    #         reply = cMessages.MsgRepTurnInfo(True, self_ship_list, enemy_ship_list, other_ship_list, bombardment_data,
-    #                                          map_data.tolist())
-    #
-    #     else:
-    #         print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-    #         # Load the last known map information
-    #         reply = cMessages.MsgRepTurnInfo(False, [], [], [])
-    #
-    #     return reply
 
     # Operation to perform the move operation
     def state_exec_play_input_move(self, msg_data):
@@ -954,7 +884,7 @@ class WosBattleshipServer(threading.Thread):
                 if isinstance(ship_info, ShipInfo):
                     is_ok = is_ok and check_collision(ship_info, obstacle_dict)
                 else:
-                    print("!!! SHIP [NEW]: Incorrect type [not ShipInfoDat] [playerid=%s]" % player_id)
+                    print("!!! SHIP [NEW]: Incorrect type [not ShipInfo] [playerid=%s]" % player_id)
                     is_ok = False
             # end of for..loop
         else:
@@ -1086,8 +1016,6 @@ class WosBattleshipServer(threading.Thread):
                 # print("player %s" % (i+1))
                 # print(mask)
 
-        # return player_mask_dict
-
     def get_player_score(self):
         reply = ""
         for key, player in self.player_status_dict.items():
@@ -1152,16 +1080,6 @@ def main():
                 reply = "NOK"
 
             cmdServer.send(reply)
-
-        # input = select.select([sys.stdin], [], [], 1)[0]
-        # if input:
-        # 	value = sys.stdin.readline().rstrip()
-        # 	if value == 'quit':
-        # 		flag_quit_game = True
-        # 	elif value == 'end':
-        # 		pass
-        # 	else:
-        # 		print("Invalid command : %s" % value)
 
     # Server Teardown --------------------------------------------------------------
     # Stop the user-input command server

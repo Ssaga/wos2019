@@ -4,8 +4,8 @@ import copy
 
 from cCommonGame import Boundary
 from cCommonGame import Position
+from cCommonGame import ShipInfo
 
-from wosBattleshipServer.cCommon import ShipInfo
 from wosBattleshipServer.cCommon import check_collision
 
 from wosBattleshipServer.funcIslandGeneration import generate_island

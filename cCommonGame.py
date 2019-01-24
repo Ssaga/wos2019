@@ -6,10 +6,10 @@ import numpy as np
 
 
 class MapData(IntEnum):
-    WATER = 0  # Sea / Uncovered
+    WATER = 0                   # Sea / Uncovered
     ISLAND = 1
-    CLOUD_FRIENDLY = 2  # Cloud in friendly area
-    CLOUD_HOSTILE = 4  # Cloud in hostile area
+    CLOUD_FRIENDLY = 2          # Cloud in friendly area
+    CLOUD_HOSTILE = 4           # Cloud in hostile area
     FOG_OF_WAR = 128
 
 
@@ -108,38 +108,50 @@ class ShipInfo(QObject):
 
     def turn_clockwise(self):
         self.heading += 90
+        self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
         self.area = self.get_placement()
         self.rotated.emit(self.heading)
 
     def turn_counter_clockwise(self):
         self.heading -= 90
+        self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
         self.rotated.emit(self.heading)
 
     def get_placement(self):
+        # get the upper half size of the ship
+        half_size = (self.size - 1) // 2
+
         # Get the index of the ship
-        placement = np.array([np.zeros(self.size), np.arange(0, self.size), np.ones(self.size)])
+        placement = np.array([np.zeros(self.size),
+                              np.arange(-half_size, (self.size - half_size)),
+                              np.ones(self.size)])
         placement = np.transpose(placement)
 
         # Get the kinematic matrix
         head_rad = self.heading * np.pi / 180.0
-        kin_mat = np.array([[np.cos(head_rad), np.sin(head_rad), 0],
-                            [-np.sin(head_rad), np.cos(head_rad), 0],
-                            [self.position.x, self.position.y, 1]])
+        kin_mat = np.array([[np.cos(head_rad),  np.sin(head_rad),   0],
+                            [-np.sin(head_rad), np.cos(head_rad),   0],
+                            [self.position.x,   self.position.y,    1]])
 
         # compute the ship placement
         placement = np.dot(placement, kin_mat)
+
+        # remove the last column
         placement = np.delete(placement, -1, 1)
+
         placement = np.round(placement)
         # remove the negative 0
         placement += 0.
         placement = placement.astype(int)
 
-        # TODO: How to convert the items of placement to python type from numpy type???
-        # ...
-
         return placement.tolist()
+
+    @staticmethod
+    def wrap(degree):
+        result = ((degree + 180.0) % 360) - 180.0
+        return result
 
 
 class ShipMovementInfo:

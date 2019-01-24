@@ -4,14 +4,14 @@ import copy
 import numpy as np
 import enum
 
-from wosBattleshipServer.cCommon import ShipInfo
+from cCommonGame import ShipInfo
+from cCommonGame import Boundary
+
 from wosBattleshipServer.cCommon import PlayerStatus
 from wosBattleshipServer.cCommon import check_collision
 
 from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_generation
 from wosBattleshipServer.funcIslandGeneration import generate_island
-
-from cCommonGame import Boundary
 
 
 class ShipMoveType(enum.IntEnum):

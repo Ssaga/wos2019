@@ -94,7 +94,7 @@ def wos_test_client():
                                                  0, 3, False)
                 if ship_id == 1:
                     ship_info.position.x = x1 + 0
-                    ship_info.position.y = y1 + 0
+                    ship_info.position.y = y1 + ((ship_info.size - 1) // 2)
                     ship_info.heading = 0
                 ship_list.append(ship_info)
 
