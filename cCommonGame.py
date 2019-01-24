@@ -1,7 +1,5 @@
 from enum import Enum
 from enum import IntEnum
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
 
@@ -63,13 +61,16 @@ class Heading(IntEnum):
     WEST = 3
 
 
-class ShipInfo(QObject):
-    moved = pyqtSignal(int, int)
-    rotated = pyqtSignal(float)
-
-    def __init__(self, ship_id=0, position=Position(0, 0), heading=0, size=0, is_sunken=False, parent=None):
-        QObject.__init__(self, parent)
-
+# class ShipInfo(QObject):
+#     moved = pyqtSignal(int, int)
+#     rotated = pyqtSignal(float)
+class ShipInfo:
+    def __init__(self,
+                 ship_id=0,
+                 position=Position(0, 0),
+                 heading=0,
+                 size=0,
+                 is_sunken=False):
         self.ship_id = ship_id
         # Position of of the ship head
         self.position = position
@@ -93,31 +94,25 @@ class ShipInfo(QObject):
         self.position.x += transpose[0]
         self.position.y += transpose[1]
         self.area = self.get_placement()
-        self.moved.emit(self.position.x, self.position.y)
 
     def set_heading(self, heading):
         self.heading = heading
         self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def set_position(self, x, y):
         self.position.x = x
         self.position.y = y
         self.area = self.get_placement()
-        self.moved.emit(self.position.x, self.position.y)
 
     def turn_clockwise(self):
         self.heading += 90
         self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
-        self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def turn_counter_clockwise(self):
         self.heading -= 90
         self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def get_placement(self):
         # get the upper half size of the ship
