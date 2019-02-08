@@ -11,14 +11,14 @@ class MapData(IntEnum):
     FOG_OF_WAR = 128
 
 
-class Action(Enum):
+class Action(IntEnum):
     NOP = 0
     FWD = 1
     CW = 2
     CCW = 3
 
 
-class GameState(Enum):
+class GameState(IntEnum):
     INIT = 0
     PLAY_INPUT = 1
     PLAY_COMPUTE = 2
@@ -179,13 +179,13 @@ class FireInfo:
 
 
 class SatcomInfo:
-    def __init__(self, a=0, b=0, c=0, d=0, e=0, f=0, is_enable=False, is_rhs=False):
+    def __init__(self, a=0, e=0, i=0, om=0, Om=0, M=0, is_enable=False, is_rhs=False):
         self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
         self.e = e
-        self.f = f
+        self.i = i
+        self.om = om
+        self.Om = Om
+        self.M = M
         self.is_enable = bool(is_enable)
         self.is_rhs = bool(is_rhs)
 
@@ -236,7 +236,7 @@ class GameStatus:
                  time_remain=0):
         self.game_state_str = game_state.name
         self.game_round = game_round
-        self.player_turn = player_turn
+        self.player_turn = player_turn          # Not used; Removed due to remove of turn-based gameplay
         self.time_remain = time_remain
 
     def __repr__(self):

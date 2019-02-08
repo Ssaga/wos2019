@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import time
 
 from cCommonCommEngine import ConnInfo
 from cCommonGame import Size
@@ -92,27 +93,40 @@ class GameTurnStatus:
         # game round start count from 1
         self.game_round = game_round
         # player turn start count from 1
-        self.player_turn = player_turn
+        self.player_turn = player_turn                              # Not used
         # added by ttl, 2019-01-13
         self.time_remaining = time_remaining
         # end of modification
         self.allowed_action = PlayerTurnActionCount(default_move, default_fire, default_satcom)
-        self.remaining_action = PlayerTurnActionCount(0, 0, 0)
-        self.clear_turn_remaining_action()
+        # self.remaining_action = PlayerTurnActionCount(0, 0, 0)
+        # self.clear_turn_remaining_action()
 
     def __repr__(self):
         return str(vars(self))
 
-    def reset_turn_remaining_action(self):
-        self.remaining_action.remain_move = self.allowed_action.remain_move
-        self.remaining_action.remain_fire = self.allowed_action.remain_fire
-        self.remaining_action.remain_satcom = self.allowed_action.remain_satcom
+    # def reset_turn_remaining_action(self):
+    #     self.remaining_action.remain_move = self.allowed_action.remain_move
+    #     self.remaining_action.remain_fire = self.allowed_action.remain_fire
+    #     self.remaining_action.remain_satcom = self.allowed_action.remain_satcom
 
-    def clear_turn_remaining_action(self):
-        self.remaining_action.remain_move = 0
-        self.remaining_action.remain_fire = 0
-        self.remaining_action.remain_satcom = 0
+    # def clear_turn_remaining_action(self):
+    #     self.remaining_action.remain_move = 0
+    #     self.remaining_action.remain_fire = 0
+    #     self.remaining_action.remain_satcom = 0
 
+
+class ServerFireInfo:
+    def __init__(self, player_id = None, pos=Position()):
+        self.timestamp = time.time()
+        self.player_id = player_id
+        self.pos = pos
+
+    def __repr__(self):
+        return str(vars(self))
+
+    def to_string(self):
+        return "Player %s Fire @ (%s, %s) on %s" % \
+               (self.player_id, self.pos.x, self.pos.y, self.timestamp)
 
 #-----------------------------------------------------------------------
 class SvrCfgJsonEncoder(json.JSONEncoder):
