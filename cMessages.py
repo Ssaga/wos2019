@@ -169,6 +169,7 @@ class MsgJsonEncoder(json.JSONEncoder):
             result = {
                 "__class__": "ShipInfo",
                 "ship_id": obj.ship_id,
+                "ship_type": obj.ship_type,
                 "position": obj.position,
                 "heading": obj.heading,
                 "size": obj.size,
@@ -420,7 +421,8 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['position'],
             obj['heading'],
             obj['size'],
-            obj['is_sunken']
+            obj['is_sunken'],
+            obj['ship_type']
         )
 
     @staticmethod

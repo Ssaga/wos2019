@@ -56,10 +56,14 @@ def wos_test_client(num_of_rounds, player_id, boundary):
     # Test 2: Register the ships for the four client
     ship_list = []
     for ship_id in range(3):
-        ship_info = cCommonGame.ShipInfo(ship_id,
-                                         cCommonGame.Position(int(np.random.random_integers(boundary[0][0]+3, boundary[0][1]-3)),
-                                                              int(np.random.random_integers(boundary[1][0]+3, boundary[1][1]-3))),
-                                         0, 3, False)
+        ship_info = cCommonGame.ShipInfo(ship_id=ship_id,
+                                         ship_type=cCommonGame.ShipType.MIL,
+                                         position=cCommonGame.Position(
+                                             int(np.random.random_integers(boundary[0][0] + 3, boundary[0][1] - 3)),
+                                             int(np.random.random_integers(boundary[1][0] + 3, boundary[1][1] - 3))),
+                                         heading=0,
+                                         size=3,
+                                         is_sunken=False)
         if ship_id == 1:
             ship_info.position.x = boundary[0][0] + 0
             ship_info.position.y = boundary[1][0] + ((ship_info.size - 1) // 2)
@@ -88,13 +92,16 @@ def wos_test_client(num_of_rounds, player_id, boundary):
 
     game_status = client_comm_engine.recv_from_publisher()
     while game_status is None:
+        print("game status is None")
         time.sleep(1)
         game_status = client_comm_engine.recv_from_publisher()
 
     while game_status.get_enum_game_state() == cCommonGame.GameState.INIT:
+        print("game status is INIT")
         time.sleep(1)
         game_status = client_comm_engine.recv_from_publisher()
 
+    round_offset = 0
     # # Test timeout for round 1
     # game_status = client_comm_engine.recv_from_publisher()
     # while game_status.game_round < 2:
@@ -103,6 +110,7 @@ def wos_test_client(num_of_rounds, player_id, boundary):
     #                                                            game_status.time_remain))
     #     time.sleep(1)
     #     game_status = client_comm_engine.recv_from_publisher()
+    # round_offset = round_offset + 1
 
 
     # Test 4: Test Game Play
@@ -110,7 +118,7 @@ def wos_test_client(num_of_rounds, player_id, boundary):
 
         # Wait until new round has started
         game_status = client_comm_engine.recv_from_publisher()
-        while game_status.game_round == (rounds_cnt + 1) and \
+        while game_status.game_round == (rounds_cnt + round_offset) and \
                 game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
             game_status = client_comm_engine.recv_from_publisher()
 
@@ -232,7 +240,7 @@ def wos_test_clients():
     game_setting = load_server_setting("game_server.cfg")
     if isinstance(game_setting, ServerGameConfig):
         # basic game setting
-        num_of_rounds = game_setting.num_of_rounds
+        num_of_rounds = game_setting.num_of_rounds + 2
         num_of_player = game_setting.num_of_player
 
         # Test setting

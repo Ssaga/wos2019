@@ -1,4 +1,4 @@
-from enum import Enum
+# from enum import Enum
 from enum import IntEnum
 import numpy as np
 
@@ -9,6 +9,11 @@ class MapData(IntEnum):
     CLOUD_FRIENDLY = 2          # Cloud in friendly area
     CLOUD_HOSTILE = 4           # Cloud in hostile area
     FOG_OF_WAR = 128
+
+
+class ShipType(IntEnum):
+    MIL = 0
+    CIV = 1
 
 
 class Action(IntEnum):
@@ -70,8 +75,10 @@ class ShipInfo:
                  position=Position(0, 0),
                  heading=0,
                  size=0,
-                 is_sunken=False):
+                 is_sunken=False,
+                 ship_type=ShipType.MIL):
         self.ship_id = ship_id
+        self.ship_type = ship_type
         # Position of of the ship head
         self.position = position
         self.heading = heading
@@ -188,6 +195,26 @@ class SatcomInfo:
         self.M = M
         self.is_enable = bool(is_enable)
         self.is_rhs = bool(is_rhs)
+
+    def __repr__(self):
+        return str(vars(self))
+
+
+class UwInfo:
+    def __init__(self, val):
+        pass
+
+
+class UwCollectedData:
+    def __init__(self, N=[], NE=[], E=[], SE=[], S=[], SW=[], W=[], NW=[]):
+        self.N = N
+        self.NE = NE
+        self.E = E
+        self.SE = SE
+        self.S = S
+        self.SW = SW
+        self.W = W
+        self.NW = NW
 
     def __repr__(self):
         return str(vars(self))

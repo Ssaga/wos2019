@@ -1,5 +1,6 @@
 import threading
 import time
+import collections
 
 from cClientCommEngine import ClientCommEngine
 from cServerCommEngine import ServerCommEngine
@@ -53,52 +54,61 @@ def perform_server_task(server_comm_engine, cnt):
     server_comm_engine.set_game_status(game_status)
 
     # Receive the request from the client and send a reply
-    msg_req = server_comm_engine.recv()
+    msg = server_comm_engine.recv()
 
     # TODO: Process and generate the reply
-    if (msg_req is not None) and issubclass(type(msg_req), cMessages.MsgReq):
-        msg_rep = None
-        if msg_req.type_id == 0:
-            print("\tServer: RECV: Request Register")
-            map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
-            msg_rep = cMessages.MsgRepAckMap(True, map_data)
-        elif msg_req.type_id == 6:
-            print("\tServer: RECV: Request satcom action")
-            map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
-            msg_rep = cMessages.MsgRepAckMap(True, map_data)
-        elif msg_req.type_id == 2:
-            print("\tServer: RECV: Request Game Configure")
-            msg_rep = cMessages.MsgRepAck(True)
-        elif msg_req.type_id == 3:
-            print("\tServer: RECV: Request Turn Info")
-            msg_rep = cMessages.MsgRepTurnInfo(True,
-                                               [ShipInfo(1, Position(1, 1), 0, 1, False),
-                                                ShipInfo(2, Position(2, 2), 90, 2, False),
-                                                ShipInfo(3, Position(3, 3), 180, 3, False),
-                                                ShipInfo(4, Position(4, 4), 270, 4, True)],
-                                               [Position(5, 5),
-                                                Position(6, 6),
-                                                Position(7, 7)],
-                                               [[1, 1, 1, 1],
-                                                [1, 0, 0, 1],
-                                                [1, 0, 0, 1],
-                                                [1, 1, 1, 1]])
-        else:
-            ack = True
-            if msg_req.type_id == 1:
-                print("\tServer: RECV: Request Ship registration")
-            elif msg_req.type_id == 4:
-                print("\tServer: RECV: Request move acion")
-            elif msg_req.type_id == 5:
-                print("\tServer: RECV: Request fire acion")
-            else:
-                ack = False
-            msg_rep = cMessages.MsgRepAck(ack)
+    if isinstance(msg, collections.Iterable):
+        msg_addr = None
+        msg_req = None
+        if len(msg) > 1:
+            msg_addr = msg[0]
+            msg_req = msg[1]
 
-        # Send reply
-        server_comm_engine.send(msg_rep)
+        if (msg_req is not None) and issubclass(type(msg_req), cMessages.MsgReq):
+            msg_rep = None
+            if msg_req.type_id == 0:
+                print("\tServer: RECV: Request Register")
+                map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+                msg_rep = cMessages.MsgRepAckMap(True, map_data)
+            elif msg_req.type_id == 6:
+                print("\tServer: RECV: Request satcom action")
+                map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+                msg_rep = cMessages.MsgRepAckMap(True, map_data)
+            elif msg_req.type_id == 2:
+                print("\tServer: RECV: Request Game Configure")
+                msg_rep = cMessages.MsgRepAck(True)
+            elif msg_req.type_id == 3:
+                print("\tServer: RECV: Request Turn Info")
+                msg_rep = cMessages.MsgRepTurnInfo(True,
+                                                   [ShipInfo(1, Position(1, 1), 0, 1, False),
+                                                    ShipInfo(2, Position(2, 2), 90, 2, False),
+                                                    ShipInfo(3, Position(3, 3), 180, 3, False),
+                                                    ShipInfo(4, Position(4, 4), 270, 4, True)],
+                                                   [Position(5, 5),
+                                                    Position(6, 6),
+                                                    Position(7, 7)],
+                                                   [[1, 1, 1, 1],
+                                                    [1, 0, 0, 1],
+                                                    [1, 0, 0, 1],
+                                                    [1, 1, 1, 1]])
+            else:
+                ack = True
+                if msg_req.type_id == 1:
+                    print("\tServer: RECV: Request Ship registration")
+                elif msg_req.type_id == 4:
+                    print("\tServer: RECV: Request move acion")
+                elif msg_req.type_id == 5:
+                    print("\tServer: RECV: Request fire acion")
+                else:
+                    ack = False
+                msg_rep = cMessages.MsgRepAck(ack)
+
+            # Send reply
+            server_comm_engine.send(addr=msg_addr, msg=msg_rep)
+        else:
+            print("Server did not receive any data")
     else:
-        print("Server did not receive any data")
+        print("Server did not receive incorrect data")
 
 
 # ---------------------------------------------------------------------
@@ -191,61 +201,61 @@ def perform_client_task(list_client_comm_engine, cnt):
 
 
 # ---------------------------------------------------------------------
+if __name__ == '__main__':
+    # client_id = 1
+    addr_svr = "127.0.0.1"
+    port_req = 5556
+    port_sub = 5557
 
-# client_id = 1
-addr_svr = "127.0.0.1"
-port_req = 5556
-port_sub = 5557
+    req_rep_if = ConnInfo(addr_svr, port_req)
+    pub_sub_if = ConnInfo(addr_svr, port_sub)
 
-req_rep_if = ConnInfo(addr_svr, port_req)
-pub_sub_if = ConnInfo(addr_svr, port_sub)
+    is_running = True
 
-is_running = True
+    print("tesing code --------")
+    # server
+    server_comm_engine = ServerCommEngine(req_rep_if, pub_sub_if, polling_rate, bc_rate)
+    thread_server = threading.Thread(name='server-thread',
+                                     target=server_thread,
+                                     args=(server_comm_engine,))
+    thread_server.start()
 
-print("tesing code --------")
-# server
-server_comm_engine = ServerCommEngine(req_rep_if, pub_sub_if, polling_rate, bc_rate)
-thread_server = threading.Thread(name='server-thread',
-                                 target=server_thread,
-                                 args=(server_comm_engine,))
-thread_server.start()
+    # client
+    list_thread_client = []
+    list_client_comm_engine = []
+    for i in range(1, total_turn_cnt + 1):
+        print("Creating Client Id: %s" % i)
+        client_comm_engine = ClientCommEngine(i, req_rep_if, pub_sub_if, polling_rate)
+        thread_client = threading.Thread(name='client-thread',
+                                         target=client_thread,
+                                         args=(client_comm_engine,))
+        thread_client.start()
+        list_client_comm_engine.append(client_comm_engine)
+        list_thread_client.append(thread_client)
 
-# client
-list_thread_client = []
-list_client_comm_engine = []
-for i in range(1, total_turn_cnt + 1):
-    print("Creating Client Id: %s" % i)
-    client_comm_engine = ClientCommEngine(i, req_rep_if, pub_sub_if, polling_rate)
-    thread_client = threading.Thread(name='client-thread',
-                                     target=client_thread,
-                                     args=(client_comm_engine,))
-    thread_client.start()
-    list_client_comm_engine.append(client_comm_engine)
-    list_thread_client.append(thread_client)
-
-# wait for the server commEngine to be ready
-while (not server_comm_engine.is_ready):
-    print("Waiting for server commEngine")
-    time.sleep(1)
-
-# wait for the client commEngine to be ready
-for client_comm_engine in list_client_comm_engine:
-    while (not client_comm_engine.is_ready):
-        print("Waiting for client %s commEngine..." % client_comm_engine.client_id)
+    # wait for the server commEngine to be ready
+    while (not server_comm_engine.is_ready):
+        print("Waiting for server commEngine")
         time.sleep(1)
 
-# Waiting execution
-# for i in range(0, (total_round_cnt * total_turn_cnt) + total_turn_cnt):
-sleep_dur = bc_rate / 1000
-for i in range(0, 10):
-    time.sleep(sleep_dur)
-    print("%s *** count %s..." % (time.ctime(time.time()), i))
-    run_count = i
-    perform_client_task(list_client_comm_engine, i)
+    # wait for the client commEngine to be ready
+    for client_comm_engine in list_client_comm_engine:
+        while (not client_comm_engine.is_ready):
+            print("Waiting for client %s commEngine..." % client_comm_engine.client_id)
+            time.sleep(1)
 
-is_running = False
-for thread_client in list_thread_client:
-    thread_client.join()
-thread_server.join()
+    # Waiting execution
+    # for i in range(0, (total_round_cnt * total_turn_cnt) + total_turn_cnt):
+    sleep_dur = bc_rate / 1000
+    for i in range(0, 10):
+        time.sleep(sleep_dur)
+        print("%s *** count %s..." % (time.ctime(time.time()), i))
+        run_count = i
+        perform_client_task(list_client_comm_engine, i)
 
-print("exit ---------------")
+    is_running = False
+    for thread_client in list_thread_client:
+        thread_client.join()
+    thread_server.join()
+
+    print("exit ---------------")

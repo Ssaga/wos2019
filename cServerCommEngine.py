@@ -12,6 +12,7 @@ import cMessages
 from cMessages import MsgJsonEncoder
 from cMessages import MsgJsonDecoder
 
+
 #
 #
 #
@@ -35,7 +36,6 @@ class ServerCommEngine:
         self.polling_rate = polling_rate
         self.bc_rate = bc_rate
 
-
     def start(self):
         # create the thread for the subscriber & start it
         if (self.pub_thread is not None):
@@ -47,7 +47,6 @@ class ServerCommEngine:
         self.setup_server()
         print("\tServer CommEngine Started...")
         self.is_ready = True
-
 
     def stop(self):
         self.is_ready = False
@@ -64,20 +63,18 @@ class ServerCommEngine:
         self.teardown_server()
         print("\tServer CommEngine Stopped...")
 
-
     def setup_server(self):
         # create the req-rep i/f with the server
         if (self.context is not None):
             print("\tRecreate server...")
             self.teardown_server(self)
         self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REP)
+        self.socket = self.context.socket(zmq.ROUTER)
         connString = str("tcp://%s:%s" % (self.rep_if.addr, self.rep_if.port,))
         print("\tSetting up server... [%s]" % connString)
         self.socket.bind(connString)
         self.socket.setsockopt(zmq.LINGER, 0)
         self.poller.register(self.socket, zmq.POLLIN)
-
 
     def teardown_server(self):
         # close the connection of the rep socket
@@ -94,13 +91,12 @@ class ServerCommEngine:
                 print("\tError closing the socket")
 
         # terminate the context
-        if (self.context is not None):
+        if self.context is not None:
             try:
                 self.context.term()
                 self.context = None
             except zmq.ZMQError:
                 print("Error terminating context")
-
 
     def set_game_status(self, game_status=GameStatus()):
         msg_game_status = cMessages.MsgPubGameStatus(game_status.get_enum_game_state(),
@@ -109,16 +105,21 @@ class ServerCommEngine:
                                                      game_status.time_remain)
         self.pub_thread.set_game_status(msg_game_status)
 
-
     def recv(self):
-        msg = None
+        msg = []
         if (self.socket is not None):
             try:
                 socks = dict(self.poller.poll(self.polling_rate))
                 if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
-                    # msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
+                    # # msg = self.socket.recv_json(0, cls=MsgJsonDecoder)
+                    # msg_str = self.socket.recv_string()
+                    # msg = json.loads(msg_str, cls=MsgJsonDecoder)
+                    addr = self.socket.recv()
+                    empty = self.socket.recv()
                     msg_str = self.socket.recv_string()
-                    msg = json.loads(msg_str, cls=MsgJsonDecoder)
+                    data = json.loads(msg_str, cls=MsgJsonDecoder)
+                    msg.append(addr)
+                    msg.append(data)
                     print("\tServer: RECV: %s" % msg)
             except zmq.ZMQError:
                 self.reset_conn = True
@@ -126,14 +127,15 @@ class ServerCommEngine:
             print("\tCommEngine is not started")
         return msg
 
-
-    def send(self, msg):
+    def send(self, addr=None, msg=None):
         if self.socket is not None:
-            if issubclass(type(msg), cMessages.Msg):
+            if issubclass(type(msg), cMessages.Msg) and addr is not None:
                 try:
                     print("\tServer: sending: %s" % vars(msg))
                     #self.socket.send_json(msg, 0, cls=MsgJsonEncoder)
                     msg_str = json.dumps(msg, cls=MsgJsonEncoder)
+                    self.socket.send(addr, zmq.SNDMORE)
+                    self.socket.send(b'', zmq.SNDMORE)
                     self.socket.send_string(msg_str)
                 except zmq.ZMQError:
                     self.reset_conn = True
@@ -141,6 +143,7 @@ class ServerCommEngine:
                 print("\tServer: Unknown msg-type: %s" % type(msg))
         else:
             print("\tCommEngine is not started")
+
 
 #
 #
@@ -158,6 +161,7 @@ class ServerCommEnginePublisher(threading.Thread):
 
     # Main Thread body
     def run(self):
+        print("\tServerCommEnginePublisher thread has started")
         # setup the connection with the publisher from game server
         self.setup()
 
@@ -178,11 +182,9 @@ class ServerCommEnginePublisher(threading.Thread):
 
         print("\tServerCommEnginePublisher thread has exited")
 
-
     # Stop the execution of this thread
     def stop(self):
         self.is_running = False
-
 
     # Setup the Publisher of the Server
     def setup(self):
@@ -193,16 +195,11 @@ class ServerCommEnginePublisher(threading.Thread):
         self.socket.bind(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
 
-
     # Teardown the connection
     def teardown(self):
         self.socket.close()
         self.context.term()
 
-
     # Update game status data
     def set_game_status(self, game_status=cMessages.MsgPubGameStatus()):
         self.game_status = game_status
-
-
-

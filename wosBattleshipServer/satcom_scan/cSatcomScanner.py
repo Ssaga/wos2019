@@ -7,7 +7,8 @@ Created on Tue Jan 29 17:32:39 2019
 import json
 import numpy as np
 
-import wosBattleshipServer.satcom_scan.orbitFns_v2 as orb
+# import wosBattleshipServer.satcom_scan.orbitFns_v2 as orb
+import wosBattleshipServer.satcom_scan.orbitFns_v3 as orb
 
 from wosBattleshipServer.satcom_scan.cSatcomScannerConfig import JsonDecoder
 from wosBattleshipServer.satcom_scan.cSatcomScannerConfig import JsonEncoder

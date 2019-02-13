@@ -22,6 +22,7 @@ from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
 from cCommonGame import SatcomInfo
 from cCommonGame import Action
+from cCommonGame import ShipType
 
 from wosBattleshipServer.funcIslandGeneration import island_generation
 from wosBattleshipServer.funcCloudGeneration import cloud_generation
@@ -58,6 +59,9 @@ def signal_handler(sig, frame):
 class WosBattleshipServer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+
+        # Lock for the comm_engine
+        self.comm_engine_lock = threading.RLock()
 
         # Thread Setup --------------------------------------------------------------
         # load the game setting
@@ -217,7 +221,7 @@ class WosBattleshipServer(threading.Thread):
 
         while self.is_running:
             # Wait for data from the client
-            msg_data = self.comm_engine.recv()
+            msg = self.comm_engine.recv()
 
             # Update the remaining time for the turn
             self.update_countdown_time()
@@ -227,7 +231,17 @@ class WosBattleshipServer(threading.Thread):
                 print("State Change to %s" % self.game_status.game_state)
                 self.state_setup()
                 state_changed = False
-            self.state_exec(msg_data)
+
+            # self.state_exec(msg)
+            # Perform the state exec as a thread
+            if msg is not None:
+                # Get the address and data
+                if len(msg) >= 2:
+                    msg_addr = msg[0]
+                    msg_data = msg[1]
+
+                    thread = threading.Thread(target=self.state_exec, args=(msg_addr, msg_data))
+                    thread.start()
 
         # stop the communication engine
         self.tts_comm_engine.stop()
@@ -292,7 +306,10 @@ class WosBattleshipServer(threading.Thread):
                     player_id, remaining_action, remaining_action.remain_move, remaining_action.remain_fire,
                     remaining_action.remain_satcom))
 
-        print("********** Remaining total action %s | Timeout: %s" % (total_remaining_action, self.flag_turn_timeout))
+        print("********** Remaining total action %s | Timeout: %s [Remaining: %s]" %
+              (total_remaining_action,
+               self.flag_turn_timeout,
+               self.game_status.time_remaining))
 
         if (total_remaining_action <= 0) or self.flag_turn_timeout:
             self.game_status.game_state = GameState.PLAY_COMPUTE
@@ -604,8 +621,16 @@ class WosBattleshipServer(threading.Thread):
         self.tts_comm_engine.send("Game Ended")
 
     # ---------------------------------------------------------------------------
-    def state_exec(self, msg_data):
+    def state_exec(self, msg_addr, msg_data):
+    # def state_exec(self, msg):
+        # Reply message
         reply = None
+        # msg_data = None
+        # msg_addr = None
+        # if isinstance(msg, collections.Iterable) and len(msg) >= 2:
+        #     msg_addr = msg[0]
+        #     msg_data = msg[1]
+
         if self.game_status.game_state == GameState.INIT:
             reply = self.state_exec_init(msg_data)
         elif self.game_status.game_state == GameState.PLAY_INPUT:
@@ -615,11 +640,15 @@ class WosBattleshipServer(threading.Thread):
         elif self.game_status.game_state == GameState.STOP:
             reply = self.state_exec_stop(msg_data)
         else:
-            print("Unsupport game state")
-
+            print("Unsupported game state")
+        # Send the reply if any
         if reply is not None:
-            print("REPLY: %s" % vars(reply))
-            self.comm_engine.send(reply)
+            self.comm_engine_lock.acquire()
+            try:
+                print("REPLY: %s" % vars(reply))
+                self.comm_engine.send(msg_addr, reply)
+            finally:
+                self.comm_engine_lock.release()
 
     def state_exec_init(self, msg_data):
         # process the reply for any input message
@@ -648,11 +677,12 @@ class WosBattleshipServer(threading.Thread):
                     for ship_info_dat in msg_data.ship_list:
                         if isinstance(ship_info_dat, ShipInfo):
                             # clone the ship_info data
-                            ship_info = ShipInfo(ship_info_dat.ship_id,
-                                                 Position(ship_info_dat.position.x, ship_info_dat.position.y),
-                                                 ship_info_dat.heading,
-                                                 ship_info_dat.size,
-                                                 ship_info_dat.is_sunken)
+                            ship_info = ShipInfo(ship_id=ship_info_dat.ship_id,
+                                                 ship_type=ship_info_dat.ship_type,
+                                                 position=Position(ship_info_dat.position.x, ship_info_dat.position.y),
+                                                 heading=ship_info_dat.heading,
+                                                 size=ship_info_dat.size,
+                                                 is_sunken=ship_info_dat.is_sunken)
                             player_status.ship_list.append(ship_info)
                             print(ship_info)
 
@@ -746,22 +776,24 @@ class WosBattleshipServer(threading.Thread):
         for ship_info in self.player_status_dict[msg_data.player_id].ship_list:
             if isinstance(ship_info, ShipInfo):
                 # Clone the player ship information
-                ship_info_dat = ShipInfo(ship_info.ship_id,
-                                         Position(ship_info.position.x, ship_info.position.y),
-                                         ship_info.heading,
-                                         ship_info.size,
-                                         ship_info.is_sunken)
+                ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                         ship_type=ship_info.ship_type,
+                                         position=Position(ship_info.position.x, ship_info.position.y),
+                                         heading=ship_info.heading,
+                                         size=ship_info.size,
+                                         is_sunken=ship_info.is_sunken)
                 self_ship_list.append(ship_info_dat)
 
         # Get the list of civilian ships
         for ship_info in self.civilian_ship_list:
             if isinstance(ship_info, ShipInfo):
                 # Clone the civilian ship information
-                ship_info_dat = ShipInfo(ship_info.ship_id,
-                                         Position(ship_info.position.x, ship_info.position.y),
-                                         ship_info.heading,
-                                         ship_info.size,
-                                         ship_info.is_sunken)
+                ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                         ship_type=ship_info.ship_type,
+                                         position=Position(ship_info.position.x, ship_info.position.y),
+                                         heading=ship_info.heading,
+                                         size=ship_info.size,
+                                         is_sunken=ship_info.is_sunken)
                 other_ship_list.append(ship_info_dat)
 
         # Get the list of enemy ships
@@ -773,11 +805,12 @@ class WosBattleshipServer(threading.Thread):
                 for ship_info in enemy_data.ship_list:
                     if isinstance(ship_info, ShipInfo):
                         # Clone the enemy ship information
-                        ship_info_dat = ShipInfo(ship_info.ship_id,
-                                                 Position(ship_info.position.x, ship_info.position.y),
-                                                 ship_info.heading,
-                                                 ship_info.size,
-                                                 ship_info.is_sunken)
+                        ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                                 ship_type=ship_info_dat.ship_type,
+                                                 position=Position(ship_info.position.x, ship_info.position.y),
+                                                 heading=ship_info.heading,
+                                                 size=ship_info.size,
+                                                 is_sunken=ship_info.is_sunken)
                         # TODO: Do we need to differ the enemy and civilian ship? if so, how???
                         if True:
                             other_ship_list.append(ship_info_dat)
@@ -791,8 +824,12 @@ class WosBattleshipServer(threading.Thread):
 
         # bombardment_data = [value for key, value in self.player_curr_fire_cmd_dict.items() if
         #                     key is not msg_data.player_id]
-        bombardment_data = [value for value in self.player_curr_fire_cmd_list if
-                            value.player_id is not msg_data.player_id]
+        # bombardment_data = [value for value in self.player_curr_fire_cmd_list if
+        #                     value.player_id is not msg_data.player_id]
+        bombardment_data = []
+        for value in self.player_curr_fire_cmd_list:
+            if value.player_id is not msg_data.player_id:
+                bombardment_data.append(FireInfo(value.pos))
 
 
         # compute the map data

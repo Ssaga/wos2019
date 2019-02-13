@@ -5,6 +5,7 @@ import copy
 from cCommonGame import Boundary
 from cCommonGame import Position
 from cCommonGame import ShipInfo
+from cCommonGame import ShipType
 
 from wosBattleshipServer.cCommon import check_collision
 
@@ -41,10 +42,11 @@ def civilian_ship_generation(civilian_ship_list,
             ship_head = np.random.randint(0, 4)
 
             # generate the ship object
-            ship = ShipInfo(len(civilian_ship_list),
-                            ship_position,
-                            (ship_head * 90),
-                            ship_size)
+            ship = ShipInfo(ship_id=len(civilian_ship_list),
+                            ship_type=ShipType.CIV,
+                            position=ship_position,
+                            heading=(ship_head * 90),
+                            size=ship_size)
 
             # Generate the obstacle dictionary
             obstacle_dict = dict()
