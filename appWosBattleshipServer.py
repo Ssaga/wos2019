@@ -17,11 +17,12 @@ from cCommonGame import Boundary
 from cCommonGame import GameState
 from cCommonGame import GameStatus
 from cCommonGame import GameConfig
-from cCommonGame import ShipInfo as ShipInfoDat
+from cCommonGame import ShipInfo
 from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
 from cCommonGame import SatcomInfo
 from cCommonGame import Action
+from cCommonGame import ShipType
 
 from wosBattleshipServer.funcIslandGeneration import island_generation
 from wosBattleshipServer.funcCloudGeneration import cloud_generation
@@ -30,7 +31,6 @@ from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_genera
 from wosBattleshipServer.funcCivilianShipsMovement import civilian_ship_movement
 from wosBattleshipServer.funcSatcomScan import satcom_scan
 
-from wosBattleshipServer.cCommon import ShipInfo
 from wosBattleshipServer.cCommon import PlayerStatus
 from wosBattleshipServer.cCommon import PlayerTurnActionCount
 from wosBattleshipServer.cCommon import GameTurnStatus
@@ -38,6 +38,7 @@ from wosBattleshipServer.cCommon import ServerGameConfig
 from wosBattleshipServer.cCommon import SvrCfgJsonDecoder
 from wosBattleshipServer.cCommon import SvrCfgJsonEncoder
 from wosBattleshipServer.cCommon import check_collision
+from wosBattleshipServer.cCommon import ServerFireInfo
 
 from wosBattleshipServer.cTtsCommEngineSvr import TtsServerCommEngine
 
@@ -47,15 +48,20 @@ import cMessages
 # Global Variable  ---------------------------------------------------------
 flag_quit_game = False
 
+
 # Global Function  ---------------------------------------------------------
 def signal_handler(sig, frame):
     global flag_quit_game
     flag_quit_game = True
 
+
 # --------------------------------------------------------------------------
 class WosBattleshipServer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+
+        # Lock for the comm_engine
+        self.comm_engine_lock = threading.RLock()
 
         # Thread Setup --------------------------------------------------------------
         # load the game setting
@@ -82,15 +88,24 @@ class WosBattleshipServer(threading.Thread):
             num_satcom_act = 0
         self.game_status = GameTurnStatus(GameState.INIT, num_move_act, num_fire_act, num_satcom_act)
 
+        ## Added by ttl, 2019-01-31
+        self.player_remaining_action_dict = dict()
+        ## End of modification
+
         # Players data
         # player_status_list is a dictionary of PlayerStatus class
         # dict: {'<player_id>': PlayerStatus}
         self.player_status_dict = dict()
-        # player_curr_fire_cmd_list & player_prev_fire_cmd_list are a dictionary of
-        # 	FireInfo class
-        # dict: {'<player_id>': FireInfo}
-        self.player_curr_fire_cmd_dict = dict()
-        self.player_prev_fire_cmd_dict = dict()
+        # # player_curr_fire_cmd_dict & player_prev_fire_cmd_dict are a dictionary of
+        # # 	FireInfo class
+        # # dict: {'<player_id>': FireInfo}
+        # self.player_curr_fire_cmd_dict = dict()
+        # self.player_prev_fire_cmd_dict = dict()
+        # player_curr_fire_cmd_list & player_prev_fire_cmd_list are a list of
+        # 	ServerFireInfo class
+        # list: {ServerFireInfo}
+        self.player_curr_fire_cmd_list = list()
+        self.player_prev_fire_cmd_list = list()
         # player_mask_layer is a dictionary of 2D list
         # dict: {'<player_id>': [[<row 1 mask list>],[<row 2 mask list>], ...]}
         self.player_boundary_layer = dict()
@@ -119,6 +134,10 @@ class WosBattleshipServer(threading.Thread):
         self.civilian_ship_list = list()
         self.civilian_ship_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
 
+        # Generate the round state for each player
+        for i in range(self.game_setting.num_of_player):
+            self.player_remaining_action_dict[i + 1] = PlayerTurnActionCount(0, 0, 0)
+
         # Generate Player mask
         self.generate_player_mask(self.player_boundary_layer, self.player_boundary_dict)
         print("Player mask: ---------------------------------------------")
@@ -139,13 +158,9 @@ class WosBattleshipServer(threading.Thread):
         # Generate the island on the map
         for key in self.player_boundary_dict:
             player_boundary_dict = self.player_boundary_dict[key]
-            # player_map_portion = self.island_layer[
-            #                      player_boundary_dict[0][0]:player_boundary_dict[0][1],
-            #                      player_boundary_dict[1][0]:player_boundary_dict[1][1]]
             player_map_portion = self.island_layer[
                                  player_boundary_dict.min_x:player_boundary_dict.max_x,
                                  player_boundary_dict.min_y:player_boundary_dict.max_y]
-            # island_generation(self.island_layer, self.game_setting.island_coverage)
             island_generation(player_map_portion, self.game_setting.island_coverage)
         self.island_layer = self.island_layer.astype(np.int)
         self.island_layer = self.island_layer * MapData.ISLAND
@@ -190,8 +205,10 @@ class WosBattleshipServer(threading.Thread):
     def clear_user(self):
         if self.game_status.game_state == GameState.INIT:
             self.player_status_dict.clear()
-            self.player_curr_fire_cmd_dict.clear()
-            self.player_prev_fire_cmd_dict.clear()
+            # self.player_curr_fire_cmd_dict.clear()
+            # self.player_prev_fire_cmd_dict.clear()
+            self.player_curr_fire_cmd_list.clear()
+            self.player_prev_fire_cmd_list.clear()
         else:
             print("Unable to clear users as the game has started")
 
@@ -204,7 +221,7 @@ class WosBattleshipServer(threading.Thread):
 
         while self.is_running:
             # Wait for data from the client
-            msg_data = self.comm_engine.recv()
+            msg = self.comm_engine.recv()
 
             # Update the remaining time for the turn
             self.update_countdown_time()
@@ -214,7 +231,17 @@ class WosBattleshipServer(threading.Thread):
                 print("State Change to %s" % self.game_status.game_state)
                 self.state_setup()
                 state_changed = False
-            self.state_exec(msg_data)
+
+            # self.state_exec(msg)
+            # Perform the state exec as a thread
+            if msg is not None:
+                # Get the address and data
+                if len(msg) >= 2:
+                    msg_addr = msg[0]
+                    msg_data = msg[1]
+
+                    thread = threading.Thread(target=self.state_exec, args=(msg_addr, msg_data))
+                    thread.start()
 
         # stop the communication engine
         self.tts_comm_engine.stop()
@@ -270,16 +297,21 @@ class WosBattleshipServer(threading.Thread):
     def state_get_next_play_input(self):
         state_changed = False
 
-        #
-        remaining_turn_action = self.game_status.remaining_action
-        assert(isinstance(remaining_turn_action, PlayerTurnActionCount))
-        remaining_action = remaining_turn_action.remain_move + remaining_turn_action.remain_fire + remaining_turn_action.remain_satcom
+        total_remaining_action = 0
+        for player_id in self.player_remaining_action_dict.keys():
+            remaining_action = self.player_remaining_action_dict.get(player_id)
+            if isinstance(remaining_action, PlayerTurnActionCount):
+                total_remaining_action += (remaining_action.remain_move + remaining_action.remain_fire + remaining_action.remain_satcom)
+                print("********** Player %s remaining action %s = %s + %s + %s" % (
+                    player_id, remaining_action, remaining_action.remain_move, remaining_action.remain_fire,
+                    remaining_action.remain_satcom))
 
-        print("********** Remaining action %s = %s + %s + %s | Timeout: %s" % (
-            remaining_action, remaining_turn_action.remain_move, remaining_turn_action.remain_fire,
-            remaining_turn_action.remain_satcom,
-            self.flag_turn_timeout))
-        if (remaining_action <= 0) or self.flag_turn_timeout:
+        print("********** Remaining total action %s | Timeout: %s [Remaining: %s]" %
+              (total_remaining_action,
+               self.flag_turn_timeout,
+               self.game_status.time_remaining))
+
+        if (total_remaining_action <= 0) or self.flag_turn_timeout:
             self.game_status.game_state = GameState.PLAY_COMPUTE
             state_changed = True
 
@@ -292,10 +324,9 @@ class WosBattleshipServer(threading.Thread):
         self.game_status.game_state = GameState.PLAY_INPUT
 
         # check if we have reach the end of the game
-        if self.game_status.player_turn == self.game_setting.num_of_player:
-            if (self.game_status.game_round == self.game_setting.num_of_rounds) or self.flag_end_game:
-                # time to end the game...
-                self.game_status.game_state = GameState.STOP
+        if (self.game_status.game_round == self.game_setting.num_of_rounds) or self.flag_end_game:
+            # time to end the game...
+            self.game_status.game_state = GameState.STOP
 
         return state_changed
 
@@ -323,158 +354,254 @@ class WosBattleshipServer(threading.Thread):
     def state_setup_init(self):
         self.flag_end_game = False
         self.flag_restart_game = False
-        self.game_status.player_turn = 0
+        self.game_status.player_turn = 0                    # Not used
         self.game_status.game_round = 0
         self.game_status.clear_turn_remaining_action()
-        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round,
-                                    self.game_status.player_turn)
+        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, 0)
         self.comm_engine.set_game_status(bc_game_status)
 
     def state_setup_play_input(self):
-        self.game_status.player_turn = (self.game_status.player_turn % self.game_setting.num_of_player) + 1
-        self.game_status.reset_turn_remaining_action()
+        # self.game_status.player_turn = (self.game_status.player_turn % self.game_setting.num_of_player) + 1
+        self.game_status.player_turn = 0                    # Not used
+        # self.game_status.reset_turn_remaining_action()
+        # Reset the remaining action
+        for player_id in self.player_remaining_action_dict.keys():
+            self.player_remaining_action_dict[player_id].remain_satcom = self.game_status.allowed_action.remain_satcom
+            self.player_remaining_action_dict[player_id].remain_fire = self.game_status.allowed_action.remain_fire
+            self.player_remaining_action_dict[player_id].remain_move = self.game_status.allowed_action.remain_move
+
 
         # initial the mask required for this turn; for all the players
         for key in self.player_fog_layer.keys():
             self.turn_map_fog[key] = self.player_fog_layer[key]
 
-        # check if this is a beginning of a new round; if so, update the civilian ship and cloud
-        if self.game_status.player_turn == 1:
-            # Update the game round count
-            self.game_status.game_round = self.game_status.game_round + 1
+        # Update the game round count
+        self.game_status.game_round = self.game_status.game_round + 1
 
-            # generate the cloud to be used for this round
-            # cloud_generation(self.cloud_layer,
-            #                  self.game_setting.cloud_coverage,
-            #                  self.game_setting.cloud_seed_cnt)
-            cloud_change(self.cloud_layer,
-                         self.game_setting.cloud_coverage)
-            self.cloud_layer = self.cloud_layer.astype(np.int)
+        # generate the cloud to be used for this round
+        cloud_change(self.cloud_layer,
+                     self.game_setting.cloud_coverage)
+        self.cloud_layer = self.cloud_layer.astype(np.int)
 
-            # generate new position of the civilian ships
-            civilian_ship_movement(self.civilian_ship_list,
-                                   self.island_layer,
-                                   self.player_status_dict,
-                                   self.player_boundary_dict,
-                                   self.game_setting.civilian_ship_move_probility)
+        # generate new position of the civilian ships
+        civilian_ship_movement(self.civilian_ship_list,
+                               self.island_layer,
+                               self.player_status_dict,
+                               self.player_boundary_dict,
+                               self.game_setting.civilian_ship_move_probility)
 
-            # update the layer for the civilian ship
-            self.civilian_ship_layer.fill(0)
-            for civilian_ship in self.civilian_ship_list:
-                if isinstance(civilian_ship, ShipInfo) and (civilian_ship.is_sunken == False):
-                    for pos in civilian_ship.area:
-                        self.civilian_ship_layer[int(pos[0]), int(pos[1])] = 1
-        # else no update is required
+        # update the layer for the civilian ship
+        self.civilian_ship_layer.fill(0)
+        for civilian_ship in self.civilian_ship_list:
+            if isinstance(civilian_ship, ShipInfo) and (civilian_ship.is_sunken == False):
+                for pos in civilian_ship.area:
+                    self.civilian_ship_layer[int(pos[0]), int(pos[1])] = 1
 
         # reset the current user satcom mask and its option
-        self.last_satcom_mask[self.game_status.player_turn] = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
-        self.last_satcom_enable[self.game_status.player_turn] = False
+        for player_id in self.last_satcom_mask.keys():
+            self.last_satcom_mask[player_id] = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
+            self.last_satcom_enable[player_id] = False
 
         # Added by ttl, 2019-01-14
         # make a copy of the enemy data list so that the data remain the same until it is the
         # players turn again
         # Update the enemy data list of the current player
-        enemy_data_list = [value for key, value in self.player_status_dict.items() if
-                           key is not self.game_status.player_turn]
-        self.hist_enemy_data_dict[self.game_status.player_turn] = copy.deepcopy(enemy_data_list)
+        for player_id in self.player_status_dict.keys():
+            enemy_data_list = [value for key, value in self.player_status_dict.items() if
+                               key is not player_id]
+            self.hist_enemy_data_dict[player_id] = copy.deepcopy(enemy_data_list)
         # end of modification
+
+        # Update the position the player is hitting
+        self.player_prev_fire_cmd_list.clear()
+        self.player_prev_fire_cmd_list.extend(self.player_curr_fire_cmd_list)
+        self.player_curr_fire_cmd_list.clear()
+        # for player_id in self.player_curr_fire_cmd_dict.keys():
+        #     self.player_prev_fire_cmd_dict[player_id] = self.player_curr_fire_cmd_dict.get(player_id)
+        #     self.player_curr_fire_cmd_dict[player_id] = None
 
         # Added by ttl, 2019-01-13
         self.turn_timestamp = time.time()
         self.flag_turn_timeout = False
         self.game_status.time_remaining = self.game_setting.countdown_duration
-
-        # Update the position the player is hitting
-        self.player_prev_fire_cmd_dict[self.game_status.player_turn] = self.player_curr_fire_cmd_dict.get(self.game_status.player_turn)
-        self.player_curr_fire_cmd_dict[self.game_status.player_turn] = None
         # end of modification
 
         # Update the publisher on the game status
         bc_game_status = GameStatus(self.game_status.game_state,
                                     self.game_status.game_round,
-                                    self.game_status.player_turn,
+                                    0,
                                     self.game_status.time_remaining)
         self.comm_engine.set_game_status(bc_game_status)
 
     def state_setup_play_compute(self):
-        # Check if its previous fire hit any ships; if so, update the score and ship status
-        player_status = self.player_status_dict[self.game_status.player_turn]
-        fire_cmds = self.player_prev_fire_cmd_dict[self.game_status.player_turn]
-        if isinstance(fire_cmds, collections.Iterable):
-            for fire_cmd in fire_cmds:
-                self.state_setup_play_compute_fire(fire_cmd, player_status)
-        else:
-            self.state_setup_play_compute_fire(fire_cmds, player_status)
-        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round,
-                                    self.game_status.player_turn)
-        self.comm_engine.set_game_status(bc_game_status)
+        # sort the player_prev_fire_cmd_list
+        if len(self.player_prev_fire_cmd_list) > 0:
+            self.player_prev_fire_cmd_list.sort(key=lambda x: x.timestamp)
 
-    def state_setup_play_compute_fire(self, fire_cmd, player_status):
-        if isinstance(fire_cmd, FireInfo):
-            fire_pos = [fire_cmd.pos.x, fire_cmd.pos.y]
-            player_radar_cross_table_index = self.game_status.player_turn - 1
-            for other_player_id, other_player_info in self.player_status_dict.items():
-                if other_player_id is not self.game_status.player_turn:
-                    for other_player_ship_info in other_player_info.ship_list:
-                        if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
-                            # Compute if the ship has been hit
-                            if self.compute_if_ship_sunk(
-                                    self.game_setting.radar_cross_table[player_radar_cross_table_index]):
-                                other_player_ship_info.is_sunken = True
-                                player_status.hit_enemy_count += 1
-                                print("HIT SUCC: Player did hit %s:%s [%s] @ [%s, %s]" % (
-                                    other_player_id,
-                                    other_player_ship_info.ship_id,
-                                    other_player_ship_info.area,
-                                    fire_cmd.pos.x,
-                                    fire_cmd.pos.y))
-                                self.tts_comm_engine.send("Player %s sunk the Player %s ship" %
-                                                          (self.game_status.player_turn, other_player_id))
-                            else:
-                                print("HIT FAIL: Player is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
-                                    other_player_id,
-                                    other_player_ship_info.ship_id,
-                                    other_player_ship_info.area,
-                                    fire_cmd.pos.x,
-                                    fire_cmd.pos.y))
-                                self.tts_comm_engine.send("Player %s missed the Player %s ship" %
-                                                          (self.game_status.player_turn, other_player_id))
-                        # Else the other player ship is not within the fire area
-                        else:
-                            print("MISSED  : Player did not hit %s:%s [%s] @ [%s, %s] [is sunken: %s]" % (
+        # Check if its previous fire hit any ships; if so, update the score and ship status
+        for fire_cmd in self.player_prev_fire_cmd_list:
+            if isinstance(fire_cmd, ServerFireInfo):
+                player_status = self.player_status_dict[fire_cmd.player_id]
+                self.state_setup_play_compute_fire(fire_cmd.player_id, fire_cmd.pos, player_status)
+
+        # for player_id in self.player_status_dict.keys():
+        #     player_status = self.player_status_dict[player_id]
+        #
+        #     # Perform the fire operation
+        #     fire_cmds = self.player_prev_fire_cmd_dict.get(player_id)
+        #     if isinstance(fire_cmds, collections.Iterable):
+        #         for fire_cmd in fire_cmds:
+        #             self.state_setup_play_compute_fire(player_id, fire_cmd, player_status)
+        #     else:
+        #         self.state_setup_play_compute_fire(player_id, fire_cmds, player_status)
+        # bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, 0)
+        # self.comm_engine.set_game_status(bc_game_status)
+
+    def state_setup_play_compute_fire(self, player_id, pos, player_status):
+        fire_pos = [pos.x, pos.y]
+        player_radar_cross_table_index = player_id - 1
+        for other_player_id, other_player_info in self.player_status_dict.items():
+            if other_player_id is not player_id:
+                for other_player_ship_info in other_player_info.ship_list:
+                    if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
+                        # Compute if the ship has been hit
+                        if self.compute_if_ship_sunk(
+                                self.game_setting.radar_cross_table[player_radar_cross_table_index]):
+                            other_player_ship_info.is_sunken = True
+                            player_status.hit_enemy_count += 1
+                            print("HIT SUCC: Player %s did hit %s:%s [%s] @ [%s, %s]" % (
+                                player_id,
                                 other_player_id,
                                 other_player_ship_info.ship_id,
                                 other_player_ship_info.area,
-                                fire_cmd.pos.x,
-                                fire_cmd.pos.y,
-                                other_player_ship_info.is_sunken))
-                    # end of for..loop player_ship_list
-                # end of Check to skip self
-            # end of for..loop player_status_list
-
-            # Check if the player hit any civilian ship
-            for civilian_ship_info in self.civilian_ship_list:
-                if (not civilian_ship_info.is_sunken) and (fire_pos in civilian_ship_info.area):
-                    # Compute if the ship has been hit
-                    if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
-                        civilian_ship_info.is_sunken = True
-                        player_status.hit_civilian_count += 1
-                        print("HIT SUCC: Player did hit civilian:%s [%s] @ [%s, %s]" % (
-                            civilian_ship_info.ship_id, civilian_ship_info.area, fire_cmd.pos.x,
-                            fire_cmd.pos.y))
-                        self.tts_comm_engine.send("Player %s sunk the target" %
-                                                  (self.game_status.player_turn))
+                                pos.x,
+                                pos.y))
+                            self.tts_comm_engine.send("Player %s sunk the Player %s ship" %
+                                                      (player_id, other_player_id))
+                        else:
+                            print("HIT FAIL: Player %s is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
+                                player_id,
+                                other_player_id,
+                                other_player_ship_info.ship_id,
+                                other_player_ship_info.area,
+                                pos.x,
+                                pos.y))
+                            self.tts_comm_engine.send("Player %s missed the Player %s ship" %
+                                                      (player_id, other_player_id))
+                    # Else the other player ship is not within the fire area
                     else:
-                        print("HIT FAIL: Player didn'ti sink the civilian:%s [%s] @ [%s, %s]" % (
-                            civilian_ship_info.ship_id, civilian_ship_info.area,
-                            fire_cmd.pos.x, fire_cmd.pos.y))
-                        self.tts_comm_engine.send("Player %s missed the target" %
-                                                  (self.game_status.player_turn))
-                # Else the civilian is not within the fire area
+                        print("MISSED  : Player %s did not hit %s:%s [%s] @ [%s, %s] [is sunken: %s]" % (
+                            player_id,
+                            other_player_id,
+                            other_player_ship_info.ship_id,
+                            other_player_ship_info.area,
+                            pos.x,
+                            pos.y,
+                            other_player_ship_info.is_sunken))
+                # end of for..loop player_ship_list
+            # end of Check to skip self
+        # end of for..loop player_status_list
+
+        # Check if the player hit any civilian ship
+        for civilian_ship_info in self.civilian_ship_list:
+            if (not civilian_ship_info.is_sunken) and (fire_pos in civilian_ship_info.area):
+                # Compute if the ship has been hit
+                if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
+                    civilian_ship_info.is_sunken = True
+                    player_status.hit_civilian_count += 1
+                    print("HIT SUCC: Player %s did hit civilian:%s [%s] @ [%s, %s]" % (
+                        player_id,
+                        civilian_ship_info.ship_id,
+                        civilian_ship_info.area,
+                        pos.x,
+                        pos.y))
+                    self.tts_comm_engine.send("Player %s sunk the target" % player_id)
+                else:
+                    print("HIT FAIL: Player %s did not sink the civilian:%s [%s] @ [%s, %s]" % (
+                        player_id,
+                        civilian_ship_info.ship_id,
+                        civilian_ship_info.area,
+                        pos.x,
+                        pos.y))
+                    self.tts_comm_engine.send("Player %s missed the target" % player_id)
+            # Else the civilian is not within the fire area
         # Else Do nothing
-        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round,
-                                    self.game_status.player_turn)
+        bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, 0)
         self.comm_engine.set_game_status(bc_game_status)
+
+    # def state_setup_play_compute_fire(self, player_id, fire_cmd, player_status):
+    #     # if isinstance(fire_cmd, FireInfo):
+    #     if isinstance(fire_cmd, ServerFireInfo):
+    #         fire_pos = [fire_cmd.pos.x, fire_cmd.pos.y]
+    #         player_radar_cross_table_index = player_id - 1
+    #         for other_player_id, other_player_info in self.player_status_dict.items():
+    #             if other_player_id is not player_id:
+    #                 for other_player_ship_info in other_player_info.ship_list:
+    #                     if (not other_player_ship_info.is_sunken) and (fire_pos in other_player_ship_info.area):
+    #                         # Compute if the ship has been hit
+    #                         if self.compute_if_ship_sunk(
+    #                                 self.game_setting.radar_cross_table[player_radar_cross_table_index]):
+    #                             other_player_ship_info.is_sunken = True
+    #                             player_status.hit_enemy_count += 1
+    #                             print("HIT SUCC: Player %s did hit %s:%s [%s] @ [%s, %s]" % (
+    #                                 player_id,
+    #                                 other_player_id,
+    #                                 other_player_ship_info.ship_id,
+    #                                 other_player_ship_info.area,
+    #                                 fire_cmd.pos.x,
+    #                                 fire_cmd.pos.y))
+    #                             self.tts_comm_engine.send("Player %s sunk the Player %s ship" %
+    #                                                       (player_id, other_player_id))
+    #                         else:
+    #                             print("HIT FAIL: Player %s is unable to sink the ship %s:%s [%s] @ [%s, %s]" % (
+    #                                 player_id,
+    #                                 other_player_id,
+    #                                 other_player_ship_info.ship_id,
+    #                                 other_player_ship_info.area,
+    #                                 fire_cmd.pos.x,
+    #                                 fire_cmd.pos.y))
+    #                             self.tts_comm_engine.send("Player %s missed the Player %s ship" %
+    #                                                       (player_id, other_player_id))
+    #                     # Else the other player ship is not within the fire area
+    #                     else:
+    #                         print("MISSED  : Player %s did not hit %s:%s [%s] @ [%s, %s] [is sunken: %s]" % (
+    #                             player_id,
+    #                             other_player_id,
+    #                             other_player_ship_info.ship_id,
+    #                             other_player_ship_info.area,
+    #                             fire_cmd.pos.x,
+    #                             fire_cmd.pos.y,
+    #                             other_player_ship_info.is_sunken))
+    #                 # end of for..loop player_ship_list
+    #             # end of Check to skip self
+    #         # end of for..loop player_status_list
+    #
+    #         # Check if the player hit any civilian ship
+    #         for civilian_ship_info in self.civilian_ship_list:
+    #             if (not civilian_ship_info.is_sunken) and (fire_pos in civilian_ship_info.area):
+    #                 # Compute if the ship has been hit
+    #                 if self.compute_if_ship_sunk(self.game_setting.radar_cross_table[player_radar_cross_table_index]):
+    #                     civilian_ship_info.is_sunken = True
+    #                     player_status.hit_civilian_count += 1
+    #                     print("HIT SUCC: Player %s did hit civilian:%s [%s] @ [%s, %s]" % (
+    #                         player_id,
+    #                         civilian_ship_info.ship_id,
+    #                         civilian_ship_info.area,
+    #                         fire_cmd.pos.x,
+    #                         fire_cmd.pos.y))
+    #                     self.tts_comm_engine.send("Player %s sunk the target" % player_id)
+    #                 else:
+    #                     print("HIT FAIL: Player %s did not sink the civilian:%s [%s] @ [%s, %s]" % (
+    #                         player_id,
+    #                         civilian_ship_info.ship_id,
+    #                         civilian_ship_info.area,
+    #                         fire_cmd.pos.x,
+    #                         fire_cmd.pos.y))
+    #                     self.tts_comm_engine.send("Player %s missed the target" % player_id)
+    #             # Else the civilian is not within the fire area
+    #     # Else Do nothing
+    #     bc_game_status = GameStatus(self.game_status.game_state, self.game_status.game_round, 0)
+    #     self.comm_engine.set_game_status(bc_game_status)
 
     def compute_if_ship_sunk(self, hit_possibility):
         is_sunk = False
@@ -485,7 +612,7 @@ class WosBattleshipServer(threading.Thread):
     def state_setup_stop(self):
         bc_game_status = GameStatus(self.game_status.game_state,
                                     self.game_status.game_round,
-                                    self.game_status.player_turn)
+                                    0)
         self.comm_engine.set_game_status(bc_game_status)
         # Display the score of the game
         print("** Game end ------------------------------------")
@@ -494,8 +621,16 @@ class WosBattleshipServer(threading.Thread):
         self.tts_comm_engine.send("Game Ended")
 
     # ---------------------------------------------------------------------------
-    def state_exec(self, msg_data):
+    def state_exec(self, msg_addr, msg_data):
+    # def state_exec(self, msg):
+        # Reply message
         reply = None
+        # msg_data = None
+        # msg_addr = None
+        # if isinstance(msg, collections.Iterable) and len(msg) >= 2:
+        #     msg_addr = msg[0]
+        #     msg_data = msg[1]
+
         if self.game_status.game_state == GameState.INIT:
             reply = self.state_exec_init(msg_data)
         elif self.game_status.game_state == GameState.PLAY_INPUT:
@@ -505,11 +640,15 @@ class WosBattleshipServer(threading.Thread):
         elif self.game_status.game_state == GameState.STOP:
             reply = self.state_exec_stop(msg_data)
         else:
-            print("Unsupport game state")
-
+            print("Unsupported game state")
+        # Send the reply if any
         if reply is not None:
-            print("REPLY: %s" % vars(reply))
-            self.comm_engine.send(reply)
+            self.comm_engine_lock.acquire()
+            try:
+                print("REPLY: %s" % vars(reply))
+                self.comm_engine.send(msg_addr, reply)
+            finally:
+                self.comm_engine_lock.release()
 
     def state_exec_init(self, msg_data):
         # process the reply for any input message
@@ -536,12 +675,14 @@ class WosBattleshipServer(threading.Thread):
                     player_status.ship_list.clear()
 
                     for ship_info_dat in msg_data.ship_list:
-                        if isinstance(ship_info_dat, ShipInfoDat):
-                            ship_info = ShipInfo(ship_info_dat.ship_id,
-                                                 Position(ship_info_dat.position.x, ship_info_dat.position.y),
-                                                 ship_info_dat.heading,
-                                                 ship_info_dat.size,
-                                                 ship_info_dat.is_sunken)
+                        if isinstance(ship_info_dat, ShipInfo):
+                            # clone the ship_info data
+                            ship_info = ShipInfo(ship_id=ship_info_dat.ship_id,
+                                                 ship_type=ship_info_dat.ship_type,
+                                                 position=Position(ship_info_dat.position.x, ship_info_dat.position.y),
+                                                 heading=ship_info_dat.heading,
+                                                 size=ship_info_dat.size,
+                                                 is_sunken=ship_info_dat.is_sunken)
                             player_status.ship_list.append(ship_info)
                             print(ship_info)
 
@@ -613,17 +754,13 @@ class WosBattleshipServer(threading.Thread):
 
             else:
                 # Unsupport message type
-                if msg_data.player_id != self.game_status.player_turn:
-                    # Current turn is not for the player
-                    print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-                else:
-                    print("Receive wrong message from player %s, for the wrong state..." % msg_data.player_id)
+                print("Receive wrong message from player %s, for the wrong state..." % msg_data.player_id)
                 reply = cMessages.MsgRepAck(False)
 
         # Update the publisher on the game status
         bc_game_status = GameStatus(self.game_status.game_state,
                                     self.game_status.game_round,
-                                    self.game_status.player_turn,
+                                    0,
                                     self.game_status.time_remaining)
         self.comm_engine.set_game_status(bc_game_status)
 
@@ -638,38 +775,42 @@ class WosBattleshipServer(threading.Thread):
 
         for ship_info in self.player_status_dict[msg_data.player_id].ship_list:
             if isinstance(ship_info, ShipInfo):
-                ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                            Position(ship_info.position.x, ship_info.position.y),
-                                            ship_info.heading,
-                                            ship_info.size,
-                                            ship_info.is_sunken)
+                # Clone the player ship information
+                ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                         ship_type=ship_info.ship_type,
+                                         position=Position(ship_info.position.x, ship_info.position.y),
+                                         heading=ship_info.heading,
+                                         size=ship_info.size,
+                                         is_sunken=ship_info.is_sunken)
                 self_ship_list.append(ship_info_dat)
 
         # Get the list of civilian ships
         for ship_info in self.civilian_ship_list:
             if isinstance(ship_info, ShipInfo):
-                ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                            Position(ship_info.position.x, ship_info.position.y),
-                                            ship_info.heading,
-                                            ship_info.size,
-                                            ship_info.is_sunken)
+                # Clone the civilian ship information
+                ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                         ship_type=ship_info.ship_type,
+                                         position=Position(ship_info.position.x, ship_info.position.y),
+                                         heading=ship_info.heading,
+                                         size=ship_info.size,
+                                         is_sunken=ship_info.is_sunken)
                 other_ship_list.append(ship_info_dat)
 
         # Get the list of enemy ships
         enemy_data_list = self.hist_enemy_data_dict.get(msg_data.player_id)
-        # enemy_data_list = [value for key, value in self.player_status_list.items() if
-        #                    key is not msg_data.player_id]
         print("****** Player %s: Enemy Data:\r\n%s" % (msg_data.player_id, enemy_data_list))
         if isinstance(enemy_data_list, collections.Iterable):
             for enemy_data in enemy_data_list:
                 print("****** %s" % enemy_data)
                 for ship_info in enemy_data.ship_list:
                     if isinstance(ship_info, ShipInfo):
-                        ship_info_dat = ShipInfoDat(ship_info.ship_id,
-                                                    Position(ship_info.position.x, ship_info.position.y),
-                                                    ship_info.heading,
-                                                    ship_info.size,
-                                                    ship_info.is_sunken)
+                        # Clone the enemy ship information
+                        ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
+                                                 ship_type=ship_info_dat.ship_type,
+                                                 position=Position(ship_info.position.x, ship_info.position.y),
+                                                 heading=ship_info.heading,
+                                                 size=ship_info.size,
+                                                 is_sunken=ship_info.is_sunken)
                         # TODO: Do we need to differ the enemy and civilian ship? if so, how???
                         if True:
                             other_ship_list.append(ship_info_dat)
@@ -681,21 +822,22 @@ class WosBattleshipServer(threading.Thread):
         print("****** Player %s: other_ship_list:\r\n%s" % (msg_data.player_id, other_ship_list))
         print("****** Player %s: enemy_ship_list:\r\n%s" % (msg_data.player_id, enemy_ship_list))
 
-        bombardment_data = [value for key, value in self.player_curr_fire_cmd_dict.items() if
-                            key is not msg_data.player_id]
+        # bombardment_data = [value for key, value in self.player_curr_fire_cmd_dict.items() if
+        #                     key is not msg_data.player_id]
+        # bombardment_data = [value for value in self.player_curr_fire_cmd_list if
+        #                     value.player_id is not msg_data.player_id]
+        bombardment_data = []
+        for value in self.player_curr_fire_cmd_list:
+            if value.player_id is not msg_data.player_id:
+                bombardment_data.append(FireInfo(value.pos))
+
 
         # compute the map data
         map_data = self.generate_map_data(msg_data.player_id)
         print("****** Player %s: Map Data :\r\n%s" % (msg_data.player_id, map_data.T))
 
-        is_ack_ok = False
-        if msg_data.player_id == self.game_status.player_turn:
-            is_ack_ok = True
-        else:
-            print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-
         # Generate the reply
-        reply = cMessages.MsgRepTurnInfo(is_ack_ok,
+        reply = cMessages.MsgRepTurnInfo(True,
                                          self_ship_list,
                                          enemy_ship_list,
                                          other_ship_list,
@@ -703,105 +845,45 @@ class WosBattleshipServer(threading.Thread):
                                          map_data.tolist())
         return reply
 
-    # def state_exec_play_input_turn(self, msg_data):
-    #     if msg_data.player_id == self.game_status.player_turn:
-    #         self_ship_list = list()
-    #         enemy_ship_list = list()
-    #         other_ship_list = list()
-    #
-    #         for ship_info in self.player_status_list[msg_data.player_id].ship_list:
-    #             if isinstance(ship_info, ShipInfo):
-    #                 ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                             Position(ship_info.position.x, ship_info.position.y),
-    #                                             ship_info.heading,
-    #                                             ship_info.size,
-    #                                             ship_info.is_sunken)
-    #                 self_ship_list.append(ship_info_dat)
-    #
-    #         # Get the list of civilian ships
-    #         for ship_info in self.civilian_ship_list:
-    #             if isinstance(ship_info, ShipInfo):
-    #                 ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                             Position(ship_info.position.x, ship_info.position.y),
-    #                                             ship_info.heading,
-    #                                             ship_info.size,
-    #                                             ship_info.is_sunken)
-    #                 other_ship_list.append(ship_info_dat)
-    #
-    #         # Get the list of enemy ships
-    #         enemy_data_list = [value for key, value in self.player_status_list.items() if
-    #                            key is not msg_data.player_id]
-    #         print("****** %s" % enemy_data_list)
-    #         for enemy_data in enemy_data_list:
-    #             print("****** %s" % enemy_data)
-    #             for ship_info in enemy_data.ship_list:
-    #                 if isinstance(ship_info, ShipInfo):
-    #                     ship_info_dat = ShipInfoDat(ship_info.ship_id,
-    #                                                 Position(ship_info.position.x, ship_info.position.y),
-    #                                                 ship_info.heading,
-    #                                                 ship_info.size,
-    #                                                 ship_info.is_sunken)
-    #                     # TODO: Do we need to differ the enemy and civilian ship? if so, how???
-    #                     if True:
-    #                         other_ship_list.append(ship_info_dat)
-    #                     else:
-    #                         enemy_ship_list.append(ship_info_dat)
-    #         print("****** other_ship_list :\r\n%s" % other_ship_list)
-    #         print("****** enemy_ship_list :\r\n%s" % enemy_ship_list)
-    #
-    #         bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
-    #                             key is not msg_data.player_id]
-    #
-    #         # compute the map data
-    #         map_data = self.generate_map_data(msg_data.player_id)
-    #
-    #         print("****** Map Data :\r\n%s" % map_data)
-    #
-    #         reply = cMessages.MsgRepTurnInfo(True, self_ship_list, enemy_ship_list, other_ship_list, bombardment_data,
-    #                                          map_data.tolist())
-    #
-    #     else:
-    #         print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-    #         # Load the last known map information
-    #         reply = cMessages.MsgRepTurnInfo(False, [], [], [])
-    #
-    #     return reply
-
     # Operation to perform the move operation
     def state_exec_play_input_move(self, msg_data):
         ack = False
-        if (self.game_status.remaining_action.remain_move >= len(msg_data.move)) and \
-                (msg_data.player_id == self.game_status.player_turn):
-            for action in msg_data.move:
-                if isinstance(action, ShipMovementInfo):
-                    ship = self.player_status_dict[msg_data.player_id].ship_list[action.ship_id]
-                    if isinstance(ship, ShipInfo):
-                        if action.get_enum_action() == Action.FWD:
-                            # Check if the selected ship can move forward
-                            if self.check_forward_action(ship, msg_data.player_id):
-                                ship.move_forward()
-                                self.tts_comm_engine.send("Player %s move ship forward")
-                            else:
-                                print("!!! Unable to move forward")
-                        elif action.get_enum_action() == Action.CW:
-                            # Check if the selected ship can turn clockwise
-                            if self.check_turn_cw_action(ship, msg_data.player_id):
-                                ship.turn_clockwise()
-                                self.tts_comm_engine.send("Player %s turn ship clockwise")
-                            else:
-                                print("!!! Unable to turn CW")
-                        elif action.get_enum_action() == Action.CCW:
-                            # Check if the selected ship can turn counter-clockwise
-                            if self.check_turn_ccw_action(ship, msg_data.player_id):
-                                ship.turn_counter_clockwise()
-                                self.tts_comm_engine.send("Player %s turn ship counter clockwise")
-                            else:
-                                print("!!! Unable to turn CCW")
-            # Update on the number of remaining move operation
-            self.game_status.remaining_action.remain_move -= len(msg_data.move)
-            ack = True
+        remaining_action = self.player_remaining_action_dict.get(msg_data.player_id)
+        if isinstance(remaining_action, PlayerTurnActionCount):
+            if (remaining_action.remain_move >= len(msg_data.move)):
+                for action in msg_data.move:
+                    if isinstance(action, ShipMovementInfo):
+                        ship = self.player_status_dict[msg_data.player_id].ship_list[action.ship_id]
+                        if isinstance(ship, ShipInfo):
+                            if action.get_enum_action() == Action.FWD:
+                                # Check if the selected ship can move forward
+                                if self.check_forward_action(ship, msg_data.player_id):
+                                    ship.move_forward()
+                                    self.tts_comm_engine.send("Player %s move ship forward")
+                                else:
+                                    print("!!! Unable to move forward")
+                            elif action.get_enum_action() == Action.CW:
+                                # Check if the selected ship can turn clockwise
+                                if self.check_turn_cw_action(ship, msg_data.player_id):
+                                    ship.turn_clockwise()
+                                    self.tts_comm_engine.send("Player %s turn ship clockwise")
+                                else:
+                                    print("!!! Unable to turn CW")
+                            elif action.get_enum_action() == Action.CCW:
+                                # Check if the selected ship can turn counter-clockwise
+                                if self.check_turn_ccw_action(ship, msg_data.player_id):
+                                    ship.turn_counter_clockwise()
+                                    self.tts_comm_engine.send("Player %s turn ship counter clockwise")
+                                else:
+                                    print("!!! Unable to turn CCW")
+                # Update on the number of remaining move operation
+                # self.game_status.remaining_action.remain_move -= len(msg_data.move)
+                remaining_action.remain_move -= len(msg_data.move)
+                ack = True
+            else:
+                print("Player %s is out of move action" % msg_data.player_id)
         else:
-            print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
+            print("Received unknown player id : %s" % msg_data.player_id)
 
         reply = cMessages.MsgRepAck(ack)
         return reply
@@ -809,29 +891,45 @@ class WosBattleshipServer(threading.Thread):
     # Operation to perform the fire operation from the user
     def state_exec_play_input_fire(self, msg_data):
         ack = False
-        if self.game_status.remaining_action.remain_fire >= len(msg_data.fire) and \
-                (msg_data.player_id == self.game_status.player_turn):
-            # # Modified by ttl, 2019-01-13
-            # # Update the position the player is hitting
-            # self.player_prev_fire_cmd_list[msg_data.player_id] = self.player_curr_fire_cmd_list.get(msg_data.player_id)
-            # self.player_curr_fire_cmd_list[msg_data.player_id] = msg_data.fire
+        remaining_action = self.player_remaining_action_dict.get(msg_data.player_id)
+        if isinstance(remaining_action, PlayerTurnActionCount):
+            if remaining_action.remain_fire >= len(msg_data.fire):
+                # # Modified by ttl, 2019-01-13
+                # # Update the position the player is hitting
+                # self.player_prev_fire_cmd_list[msg_data.player_id] = self.player_curr_fire_cmd_list.get(msg_data.player_id)
+                # self.player_curr_fire_cmd_list[msg_data.player_id] = msg_data.fire
+                #
+                # # Update the position the player is hitting
+                # self.player_curr_fire_cmd_dict[msg_data.player_id] = msg_data.fire
+                # # end of modification
 
-            # Update the position the player is hitting
-            self.player_curr_fire_cmd_dict[msg_data.player_id] = msg_data.fire
-            # # end of modification
+                # Modified by ttl, 2019-02-07
+                # To take time into consideration when computing the fire operation
+                if isinstance(msg_data.fire, FireInfo):
+                    self.player_curr_fire_cmd_list.append(ServerFireInfo(msg_data.player_id, msg_data.fire.pos))
+                elif isinstance(msg_data.fire, collections.Iterable):
+                    for fire in msg_data.fire:
+                        if isinstance(fire, FireInfo):
+                            self.player_curr_fire_cmd_list.append(ServerFireInfo(msg_data.player_id, fire.pos))
+                # end of modification
 
-            if isinstance(msg_data.fire, FireInfo):
-                self.state_exec_play_input_fire_send(msg_data.player_id, msg_data.fire.pos)
-            elif isinstance(msg_data.fire, collections.Iterable):
-                for fire in msg_data.fire:
-                    if isinstance(fire, FireInfo):
-                        self.state_exec_play_input_fire_send(msg_data.player_id, fire.pos)
 
-            self.game_status.remaining_action.remain_fire -= 1
-            ack = True
+
+                if isinstance(msg_data.fire, FireInfo):
+                    self.state_exec_play_input_fire_send(msg_data.player_id, msg_data.fire.pos)
+                    remaining_action.remain_fire -= 1
+                elif isinstance(msg_data.fire, collections.Iterable):
+                    for fire in msg_data.fire:
+                        if isinstance(fire, FireInfo):
+                            self.state_exec_play_input_fire_send(msg_data.player_id, fire.pos)
+
+                remaining_action.remain_fire -= len(msg_data.fire)
+
+                ack = True
+            else:
+                print("Player %s is out of fire action" % msg_data.player_id)
         else:
-            print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-
+            print("Received unknown player id : %s" % msg_data.player_id)
         reply = cMessages.MsgRepAck(ack)
         return reply
 
@@ -850,22 +948,22 @@ class WosBattleshipServer(threading.Thread):
         # bombardment_data = [value for key, value in self.player_curr_fire_cmd_list.items() if
         # 					key is not msg_data.player_id]
         map_data = []
-        if (self.game_status.remaining_action.remain_satcom > 0) and \
-                (msg_data.player_id == self.game_status.player_turn):
+        remaining_action = self.player_remaining_action_dict.get(msg_data.player_id)
+        if isinstance(remaining_action, PlayerTurnActionCount):
+            if remaining_action.remain_satcom > 0:
 
-            # TODO: Compute the satcom mask
-            # self.last_satcom_mask[msg_data.player_id] = np.ones((self.game_setting.map_size.x, self.game_setting.map_size.y))
-            self.last_satcom_mask[msg_data.player_id] = satcom_scan(self.game_setting.map_size,
-                                                                    msg_data.satcom)
-            self.last_satcom_enable[msg_data.player_id] = msg_data.satcom.is_enable
-            self.game_status.remaining_action.remain_satcom -= 1
-            ack = True
+                # self.last_satcom_mask[msg_data.player_id] = np.ones((self.game_setting.map_size.x, self.game_setting.map_size.y))
+                self.last_satcom_mask[msg_data.player_id] = satcom_scan(self.game_setting.map_size,
+                                                                        msg_data.satcom)
+                if self.game_setting.en_satellite_func2 is True:
+                    self.last_satcom_enable[msg_data.player_id] = msg_data.satcom.is_enable
+                else:
+                    self.last_satcom_enable[msg_data.player_id] = False
+                remaining_action.remain_satcom -= 1
+                ack = True
 
-        elif msg_data.player_id != self.game_status.player_turn:
-            print("Receive message from player %s, but it is not their turn..." % msg_data.player_id)
-
-        else:
-            print("Receive message from player %s, but their do not have anymore satcom action..." % msg_data.player_id)
+            else:
+                print("Receive message from player %s, but their do not have anymore satcom action..." % msg_data.player_id)
 
         # Compute the map data for the user
         map_data = self.generate_map_data(msg_data.player_id)
@@ -954,7 +1052,7 @@ class WosBattleshipServer(threading.Thread):
                 if isinstance(ship_info, ShipInfo):
                     is_ok = is_ok and check_collision(ship_info, obstacle_dict)
                 else:
-                    print("!!! SHIP [NEW]: Incorrect type [not ShipInfoDat] [playerid=%s]" % player_id)
+                    print("!!! SHIP [NEW]: Incorrect type [not ShipInfo] [playerid=%s]" % player_id)
                     is_ok = False
             # end of for..loop
         else:
@@ -1086,8 +1184,6 @@ class WosBattleshipServer(threading.Thread):
                 # print("player %s" % (i+1))
                 # print(mask)
 
-        # return player_mask_dict
-
     def get_player_score(self):
         reply = ""
         for key, player in self.player_status_dict.items():
@@ -1152,16 +1248,6 @@ def main():
                 reply = "NOK"
 
             cmdServer.send(reply)
-
-        # input = select.select([sys.stdin], [], [], 1)[0]
-        # if input:
-        # 	value = sys.stdin.readline().rstrip()
-        # 	if value == 'quit':
-        # 		flag_quit_game = True
-        # 	elif value == 'end':
-        # 		pass
-        # 	else:
-        # 		print("Invalid command : %s" % value)
 
     # Server Teardown --------------------------------------------------------------
     # Stop the user-input command server

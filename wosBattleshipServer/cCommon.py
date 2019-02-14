@@ -1,10 +1,12 @@
 import json
 import numpy as np
+import time
 
 from cCommonCommEngine import ConnInfo
 from cCommonGame import Size
 from cCommonGame import Position
 from cCommonGame import GameState
+from cCommonGame import ShipInfo
 
 
 class ServerGameConfig:
@@ -78,7 +80,6 @@ class PlayerTurnActionCount:
 
 
 class GameTurnStatus:
-
     def __init__(self,
                  game_state=GameState.INIT,
                  default_move=0,
@@ -92,88 +93,40 @@ class GameTurnStatus:
         # game round start count from 1
         self.game_round = game_round
         # player turn start count from 1
-        self.player_turn = player_turn
+        self.player_turn = player_turn                              # Not used
         # added by ttl, 2019-01-13
         self.time_remaining = time_remaining
         # end of modification
         self.allowed_action = PlayerTurnActionCount(default_move, default_fire, default_satcom)
-        self.remaining_action = PlayerTurnActionCount(0, 0, 0)
-        self.clear_turn_remaining_action()
+        # self.remaining_action = PlayerTurnActionCount(0, 0, 0)
+        # self.clear_turn_remaining_action()
 
     def __repr__(self):
         return str(vars(self))
 
-    def reset_turn_remaining_action(self):
-        self.remaining_action.remain_move = self.allowed_action.remain_move
-        self.remaining_action.remain_fire = self.allowed_action.remain_fire
-        self.remaining_action.remain_satcom = self.allowed_action.remain_satcom
+    # def reset_turn_remaining_action(self):
+    #     self.remaining_action.remain_move = self.allowed_action.remain_move
+    #     self.remaining_action.remain_fire = self.allowed_action.remain_fire
+    #     self.remaining_action.remain_satcom = self.allowed_action.remain_satcom
 
-    def clear_turn_remaining_action(self):
-        self.remaining_action.remain_move = 0
-        self.remaining_action.remain_fire = 0
-        self.remaining_action.remain_satcom = 0
+    # def clear_turn_remaining_action(self):
+    #     self.remaining_action.remain_move = 0
+    #     self.remaining_action.remain_fire = 0
+    #     self.remaining_action.remain_satcom = 0
 
 
-class ShipInfo:
-    def __init__(self,
-                 ship_id=0,
-                 position=Position(0, 0),
-                 heading=0,
-                 size=0,
-                 is_sunken=False):
-        self.ship_id = ship_id
-        # Position of of the ship head
-        self.position = position
-        self.heading = heading
-        self.size = size
-        self.is_sunken = is_sunken
-        # list of position occupied by the vehicle
-        # first position is the bow of the ship
-        self.area = self.get_placement()
+class ServerFireInfo:
+    def __init__(self, player_id = None, pos=Position()):
+        self.timestamp = time.time()
+        self.player_id = player_id
+        self.pos = pos
 
     def __repr__(self):
         return str(vars(self))
 
-    def move_forward(self):
-        head_rad = self.heading * np.pi / 180.0
-        pos = np.array([0, -1])
-        kin_mat = np.array([[np.cos(head_rad), np.sin(head_rad)],
-                            [-np.sin(head_rad), np.cos(head_rad)]])
-        transpose = np.dot(pos, kin_mat)
-        transpose = transpose.astype(int)
-        self.position.x += transpose[0]
-        self.position.y += transpose[1]
-        self.area = self.get_placement()
-
-    def turn_clockwise(self):
-        self.heading += 90
-        self.area = self.get_placement()
-
-    def turn_counter_clockwise(self):
-        self.heading -= 90
-        self.area = self.get_placement()
-
-    def get_placement(self):
-        # Get the index of the ship
-        placement = np.array([np.zeros(self.size), np.arange(0, self.size), np.ones(self.size)])
-        placement = np.transpose(placement)
-
-        # Get the kinematic matrix
-        head_rad = self.heading * np.pi / 180.0
-        kin_mat = np.array([[np.cos(head_rad),	np.sin(head_rad),	0],
-                            [-np.sin(head_rad),	np.cos(head_rad),	0],
-                            [self.position.x,	self.position.y,	1]])
-
-        # compute the ship placement
-        placement = np.dot(placement, kin_mat)
-        placement = np.delete(placement, -1, 1)
-        placement = np.round(placement)
-        # remove the negative 0
-        placement += 0.
-
-        placement = placement.astype(np.int)
-
-        return placement.tolist()
+    def to_string(self):
+        return "Player %s Fire @ (%s, %s) on %s" % \
+               (self.player_id, self.pos.x, self.pos.y, self.timestamp)
 
 #-----------------------------------------------------------------------
 class SvrCfgJsonEncoder(json.JSONEncoder):
@@ -243,19 +196,22 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
 
         return result
 
-    def parse_conn_info(self, obj):
+    @staticmethod
+    def parse_conn_info(obj):
         return ConnInfo(
             obj['addr'],
             obj['port']
         )
 
-    def parse_size(self, obj):
+    @staticmethod
+    def parse_size(obj):
         return Size(
             obj['x'],
             obj['y']
         )
 
-    def parse_svr_game_cfg(self, obj):
+    @staticmethod
+    def parse_svr_game_cfg(obj):
         return ServerGameConfig(
             obj['req_rep_conn'],
             obj['pub_sub_conn'],

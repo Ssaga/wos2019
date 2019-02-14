@@ -84,7 +84,7 @@ class ClientCommEngine:
         print("\tClient %s: Setup connection to server... [%s]" % (self.client_id, connString))
         self.socket.connect(connString)
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.RCVTIMEO = 2000			# in milliseconds
+        self.socket.RCVTIMEO = 300000			# in milliseconds
         # self.poller = zmq.Poller()
         # self.poller.register(self.socket, zmq.POLLIN)
 
@@ -265,7 +265,7 @@ class ClientCommEngineSubscriber(threading.Thread):
                 # print("\tsubscriber-recv: %s" % msg)
 
                 # set  game status
-                if (msg is not None) and (isinstance(msg, cMessages.MsgPubGameStatus)):
+                if isinstance(msg, cMessages.MsgPubGameStatus):
                     self.game_status = msg
 
         # teardown the connection

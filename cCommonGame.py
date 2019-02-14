@@ -1,26 +1,29 @@
-from enum import Enum
+# from enum import Enum
 from enum import IntEnum
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSignal
 import numpy as np
 
 
 class MapData(IntEnum):
-    WATER = 0  # Sea / Uncovered
+    WATER = 0                   # Sea / Uncovered
     ISLAND = 1
-    CLOUD_FRIENDLY = 2  # Cloud in friendly area
-    CLOUD_HOSTILE = 4  # Cloud in hostile area
+    CLOUD_FRIENDLY = 2          # Cloud in friendly area
+    CLOUD_HOSTILE = 4           # Cloud in hostile area
     FOG_OF_WAR = 128
 
 
-class Action(Enum):
+class ShipType(IntEnum):
+    MIL = 0
+    CIV = 1
+
+
+class Action(IntEnum):
     NOP = 0
     FWD = 1
     CW = 2
     CCW = 3
 
 
-class GameState(Enum):
+class GameState(IntEnum):
     INIT = 0
     PLAY_INPUT = 1
     PLAY_COMPUTE = 2
@@ -63,14 +66,19 @@ class Heading(IntEnum):
     WEST = 3
 
 
-class ShipInfo(QObject):
-    moved = pyqtSignal(int, int)
-    rotated = pyqtSignal(float)
-
-    def __init__(self, ship_id=0, position=Position(0, 0), heading=0, size=0, is_sunken=False, parent=None):
-        QObject.__init__(self, parent)
-
+# class ShipInfo(QObject):
+#     moved = pyqtSignal(int, int)
+#     rotated = pyqtSignal(float)
+class ShipInfo:
+    def __init__(self,
+                 ship_id=0,
+                 position=Position(0, 0),
+                 heading=0,
+                 size=0,
+                 is_sunken=False,
+                 ship_type=ShipType.MIL):
         self.ship_id = ship_id
+        self.ship_type = ship_type
         # Position of of the ship head
         self.position = position
         self.heading = heading
@@ -93,53 +101,59 @@ class ShipInfo(QObject):
         self.position.x += transpose[0]
         self.position.y += transpose[1]
         self.area = self.get_placement()
-        self.moved.emit(self.position.x, self.position.y)
 
     def set_heading(self, heading):
         self.heading = heading
         self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def set_position(self, x, y):
         self.position.x = x
         self.position.y = y
         self.area = self.get_placement()
-        self.moved.emit(self.position.x, self.position.y)
 
     def turn_clockwise(self):
         self.heading += 90
+        self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
-        self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def turn_counter_clockwise(self):
         self.heading -= 90
+        self.heading = self.wrap(self.heading)
         self.area = self.get_placement()
-        self.rotated.emit(self.heading)
 
     def get_placement(self):
+        # get the upper half size of the ship
+        half_size = (self.size - 1) // 2
+
         # Get the index of the ship
-        placement = np.array([np.zeros(self.size), np.arange(0, self.size), np.ones(self.size)])
+        placement = np.array([np.zeros(self.size),
+                              np.arange(-half_size, (self.size - half_size)),
+                              np.ones(self.size)])
         placement = np.transpose(placement)
 
         # Get the kinematic matrix
         head_rad = self.heading * np.pi / 180.0
-        kin_mat = np.array([[np.cos(head_rad), np.sin(head_rad), 0],
-                            [-np.sin(head_rad), np.cos(head_rad), 0],
-                            [self.position.x, self.position.y, 1]])
+        kin_mat = np.array([[np.cos(head_rad),  np.sin(head_rad),   0],
+                            [-np.sin(head_rad), np.cos(head_rad),   0],
+                            [self.position.x,   self.position.y,    1]])
 
         # compute the ship placement
         placement = np.dot(placement, kin_mat)
+
+        # remove the last column
         placement = np.delete(placement, -1, 1)
+
         placement = np.round(placement)
         # remove the negative 0
         placement += 0.
         placement = placement.astype(int)
 
-        # TODO: How to convert the items of placement to python type from numpy type???
-        # ...
-
         return placement.tolist()
+
+    @staticmethod
+    def wrap(degree):
+        result = ((degree + 180.0) % 360) - 180.0
+        return result
 
 
 class ShipMovementInfo:
@@ -172,15 +186,35 @@ class FireInfo:
 
 
 class SatcomInfo:
-    def __init__(self, a=0, b=0, c=0, d=0, e=0, f=0, is_enable=False, is_rhs=False):
+    def __init__(self, a=0, e=0, i=0, om=0, Om=0, M=0, is_enable=False, is_rhs=False):
         self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
         self.e = e
-        self.f = f
+        self.i = i
+        self.om = om
+        self.Om = Om
+        self.M = M
         self.is_enable = bool(is_enable)
         self.is_rhs = bool(is_rhs)
+
+    def __repr__(self):
+        return str(vars(self))
+
+
+class UwInfo:
+    def __init__(self, val):
+        pass
+
+
+class UwCollectedData:
+    def __init__(self, N=[], NE=[], E=[], SE=[], S=[], SW=[], W=[], NW=[]):
+        self.N = N
+        self.NE = NE
+        self.E = E
+        self.SE = SE
+        self.S = S
+        self.SW = SW
+        self.W = W
+        self.NW = NW
 
     def __repr__(self):
         return str(vars(self))
@@ -229,7 +263,7 @@ class GameStatus:
                  time_remain=0):
         self.game_state_str = game_state.name
         self.game_round = game_round
-        self.player_turn = player_turn
+        self.player_turn = player_turn          # Not used; Removed due to remove of turn-based gameplay
         self.time_remain = time_remain
 
     def __repr__(self):
