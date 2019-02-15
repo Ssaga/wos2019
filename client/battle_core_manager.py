@@ -35,7 +35,7 @@ class WosBattleCoreManager(QObject):
         self.ships_shadow_items = dict()
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
-        self.update_timer.timeout.connect(self.update_game_event)
+        self.update_timer.timeout.connect(self.update_game_event_parallel)
         self.time_widget = None
 
     def end_turn(self):
@@ -213,8 +213,7 @@ class WosBattleCoreManager(QObject):
             if self.current_player_turn != game_status.player_turn or self.current_player_round != game_status.game_round:
                 self.wos_interface.log(
                     "Round %s: Player %s turn" % (game_status.game_round, game_status.player_turn))
-                if self.is_current_turn(game_status):
-                    self.update_turn()
+                self.update_turn()
 
             if self.is_current_turn(game_status):
                 self.time_widget.set_time(game_status.time_remain)
@@ -223,6 +222,21 @@ class WosBattleCoreManager(QObject):
 
             self.current_player_turn = game_status.player_turn
             self.current_player_round = game_status.game_round
+
+        # Update event again in x seconds time
+        self.update_timer.start()
+
+    def update_game_event_parallel(self):
+        game_status = WosClientInterfaceManager().get_game_status()
+        if game_status is not None and self.current_player_round != game_status.game_round:
+            self.wos_interface.log("Round %s started" % game_status.game_round)
+            self.update_turn()
+            self.current_player_turn = game_status.player_turn
+            self.current_player_round = game_status.game_round
+
+        if game_status is not None:
+            print(game_status.time_remain)
+            self.time_widget.set_time(game_status.time_remain)
 
         # Update event again in x seconds time
         self.update_timer.start()

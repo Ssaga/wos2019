@@ -92,4 +92,12 @@ class WosSatelliteEoManager(QObject):
         self.wos_interface.log("Sending EO satellite..")
         self.dialog.deleteLater()
         self.dialog = None
-        WosClientInterfaceManager().send_action_move(satcom)
+        # Stubs
+        satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
+        rep = WosClientInterfaceManager().send_action_satcom(satcom)
+        print(vars(rep))
+        if rep and rep.ack:
+            self.wos_interface.log('Success!')
+            self.wos_interface.battlefield.update_map(rep.map_data)
+        else:
+            self.wos_interface.log('Failed!')

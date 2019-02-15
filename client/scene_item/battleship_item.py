@@ -153,8 +153,13 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.start_pos = QPointF(self.field_info.size.x() * 0.2, self.field_info.size.y() * 0.2)
         self.end_pos = QPointF(self.field_info.size.x() * 0.8,
                                self.ship_info.size * self.field_info.size.y() - self.start_pos.y())
-
         head_end_y = self.field_info.size.y() * 0.8
+
+        # Center of origin at the middle of ship body (floor function)
+        self.start_pos -= QPointF(0, self.field_info.size.y() * self.ship_info.get_y_center())
+        self.end_pos -= QPointF(0, self.field_info.size.y() * self.ship_info.get_y_center())
+        head_end_y -= self.field_info.size.y() * self.ship_info.get_y_center()
+
         self.head = QPolygonF(
             [QPointF(self.start_pos.x(), head_end_y),
              QPointF((self.end_pos.x() + self.start_pos.x()) / 2, self.start_pos.y()),

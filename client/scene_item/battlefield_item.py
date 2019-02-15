@@ -35,7 +35,8 @@ class WosBattlefieldItem(QGraphicsItem):
         if event.button() == Qt.LeftButton:
             # self.drag_delta = self.mapToItem(self, event.pos())
             if self.is_draggable:
-                self.drag_delta = self.field_info.size / 2
+                self.drag_delta = self.transformOriginPoint()
+                self.setPos(self.mapToParent(event.pos()) - self.drag_delta)
 
     def mouseMoveEvent(self, event):
         if self.drag_delta is not None:
