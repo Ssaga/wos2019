@@ -80,6 +80,7 @@ class WosBattleShipItem(WosBattlefieldItem):
         ship.set_ship_type(ShipInfo.Type.SHADOW)
         ship.set_type(ItemType.ANNOTATION)
         ship.set_is_hoverable(False)
+        ship.set_is_sunken(self.ship_info.is_sunken)
         for action in actions:
             if action == cCommonGame.Action.FWD:
                 ship.ship_info.move_forward()
@@ -118,6 +119,9 @@ class WosBattleShipItem(WosBattlefieldItem):
     def set_heading(self, heading):
         self.ship_info.set_heading(heading)
 
+    def set_is_sunken(self, is_sunken):
+        self.ship_info.is_sunken = is_sunken
+
     def set_ship_type(self, t):
         self.ship_info.set_type(t)
 
@@ -149,8 +153,13 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.start_pos = QPointF(self.field_info.size.x() * 0.2, self.field_info.size.y() * 0.2)
         self.end_pos = QPointF(self.field_info.size.x() * 0.8,
                                self.ship_info.size * self.field_info.size.y() - self.start_pos.y())
-
         head_end_y = self.field_info.size.y() * 0.8
+
+        # Center of origin at the middle of ship body (floor function)
+        self.start_pos -= QPointF(0, self.field_info.size.y() * self.ship_info.get_y_center())
+        self.end_pos -= QPointF(0, self.field_info.size.y() * self.ship_info.get_y_center())
+        head_end_y -= self.field_info.size.y() * self.ship_info.get_y_center()
+
         self.head = QPolygonF(
             [QPointF(self.start_pos.x(), head_end_y),
              QPointF((self.end_pos.x() + self.start_pos.x()) / 2, self.start_pos.y()),

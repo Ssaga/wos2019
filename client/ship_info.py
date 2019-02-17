@@ -19,6 +19,16 @@ class ShipInfo(cCommonGame.ShipInfo, QObject):
         cCommonGame.ShipInfo.__init__(self, ship_id, position, heading, size, is_sunken)
         QObject.__init__(self, parent)
         self.type = ShipInfo.Type.FRIENDLY
+        self.y_center = size / 2
+        if size % 2 == 0:
+            self.y_center -= 1
+
+    def get_y_center(self):
+        y_center = int(self.size / 2)
+        if self.size % 2 == 0:
+            y_center -= 1
+
+        return y_center
 
     def set_type(self, t):
         self.type = t

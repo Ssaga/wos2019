@@ -29,5 +29,5 @@ class WosTimeWidget(QWidget):
         self.time_text.setText(t)
 
     def setEnabled(self, b):
-        self.time_text.setText(self.default_string)
+        # self.time_text.setText(self.default_string)
         QWidget.setEnabled(self, b)

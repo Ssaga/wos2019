@@ -82,7 +82,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
             self.ships_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
-            self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 0)
+            self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 2)
         self.wos_interface.battlefield.battle_scene.centerOn(self.ships_items[-1])
 
         self.update_action_widget()
