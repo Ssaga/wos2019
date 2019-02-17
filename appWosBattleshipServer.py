@@ -243,6 +243,16 @@ class WosBattleshipServer(threading.Thread):
                     thread = threading.Thread(target=self.state_exec, args=(msg_addr, msg_data))
                     thread.start()
 
+            # Bugfix: Update the remaining time of the game state if we are in play input state
+            #         This has occurred as we now check if we have message before we perform execute
+            if self.game_status.game_state == GameState.PLAY_INPUT:
+                # Update the publisher on the game status
+                bc_game_status = GameStatus(self.game_status.game_state,
+                                            self.game_status.game_round,
+                                            0,
+                                            self.game_status.time_remaining)
+                self.comm_engine.set_game_status(bc_game_status)
+
         # stop the communication engine
         self.tts_comm_engine.stop()
         self.comm_engine.stop()
@@ -429,8 +439,7 @@ class WosBattleshipServer(threading.Thread):
         # Update the publisher on the game status
         bc_game_status = GameStatus(self.game_status.game_state,
                                     self.game_status.game_round,
-                                    0,
-                                    self.game_status.time_remaining)
+                                    0)
         self.comm_engine.set_game_status(bc_game_status)
 
     def state_setup_play_compute(self):
@@ -678,7 +687,7 @@ class WosBattleshipServer(threading.Thread):
                         if isinstance(ship_info_dat, ShipInfo):
                             # clone the ship_info data
                             ship_info = ShipInfo(ship_id=ship_info_dat.ship_id,
-                                                 ship_type=ship_info_dat.ship_type,
+                                                 ship_type=ShipType.MIL,
                                                  position=Position(ship_info_dat.position.x, ship_info_dat.position.y),
                                                  heading=ship_info_dat.heading,
                                                  size=ship_info_dat.size,
@@ -757,12 +766,13 @@ class WosBattleshipServer(threading.Thread):
                 print("Receive wrong message from player %s, for the wrong state..." % msg_data.player_id)
                 reply = cMessages.MsgRepAck(False)
 
-        # Update the publisher on the game status
-        bc_game_status = GameStatus(self.game_status.game_state,
-                                    self.game_status.game_round,
-                                    0,
-                                    self.game_status.time_remaining)
-        self.comm_engine.set_game_status(bc_game_status)
+        # Bugfix: The following is moved out of the state_exec state; into the common run exec
+        # # Update the publisher on the game status
+        # bc_game_status = GameStatus(self.game_status.game_state,
+        #                             self.game_status.game_round,
+        #                             0,
+        #                             self.game_status.time_remaining)
+        # self.comm_engine.set_game_status(bc_game_status)
 
         return reply
 
@@ -806,7 +816,7 @@ class WosBattleshipServer(threading.Thread):
                     if isinstance(ship_info, ShipInfo):
                         # Clone the enemy ship information
                         ship_info_dat = ShipInfo(ship_id=ship_info.ship_id,
-                                                 ship_type=ship_info_dat.ship_type,
+                                                 ship_type=ship_info.ship_type,
                                                  position=Position(ship_info.position.x, ship_info.position.y),
                                                  heading=ship_info.heading,
                                                  size=ship_info.size,
@@ -816,9 +826,9 @@ class WosBattleshipServer(threading.Thread):
                             other_ship_list.append(ship_info_dat)
                         else:
                             enemy_ship_list.append(ship_info_dat)
-        else:
-            # Remove all the ship as the player is not suppose to see them yet
-            other_ship_list.clear()
+        # else:
+        #     # Remove all the ship as the player is not suppose to see them yet
+        #     other_ship_list.clear()
         print("****** Player %s: other_ship_list:\r\n%s" % (msg_data.player_id, other_ship_list))
         print("****** Player %s: enemy_ship_list:\r\n%s" % (msg_data.player_id, enemy_ship_list))
 
