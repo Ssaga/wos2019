@@ -14,6 +14,9 @@ class WosBattlefieldWidget(QWidget):
         self.battle_scene = WosBattleFieldView(QPoint(60, 60), self)
         layout.addWidget(self.battle_scene, 0, 0)
 
+    def clear_scene(self):
+        self.battle_scene.clear()
+
     def generate_scene(self, width, height):
         self.battle_scene.set_dimension(width, height)
 

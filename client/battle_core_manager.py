@@ -31,7 +31,9 @@ class WosBattleCoreManager(QObject):
         self.map_size_y = 120
         self.fire_action_widgets = list()
         self.move_action_widgets = list()
-        self.ships_items = dict()
+        self.ships_friendly_items = dict()
+        self.ships_other_items = list()
+        self.ships_hostile_items = list()
         self.ships_shadow_items = dict()
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
@@ -53,7 +55,7 @@ class WosBattleCoreManager(QObject):
 
     def insert_annotations_to_scene(self, scene):
         for widget in self.move_action_widgets:
-            ship_shadow = self.ships_items[0].clone()
+            ship_shadow = self.ships_friendly_items[0].clone()
             scene.addItem(ship_shadow)
             self.ships_shadow_items[widget.get_index()] = ship_shadow
             widget.combo_updated.connect(self.update_ship_shadow)
@@ -78,7 +80,7 @@ class WosBattleCoreManager(QObject):
             ship_shadows[ship_id].append(self.ships_shadow_items[widget.get_index()])
 
         for ship_id, actions in moves.items():
-            ship = self.ships_items[ship_id]
+            ship = self.ships_friendly_items[ship_id]
             ship_shadow = ship_shadows[ship_id][0]
             ship.make_shadow(ship_shadow, actions)
             ship_shadow.show()
@@ -151,24 +153,32 @@ class WosBattleCoreManager(QObject):
         self.wos_interface.log('Your turn, please issue your commands')
 
         scene = self.wos_interface.battlefield.battle_scene.scene()
+        self.wos_interface.battlefield.clear_scene()
+
         self.wos_interface.battlefield.update_map(turn_info.map_data)
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
-        self.ships_items = dict()
+        self.ships_friendly_items = dict()
         for i in range(0, len(turn_info.self_ship_list)):
             ship_item = self.insert_ship_to_scene(scene, turn_info.self_ship_list[i], ShipInfo.Type.FRIENDLY)
             if ship_item is not None:
                 ship_id = ship_item.ship_info.ship_id
-                self.ships_items[ship_id] = ship_item
+                self.ships_friendly_items[ship_id] = ship_item
 
+        self.ships_other_items = []
         for i in range(0, len(turn_info.enemy_ship_list)):
-            self.insert_ship_to_scene(scene, turn_info.enemy_ship_list[i], ShipInfo.Type.HOSTILE)
+            ship_item = self.insert_ship_to_scene(scene, turn_info.enemy_ship_list[i], ShipInfo.Type.HOSTILE)
+            if ship_item is not None:
+                self.ships_other_items.append(ship_item)
 
+        self.ships_hostile_items = []
         for i in range(0, len(turn_info.other_ship_list)):
-            self.insert_ship_to_scene(scene, turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+            ship_item = self.insert_ship_to_scene(scene, turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+            if ship_item is not None:
+                self.ships_hostile_items.append(ship_item)
 
         for widget in self.move_action_widgets:
-            widget.update_move_ship_combo(self.ships_items)
+            widget.update_move_ship_combo(self.ships_friendly_items)
 
         self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
 

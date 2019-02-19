@@ -45,11 +45,18 @@ class WosBattleFieldView(QGraphicsView):
         self.field_lines = list()
         self.labels = list()
         self.boundaries = dict()
+        self.terrains = list()
 
         self.field_types = [cCommonGame.MapData.ISLAND, cCommonGame.MapData.CLOUD_FRIENDLY,
                             cCommonGame.MapData.CLOUD_HOSTILE, cCommonGame.MapData.ISLAND]
 
         self.update_field()
+
+    def clear(self):
+        self.field_lines = []
+        self.labels = []
+        self.terrains = []
+        self.scene().clear()
 
     def get_field_info(self):
         return self.field_info
@@ -60,9 +67,13 @@ class WosBattleFieldView(QGraphicsView):
 
     def update_field(self, map_data=None):
         scene = self.scene()
-        scene.clear()
+        # scene.clear()
+        for terrain in self.terrains:
+            scene.removeItem(terrain)
+
         self.field_lines = []
         self.labels = []
+        self.terrains = []
 
         # Draw grids
         for i in range(0, self.field_info.dimension.x() + 1):
@@ -116,11 +127,13 @@ class WosBattleFieldView(QGraphicsView):
                 for row in range(0, len(map_data[0])):
                     val = int(map_data[col][row])
                     item = WosTerrainItem(self.field_info, col, row, val)
+                    self.terrains.append(item)
                     scene.addItem(item)
         else:
             for col in range(0, self.field_info.dimension.x()):
                 for row in range(0, self.field_info.dimension.y()):
                     item = WosTerrainItem(self.field_info, col, row, cCommonGame.MapData.WATER)
+                    self.terrains.append(item)
                     scene.addItem(item)
 
     def grid_to_pixel(self, x, y):
