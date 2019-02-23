@@ -826,6 +826,13 @@ class WosBattleshipServer(threading.Thread):
                             other_ship_list.append(ship_info_dat)
                         else:
                             enemy_ship_list.append(ship_info_dat)
+
+        # print("****** Player %s: other_ship_list:\r\n%s" % (msg_data.player_id, other_ship_list))
+        # print("****** Player %s: enemy_ship_list:\r\n%s" % (msg_data.player_id, enemy_ship_list))
+
+        other_ship_list = self.get_visible_ship_list(msg_data.player_id, other_ship_list)
+        enemy_ship_list = self.get_visible_ship_list(msg_data.player_id, enemy_ship_list)
+
         # else:
         #     # Remove all the ship as the player is not suppose to see them yet
         #     other_ship_list.clear()
@@ -1035,6 +1042,27 @@ class WosBattleshipServer(threading.Thread):
         map_data = np.maximum(map_data, self.turn_map_fog[player_id])
 
         return map_data
+
+    # ---------------------------------------------------------------------------
+    def get_visible_ship_list(self, player_id, ship_list):
+        outp_ship_list = list()
+        # Get mask of the giving player
+        player_map_fog = self.turn_map_fog[player_id]
+        if isinstance(player_map_fog, np.ndarray):
+            player_map_fog = player_map_fog.astype(np.bool)
+            for ship in ship_list:
+                if isinstance(ship, ShipInfo):
+                    for pos in ship.area:
+                        print("map pos: %s" % player_map_fog[int(pos[0]),int(pos[1])])
+                        if not player_map_fog[int(pos[0]),int(pos[1])]:
+                            outp_ship_list.append(copy.deepcopy(ship))
+                            break
+                    # end of position for..loop
+            # end of ship_list for..loop
+        return  outp_ship_list
+
+
+
 
     # ---------------------------------------------------------------------------
     # Check if the placement of the ship are valid
