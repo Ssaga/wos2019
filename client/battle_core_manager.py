@@ -165,17 +165,17 @@ class WosBattleCoreManager(QObject):
                 ship_id = ship_item.ship_info.ship_id
                 self.ships_friendly_items[ship_id] = ship_item
 
-        self.ships_other_items = []
+        self.ships_hostile_items = []
         for i in range(0, len(turn_info.enemy_ship_list)):
             ship_item = self.insert_ship_to_scene(scene, turn_info.enemy_ship_list[i], ShipInfo.Type.HOSTILE)
             if ship_item is not None:
-                self.ships_other_items.append(ship_item)
+                self.ships_hostile_items.append(ship_item)
 
-        self.ships_hostile_items = []
+        self.ships_other_items = []
         for i in range(0, len(turn_info.other_ship_list)):
             ship_item = self.insert_ship_to_scene(scene, turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
             if ship_item is not None:
-                self.ships_hostile_items.append(ship_item)
+                self.ships_other_items.append(ship_item)
 
         for widget in self.move_action_widgets:
             widget.update_move_ship_combo(self.ships_friendly_items)

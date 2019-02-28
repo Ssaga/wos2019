@@ -10,7 +10,9 @@ from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
 from client.action_widget import WosActionWidget
+from client.battle_util import WosBattleUtil
 from client.client_interface_manager import WosClientInterfaceManager
+from client.ship_info import ShipInfo
 import cCommonGame
 
 
@@ -102,9 +104,14 @@ class WosSatelliteEo2Manager(QObject):
         # Stubs
         satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, True, False)
         rep = WosClientInterfaceManager().send_action_satcom(satcom)
-        print(vars(rep))
         if rep and rep.ack:
             self.wos_interface.log('Success!')
-            self.wos_interface.battlefield.update_map(rep.map_data)
+            turn_info = WosClientInterfaceManager().get_turn_info()
+            # Handle case where update_turn was wrongly called
+            if turn_info and turn_info.ack:
+                for i in range(0, len(turn_info.other_ship_list)):
+                    WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                       turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+                self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log('Failed!')
