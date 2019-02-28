@@ -1,6 +1,7 @@
 from cClientCommEngine import ClientCommEngine
 from cCommonCommEngine import ConnInfo
 import cMessages
+import json
 import threading
 import time
 
@@ -24,12 +25,27 @@ class WosClientInterfaceManager(object):
         self.port_req = 5556
         self.port_sub = 5557
 
+        self.read_from_config()
+
         self.req_rep_if = ConnInfo(self.addr_svr, self.port_req)
         self.pub_sub_if = ConnInfo(self.addr_svr, self.port_sub)
 
         self.thread_client = None
         self.client_commEngine = None
         self.is_running = True
+
+    def read_from_config(self):
+        print('111')
+        try:
+            with open('client/game_client.cfg') as data_file:
+                print('222')
+                client_cfg = json.load(data_file)
+                self.addr_svr = client_cfg['server']['addr']
+                self.port_req = client_cfg['server']['req_rep_port']
+                self.port_sub = client_cfg['server']['pub_sub_port']
+                print(self.addr_svr)
+        except FileNotFoundError:
+            print('No such file or directory: \'client/game_client2.cfg\'')
 
     def client_thread(self, commEngine=ClientCommEngine()):
         print("*** client %s commEngine thread start ***" % commEngine.client_id)
