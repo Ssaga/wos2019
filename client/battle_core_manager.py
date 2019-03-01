@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QObject
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QSizePolicy
@@ -17,6 +18,8 @@ import cCommonGame
 
 class WosBattleCoreManager(QObject):
     UPDATE_INTERVAL_IN_MS = 1000
+
+    turn_ended = pyqtSignal()
 
     def __init__(self, wos_interface, parent=None):
         QObject.__init__(self, parent)
@@ -43,6 +46,7 @@ class WosBattleCoreManager(QObject):
     def end_turn(self):
         self.time_widget.setEnabled(False)
         self.wos_interface.actions.setEnabled(False)
+        self.turn_ended.emit()
 
     def insert_ship_to_scene(self, scene, ship_info, ship_type):
         ship_item = WosBattleShipItem(self.field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
@@ -245,7 +249,6 @@ class WosBattleCoreManager(QObject):
             self.current_player_round = game_status.game_round
 
         if game_status is not None:
-            print(game_status.time_remain)
             self.time_widget.set_time(game_status.time_remain)
 
         # Update event again in x seconds time

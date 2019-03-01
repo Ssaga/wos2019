@@ -16,10 +16,14 @@ import cCommonGame
 
 class WosSatelliteEoManager(QObject):
 
-    def __init__(self, wos_interface, parent=None):
+    def __init__(self, wos_interface, battle_core_manager, parent=None):
         QObject.__init__(self, parent)
         self.wos_interface = wos_interface
+        self.battle_core_manager = battle_core_manager
         self.dialog = None
+        self.eo_button = None
+
+        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def display_pop_up(self):
         if self.dialog is not None:
@@ -31,12 +35,20 @@ class WosSatelliteEoManager(QObject):
         self.dialog.raise_()
         self.dialog.activateWindow()
 
+    def end_turn(self):
+        # Since server requires a mandatory satcom action, we force issue one at end turn regardless if user had
+        # executed one or not
+        satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
+        WosClientInterfaceManager().send_action_satcom(satcom)
+
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
         dialog.setWindowTitle('Please input the 6 parameter')
         dialog.setMinimumWidth(50)
         dialog.accepted.connect(self.submit_command)
         dialog.text_list = []
+
+        default_text = [6378 + 2000, 0, 5, 0, 150, 0]
 
         layout = QGridLayout(dialog)
         dialog.setLayout(layout)
@@ -46,7 +58,7 @@ class WosSatelliteEoManager(QObject):
             layout.addWidget(QLabel("%s:" % i), i, 0)
             line_edit = QLineEdit()
             line_edit.setValidator(dbl_validator)
-            line_edit.setText('0.0')
+            line_edit.setText(str(default_text[i]))
             layout.addWidget(line_edit, i, 1)
             dialog.text_list.append(line_edit)
 
@@ -66,11 +78,11 @@ class WosSatelliteEoManager(QObject):
         layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
-        eo_button = QToolButton(widget)
-        eo_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        eo_button.setText("Send EO Satellite")
-        eo_button.released.connect(self.display_pop_up)
-        layout.addWidget(eo_button, 0, 0, 1, 3)
+        self.eo_button = QToolButton(actions_widget)
+        self.eo_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.eo_button.setText("Send EO Satellite")
+        self.eo_button.released.connect(self.display_pop_up)
+        layout.addWidget(self.eo_button, 0, 0, 1, 3)
 
         actions_widget.add_widget(widget, WosActionWidget.WidgetType.ACTION_ADDON)
 
@@ -84,18 +96,23 @@ class WosSatelliteEoManager(QObject):
         self.update_action_widget()
 
     def submit_command(self):
+        # if self.eo_button is not None:
+        #     self.eo_button.setEnabled(False)
+
         satcom = cCommonGame.SatcomInfo()
-        satcom.a = self.dialog.text_list[0].text()
-        satcom.b = self.dialog.text_list[1].text()
-        satcom.c = self.dialog.text_list[2].text()
-        satcom.d = self.dialog.text_list[3].text()
-        satcom.e = self.dialog.text_list[4].text()
-        satcom.f = self.dialog.text_list[5].text()
+        satcom.a = float(self.dialog.text_list[0].text())
+        satcom.e = float(self.dialog.text_list[1].text())
+        satcom.i = float(self.dialog.text_list[2].text())
+        satcom.om = float(self.dialog.text_list[3].text())
+        satcom.Om = float(self.dialog.text_list[4].text())
+        satcom.M = float(self.dialog.text_list[5].text())
+        satcom.is_enable = False
+        satcom.is_rhs = False
         self.wos_interface.log("Sending EO satellite..")
         self.dialog.deleteLater()
         self.dialog = None
         # Stubs
-        satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
+        # satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
         rep = WosClientInterfaceManager().send_action_satcom(satcom)
         if rep and rep.ack:
             self.wos_interface.log('Success!')
@@ -107,4 +124,4 @@ class WosSatelliteEoManager(QObject):
                                                        turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log('Failed!')
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 satcom action per turn.</font>")
