@@ -33,6 +33,8 @@ class WosMainWindow(QMainWindow):
 
         self.game_manager = WosGameManager(self.interface, self)
 
+        self.interface.log("Welcome to World of Science.")
+
     def closeEvent(self, *args, **kwargs):
         WosClientInterfaceManager().disconnect_from_server()
 

@@ -35,15 +35,12 @@ class WosClientInterfaceManager(object):
         self.is_running = True
 
     def read_from_config(self):
-        print('111')
         try:
             with open('client/game_client.cfg') as data_file:
-                print('222')
                 client_cfg = json.load(data_file)
                 self.addr_svr = client_cfg['server']['addr']
                 self.port_req = client_cfg['server']['req_rep_port']
                 self.port_sub = client_cfg['server']['pub_sub_port']
-                print(self.addr_svr)
         except FileNotFoundError:
             print('No such file or directory: \'client/game_client2.cfg\'')
 

@@ -54,8 +54,9 @@ class WosCreationManager(WosPhaseManager):
         if is_success or self.wos_interface.is_debug:
             self.wos_interface.player_info = PlayerInfo(player_id)
             self.wos_interface.cfg = WosClientInterfaceManager().get_config()
-            self.wos_interface.log('<font color="green">Success!</font>')
+            self.wos_interface.log("<font color='green'>Success! You are player: <b>%s</b></font>" % player_id)
             self.wos_interface.log(vars(self.wos_interface.cfg), cCommonGame.LogType.DEBUG)
+            self.wos_interface.window.setWindowTitle("World Of Science: Battleship (Player %s)" % player_id)
             self.dialog.deleteLater()
             self.dialog = None
             self.end()

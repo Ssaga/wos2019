@@ -11,7 +11,8 @@ class WosConsoleWidget(QDockWidget):
     def __init__(self, parent=None):
         QDockWidget.__init__(self, parent)
 
-        self.mode = cCommonGame.LogType.ALL
+        # self.mode = cCommonGame.LogType.ALL
+        self.mode = cCommonGame.LogType.GAME
 
         self.setWindowTitle('Console')
         self.setMinimumWidth(500)
@@ -24,9 +25,6 @@ class WosConsoleWidget(QDockWidget):
 
         self.console = QTextEdit('', self)
         layout.addWidget(self.console, 0, 0)
-
-        self.log_simple("Welcome to World of Science.")
-        self.log_simple("You have 30mins to solve the puzzles before the bomb explodes, all the best.")
 
     def log_simple(self, text, type=cCommonGame.LogType.GAME):
         now = datetime.datetime.now()
