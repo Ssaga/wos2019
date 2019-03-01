@@ -16,7 +16,7 @@ import cCommonGame
 class WosBattleShipDeploymentManager(WosPhaseManager):
     UPDATE_INTERVAL_IN_MS = 1000
 
-    deployment_ended = pyqtSignal()
+    deployment_ended = pyqtSignal(QToolButton)
 
     def __init__(self, wos_interface, parent=None):
         WosPhaseManager.__init__(self, wos_interface, parent)
@@ -29,7 +29,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
     def deployment_button_pressed(self):
         self.wos_interface.log("Sending deployment to server..")
         self.sender().setEnabled(False)
-        self.deployment_ended.emit()
+        self.deployment_ended.emit(self.sender())
 
     def end(self):
         actions_widget = self.wos_interface.actions
@@ -38,7 +38,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         self.tools = None
         WosPhaseManager.end(self)
 
-    def send_deployment(self):
+    def send_deployment(self, deployment_button):
         ships = []
         for ship_item in self.ships_items:
             ships.append(ship_item.get_ship_info())
@@ -46,9 +46,12 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
             self.wos_interface.log("Server acknowledged")
             self.wos_interface.log("Please wait for all the players to deploy their ships")
             self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
+            for ship_item in self.ships_items:
+                ship_item.set_is_draggable(False)
         else:
-            self.wos_interface.log("Server declined, please check that your deployments are valid")
-            self.sender().setEnabled(True)
+            self.wos_interface.log(
+                "<font color='brown'>Server declined, please check that your deployments are valid</font>")
+            deployment_button.setEnabled(True)
         # todo; Don't end if server did not acknowledged
         # self.end()
 

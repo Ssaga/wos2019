@@ -19,9 +19,10 @@ class WosItemDepthManager(object):
         # Smaller value at background, larger value at foreground
         self.depths[ItemType.UNKNOWN] = 0
         self.depths[ItemType.TERRAIN_LAND] = 1
-        self.depths[ItemType.SHIP] = 2
-        self.depths[ItemType.TERRAIN_AIR] = 3
-        self.depths[ItemType.ANNOTATION] = 4
+        self.depths[ItemType.TERRAIN_ON_HOVER] = 2
+        self.depths[ItemType.SHIP] = 3
+        self.depths[ItemType.TERRAIN_AIR] = 4
+        self.depths[ItemType.ANNOTATION] = 5
 
     def get_depth(self, obj):
         try:

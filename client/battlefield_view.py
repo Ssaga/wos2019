@@ -1,3 +1,4 @@
+from functools import reduce
 from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
@@ -12,6 +13,7 @@ from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
 from client.scene_item.terrain_item import WosTerrainItem
 import cCommonGame
+import operator
 
 
 class WosFieldInfo:
@@ -67,13 +69,22 @@ class WosBattleFieldView(QGraphicsView):
 
     def update_field(self, map_data=None):
         scene = self.scene()
-        # scene.clear()
-        for terrain in self.terrains:
-            scene.removeItem(terrain)
+        if len(self.terrains) > 0:
+            # Flatten 2d to 1d for traversing
+            terrains = reduce(operator.concat, self.terrains)
+            for terrain in terrains:
+                scene.removeItem(terrain)
 
         self.field_lines = []
         self.labels = []
         self.terrains = []
+
+        scene.setSceneRect(0,
+                           0,
+                           (self.field_info.dimension.x() + 1) * self.field_info.size.x() + \
+                           self.field_info.top_left.x() + self.field_info.top_left.x(),
+                           (self.field_info.dimension.y() + 1) * self.field_info.size.y() + \
+                           self.field_info.top_left.y() + self.field_info.top_left.y())
 
         # Draw grids
         for i in range(0, self.field_info.dimension.x() + 1):
@@ -124,16 +135,18 @@ class WosBattleFieldView(QGraphicsView):
         # Draw grid data like water, island or clouds
         if map_data is not None:
             for col in range(0, len(map_data)):
+                self.terrains.append(list())
                 for row in range(0, len(map_data[0])):
                     val = int(map_data[col][row])
                     item = WosTerrainItem(self.field_info, col, row, val)
-                    self.terrains.append(item)
+                    self.terrains[0].append(item)
                     scene.addItem(item)
         else:
             for col in range(0, self.field_info.dimension.x()):
+                self.terrains.append(list())
                 for row in range(0, self.field_info.dimension.y()):
                     item = WosTerrainItem(self.field_info, col, row, cCommonGame.MapData.WATER)
-                    self.terrains.append(item)
+                    self.terrains[0].append(item)
                     scene.addItem(item)
 
     def grid_to_pixel(self, x, y):

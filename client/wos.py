@@ -8,6 +8,7 @@ class ItemType(Enum):
     TERRAIN_AIR = 2
     SHIP = 3
     ANNOTATION = 4
+    TERRAIN_ON_HOVER = 999
 
 class PlayerInfo:
     def __init__(self, player_id):

@@ -1,15 +1,19 @@
 from PyQt5.QtCore import QRectF
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QToolTip
+from client.item_depth_manager import WosItemDepthManager
 from client.scene_item.battlefield_item import WosBattlefieldItem
 from client.wos import ItemType
 import cCommonGame
 
 
 class WosTerrainItem(WosBattlefieldItem):
+    UPDATE_INTERVAL_IN_MS = 1000
+
     def __init__(self, field_info, x, y, t):
         WosBattlefieldItem.__init__(self, field_info)
         self.x = x
@@ -18,6 +22,10 @@ class WosTerrainItem(WosBattlefieldItem):
 
         self.set_terrain_type(t)
         self.set_is_draggable(False)
+
+        self.update_timer = QTimer()
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.revert_depth)
 
         self.terrains = {cCommonGame.MapData.WATER: 'Water',
                          cCommonGame.MapData.ISLAND: 'Island',
@@ -43,6 +51,8 @@ class WosTerrainItem(WosBattlefieldItem):
         return self.body
 
     def hoverEnterEvent(self, event):
+        if self.terrain_type & cCommonGame.MapData.CLOUD_FRIENDLY:
+            self.setZValue(WosItemDepthManager().depths[ItemType.TERRAIN_ON_HOVER])
         self.pen = QPen(QColor(0, 0, 0, 255), 2)
         self.show_tool_tip(event)
         self.update()
@@ -51,6 +61,8 @@ class WosTerrainItem(WosBattlefieldItem):
         self.pen = QPen(QColor(0, 0, 0, 255))
         QToolTip.hideText()
         self.update()
+        if self.terrain_type & cCommonGame.MapData.CLOUD_FRIENDLY:
+            self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
 
     def hoverMoveEvent(self, event):
         self.show_tool_tip(event)
@@ -70,6 +82,9 @@ class WosTerrainItem(WosBattlefieldItem):
                     for brush in brushes:
                         painter.setBrush(brush)
                         painter.drawRect(self.body)
+
+    def revert_depth(self):
+        WosItemDepthManager().set_depth(self)
 
     def set_terrain_type(self, t):
         self.terrain_type = t
