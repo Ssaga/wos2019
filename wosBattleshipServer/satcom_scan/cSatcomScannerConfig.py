@@ -10,7 +10,8 @@ class SatcomScanConfig:
                  tl=[4.472, 102.00],
                  tr=[4.472, 105.00],
                  bl=[-1, 102.00],
-                 br=[-1, 105.00]):
+                 br=[-1, 105.00],
+                 gmat_dir="./GMAT/2018a/"):
         self.ifov_radians = ifov_radians
         self.game_divisor = game_divisor
         self.lookang_degree = lookang_degree
@@ -18,6 +19,7 @@ class SatcomScanConfig:
         self.tr = tr
         self.bl = bl
         self.br = br
+        self.gmat_dir=gmat_dir
 
     def __repr__(self):
         return str(vars(self))
@@ -37,7 +39,8 @@ class JsonEncoder(json.JSONEncoder):
                 "tl": obj.tl,
                 "tr": obj.tr,
                 "bl": obj.bl,
-                "br": obj.br
+                "br": obj.br,
+                "gmat_dir":obj.gmat_dir
             }
 
         else:
@@ -73,5 +76,6 @@ class JsonDecoder(json.JSONDecoder):
             obj['tl'],
             obj['tr'],
             obj['bl'],
-            obj['br']
+            obj['br'],
+            obj['gmat_dir']
         )
