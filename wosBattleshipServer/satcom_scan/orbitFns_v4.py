@@ -18,47 +18,126 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d as conv2
 
 
-def readLatLon(fileDir):
-    import numpy as np
-    #    ll = np.loadtxt('D://gabriel//LatLon.txt')
-    #    ll = np.loadtxt('C:\\Users\\admin\\AppData\\Local\\GMAT\\R2018a\\output\\SatLLA.txt', skiprows=1)
-    ll = np.loadtxt(fileDir + '\\output\\SatLLA.txt', skiprows=1)
+def readLatLon(session_outp_path):
+    filename = ""
+    if isinstance(session_outp_path, str):
+        # Generate the full-pathname of the expected file
+        filename = session_outp_path + "/SatLLA.txt"
 
+    print("Loading SatLLA @ %s" % filename)
+    ll = np.loadtxt(filename, skiprows=1)
     # repack into separate lat and lon variables
     ll = ll.squeeze()
     lat = ll[:, 0]
     lon = ll[:, 1]
     alt = ll[:, 2]
+
     return lat, lon, alt
 
+def readVel(session_outp_path):
+    filename = ""
+    if isinstance(session_outp_path, str):
+        # Generate the full-pathname of the expected file
+        filename = session_outp_path + "/SatVel.txt"
 
-def readVel(fileDir):
-    #    vt = np.loadtxt('C:\\Users\\admin\\AppData\\Local\\GMAT\\R2018a\\output\\SatVel.txt', skiprows=1)
-    vt = np.loadtxt(fileDir + '\\output\\SatVel.txt', skiprows=1)
+    print("Loading SatVel @ %s" % filename)
+    vt = np.loadtxt(filename, skiprows=1)
     vt = vt.squeeze()
     return vt
 
+def readECEF(session_outp_path):
+    filename = ""
+    if isinstance(session_outp_path, str):
+        # Generate the full-pathname of the expected file
+        filename = session_outp_path + "/SatECEF.txt"
 
-def readECEF(fileDir):
-    #    xyz = np.loadtxt('C:\\Users\\admin\\AppData\\Local\\GMAT\\R2018a\\output\\SatECEF.txt', skiprows=1)
-    xyz = np.loadtxt(fileDir + '\\output\\SatECEF.txt', skiprows=1)
+    print("Loading SatECEF @ %s" % filename)
+    xyz = np.loadtxt(filename, skiprows=1)
     xyz = xyz.squeeze()
     return xyz
 
+# def readLatLon(fileDir):
+#     import numpy as np
+#     #    ll = np.loadtxt('D://gabriel//LatLon.txt')
+#     #    ll = np.loadtxt('C:/Users/admin/AppData/Local/GMAT/R2018a/output/SatLLA.txt', skiprows=1)
+#     ll = np.loadtxt(fileDir + '/output/SatLLA.txt', skiprows=1)
+#
+#     # repack into separate lat and lon variables
+#     ll = ll.squeeze()
+#     lat = ll[:, 0]
+#     lon = ll[:, 1]
+#     alt = ll[:, 2]
+#     return lat, lon, alt
 
-def executeScript(fileDir):
-    #    fileStr_toLaunch = 'D:\gabriel\GMAT\GMAT\WOS_finalOrbit.script'
-    fileStr_toLaunch = 'WOS_finalOrbit.script'
-    # executes GMAT script from command line
-    #    os.chdir( 'C:\\Users\\admin\\AppData\\Local\\GMAT\\R2018a\\bin' )
-    os.chdir(fileDir + '\\bin')
-    os.system('GMAT --minimize --run ' + fileStr_toLaunch + ' --exit')
-    #    os.system( 'GMAT --run ' + fileStr)
-    #    os.system(' GMAT --run')
+
+# def readVel(fileDir):
+#     #    vt = np.loadtxt('C:/Users/admin/AppData/Local/GMAT/R2018a/output/SatVel.txt', skiprows=1)
+#     vt = np.loadtxt(fileDir + '/output/SatVel.txt', skiprows=1)
+#     vt = vt.squeeze()
+#     return vt
+
+
+# def readECEF(fileDir):
+#     #    xyz = np.loadtxt('C:/Users/admin/AppData/Local/GMAT/R2018a/output/SatECEF.txt', skiprows=1)
+#     xyz = np.loadtxt(fileDir + '/output/SatECEF.txt', skiprows=1)
+#     xyz = xyz.squeeze()
+#     return xyz
+
+# modified by ttl : to remove the cmd to change the current working path
+def executeScript(exec_file, exec_script, startup_file=""):
+    if isinstance(exec_file, str) and isinstance(exec_script, str):
+
+        # setup the execution cmd
+        exec_cmd = exec_file + ' --minimize --run ' + exec_script
+        if isinstance(startup_file, str):
+            exec_cmd += ' --startup_file ' + startup_file
+        exec_cmd += ' --verbose off --exit'
+
+        # executes GMAT script from command line
+        print("Exec : %s" % exec_cmd)
+        os.system(exec_cmd)
+    else:
+        print('ERROR: Unable to run GMAT application !!!')
+    return None
+
+# def executeScript(fileDir):
+#     #    fileStr_toLaunch = 'D:\gabriel\GMAT\GMAT\WOS_finalOrbit.script'
+#     fileStr_toLaunch = 'WOS_finalOrbit.script'
+#     # executes GMAT script from command line
+#     #    os.chdir( 'C:/Users/admin/AppData/Local/GMAT/R2018a/bin' )
+#     os.chdir(fileDir + '/bin')
+#     os.system('GMAT --minimize --run ' + fileStr_toLaunch + ' --exit')
+#     #    os.system( 'GMAT --run ' + fileStr)
+#     #    os.system(' GMAT --run')
+#     return None
+
+
+def editStartup(gmat_startup_template,
+                startup_script_file,
+                gmat_root_dir,
+                session_io_root_dir):
+
+    print("template File : %s" % gmat_startup_template)
+    print("Session File  : %s" % startup_script_file)
+
+    tt = open(gmat_startup_template)
+    t = tt.read()
+    tt.close()
+
+    # orbit params
+    t = t.replace("<gmat_installed_dir>", gmat_root_dir)
+    t = t.replace("<output_path>", session_io_root_dir)
+
+    l = open(startup_script_file, 'w+')
+    l.write(t)
+    l.close()
+
     return None
 
 
-def editScript(a, e, i, om, Om, gam, TL, TR, BL, BR, fileDir):
+def editScript(a, e, i, om, Om, gam, TL, TR, BL, BR,
+               gmat_script_template,
+               runtime_script_file):
     # a - Semi major axis (SMA)
     # e - eccentricity (ECC)
     # i - inclination (INC)
@@ -69,19 +148,20 @@ def editScript(a, e, i, om, Om, gam, TL, TR, BL, BR, fileDir):
     #    fileStr_template = 'D:\gabriel\GMAT\GMAT\WOS_template.script'
     #    fileStr_toLaunch = 'D:\gabriel\GMAT\GMAT\WOS_finalOrbit.script'
 
-    fileStr_template = fileDir + 'bin\\WOS_template.script'
-    fileStr_toLaunch = fileDir + 'bin\\WOS_finalOrbit.script'
-    tt = open(fileStr_template)
+    print("fileStr_template: %s" % gmat_script_template)
+    print("fileStr_toLaunch: %s" % runtime_script_file)
+
+    tt = open(gmat_script_template)
     t = tt.read()
     tt.close()
 
     # orbit params
-    t = t.replace('PUTSMAHERE', a)
-    t = t.replace('PUTECCHERE', e)
-    t = t.replace('PUTINCHERE', i)
-    t = t.replace('PUTRAANHERE', Om)
-    t = t.replace('PUTAOPHERE', om)
-    t = t.replace('PUTTAHERE', gam)
+    t = t.replace('PUTSMAHERE', str(a))
+    t = t.replace('PUTECCHERE', str(e))
+    t = t.replace('PUTINCHERE', str(i))
+    t = t.replace('PUTRAANHERE', str(Om))
+    t = t.replace('PUTAOPHERE', str(om))
+    t = t.replace('PUTTAHERE', str(gam))
 
     # Area of Ops params
     t = t.replace('TLLATHERE', str(TL[0]))
@@ -93,12 +173,7 @@ def editScript(a, e, i, om, Om, gam, TL, TR, BL, BR, fileDir):
     t = t.replace('BRLATHERE', str(BR[0]))
     t = t.replace('BRLONHERE', str(BR[1]))
 
-    try:
-        os.remove(fileStr_toLaunch)
-    except OSError:
-        pass
-
-    l = open(fileStr_toLaunch, 'w+')
+    l = open(runtime_script_file, 'w+')
     l.write(t)
     l.close()
 
@@ -208,13 +283,13 @@ def makeGrid(tl, tr, bl, br, ngrids):
     # tr = [top right lat, top right lon]
     # ngrids is 2 element list [N_lat, N_lon]
 
-    latDiff = np.abs(tl[0] - bl[0]) / ngrids[0] / 2;
-    lonDiff = np.abs(tl[1] - tr[1]) / ngrids[1] / 2;
+    latDiff = np.abs(tl[0] - bl[0]) / ngrids[0] / 2
+    lonDiff = np.abs(tl[1] - tr[1]) / ngrids[1] / 2
 
-    gridLat = np.linspace(tl[0] - latDiff, bl[0] + latDiff, ngrids[0]);
-    gridLon = np.linspace(tl[1] + lonDiff, tr[1] - lonDiff, ngrids[1]);
+    gridLat = np.linspace(tl[0] - latDiff, bl[0] + latDiff, ngrids[0])
+    gridLon = np.linspace(tl[1] + lonDiff, tr[1] - lonDiff, ngrids[1])
 
-    return gridLat, gridLon;
+    return gridLat, gridLon
 
 
 def getPass(satLat, satLon, satAlt, gridLat, gridLon):
@@ -247,7 +322,7 @@ def getPass(satLat, satLon, satAlt, gridLat, gridLon):
                            satLon[inGridIdx])
         satAlt = np.interp(np.arange(0, len(inGridIdx), 0.01), \
                            np.arange(0, len(inGridIdx), 1), \
-                           satLon[inGridIdx])
+                           satAlt[inGridIdx])
         for satIdx in range(0, len(satLat)):
             latFlag = abs(satLat[satIdx] - gridLat) <= latThresh;
             lonFlag = abs(satLon[satIdx] - gridLon) <= lonThresh;
@@ -266,29 +341,29 @@ def getPass(satLat, satLon, satAlt, gridLat, gridLon):
 def getGrdDist(lat1, lon1, lat2, lon2):
     # assumes spherical earth
     # lat/lon in [deg]
-    lat1 = np.deg2rad(lat1);
-    lon1 = np.deg2rad(lon1);
-    lat2 = np.deg2rad(lat2);
-    lon2 = np.deg2rad(lon2);
+    lat1 = np.deg2rad(lat1)
+    lon1 = np.deg2rad(lon1)
+    lat2 = np.deg2rad(lat2)
+    lon2 = np.deg2rad(lon2)
     ang = 2 * np.arcsin(np.sqrt(np.sin(abs(lat1 - lat2) / 2) ** 2 + \
                                 np.cos(lat1) * np.cos(lat2) * \
-                                np.sin(abs(lon1 - lon2) / 2) ** 2));
+                                np.sin(abs(lon1 - lon2) / 2) ** 2))
     R_earth = 6378.137  # Radius of earth, [km]
-    grdDist = R_earth * ang;
+    grdDist = R_earth * ang
 
-    return grdDist;
+    return grdDist
 
 
 def swathWidth2Grid(groundSwath, gridLat, gridLon):
-    vertDist = getGrdDist(gridLat[0], gridLon[0], gridLat[1], gridLon[0]);
-    horiDist = getGrdDist(gridLat[0], gridLon[0], gridLat[0], gridLon[1]);
-    diagDist = getGrdDist(gridLat[0], gridLon[0], gridLat[1], gridLon[1]);
+    vertDist = getGrdDist(gridLat[0], gridLon[0], gridLat[1], gridLon[0])
+    horiDist = getGrdDist(gridLat[0], gridLon[0], gridLat[0], gridLon[1])
+    diagDist = getGrdDist(gridLat[0], gridLon[0], gridLat[1], gridLon[1])
 
     # gridOkay = [np.round(groundSwath/vertDist), np.round(groundSwath/horiDist), np.round(groundSwath/diagDist)]
 
     # gridOkay = np.array([vertDist <= groundSwath, horiDist <= groundSwath, diagDist <= groundSwath]);
     gridOkay = [vertDist, horiDist, diagDist]
-    return gridOkay;
+    return gridOkay
 
 
 def addWidth(mask, gridOkay, groundSwath):
@@ -296,7 +371,7 @@ def addWidth(mask, gridOkay, groundSwath):
     vertDist = gridOkay[0]
     horiDist = gridOkay[1]
     minDist = np.min(gridOkay)
-    N = np.round(radius / minDist);
+    N = np.round(radius / minDist)
 
     y, x = np.meshgrid(np.arange(-N, N + 1) * vertDist, np.arange(-N, N + 1) * horiDist)
     filt = x ** 2 + y ** 2 <= radius ** 2
@@ -309,9 +384,9 @@ def addWidth(mask, gridOkay, groundSwath):
 def getSwathWidth(satAlt, posIdx, ifov):
     # ifov - instantaneous field of view [radians]
 
-    satIdx = list(posIdx.astype(int));
-    avgAlt = np.average(satAlt[satIdx]);
-    groundSwath = avgAlt * ifov;
+    satIdx = list(posIdx.astype(int))
+    avgAlt = np.average(satAlt[satIdx])
+    groundSwath = avgAlt * ifov
     return groundSwath
 
 

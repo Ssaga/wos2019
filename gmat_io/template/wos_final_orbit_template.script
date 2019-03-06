@@ -1,0 +1,308 @@
+%General Mission Analysis Tool(GMAT) Script
+%Created: 2019-02-15 13:53:43
+
+
+%----------------------------------------
+%---------- Spacecraft
+%----------------------------------------
+
+Create Spacecraft Sat;
+GMAT Sat.DateFormat = UTCGregorian;
+GMAT Sat.Epoch = '09 Jun 1991 11:33:00.000';
+GMAT Sat.CoordinateSystem = EarthFixed;
+GMAT Sat.DisplayStateType = Keplerian;
+GMAT Sat.SMA = PUTSMAHERE;
+GMAT Sat.ECC = PUTECCHERE;
+GMAT Sat.INC = PUTINCHERE;
+GMAT Sat.RAAN = PUTRAANHERE;
+GMAT Sat.AOP = PUTAOPHERE;
+GMAT Sat.TA = PUTTAHERE;
+GMAT Sat.DryMass = 250;
+GMAT Sat.Cd = 2.2;
+GMAT Sat.Cr = 1.8;
+GMAT Sat.DragArea = 15;
+GMAT Sat.SRPArea = 1;
+GMAT Sat.NAIFId = -10001001;
+GMAT Sat.NAIFIdReferenceFrame = -9001001;
+GMAT Sat.OrbitColor = Red;
+GMAT Sat.TargetColor = Teal;
+GMAT Sat.OrbitErrorCovariance = [ 1e+070 0 0 0 0 0 ; 0 1e+070 0 0 0 0 ; 0 0 1e+070 0 0 0 ; 0 0 0 1e+070 0 0 ; 0 0 0 0 1e+070 0 ; 0 0 0 0 0 1e+070 ];
+GMAT Sat.CdSigma = 1e+070;
+GMAT Sat.CrSigma = 1e+070;
+GMAT Sat.Id = 'SatId';
+GMAT Sat.Attitude = CoordinateSystemFixed;
+GMAT Sat.SPADSRPScaleFactor = 1;
+GMAT Sat.ModelFile = 'aura.3ds';
+GMAT Sat.ModelOffsetX = 0;
+GMAT Sat.ModelOffsetY = 0;
+GMAT Sat.ModelOffsetZ = 0;
+GMAT Sat.ModelRotationX = 0;
+GMAT Sat.ModelRotationY = 0;
+GMAT Sat.ModelRotationZ = 0;
+GMAT Sat.ModelScale = 1;
+GMAT Sat.AttitudeDisplayStateType = 'Quaternion';
+GMAT Sat.AttitudeRateDisplayStateType = 'AngularVelocity';
+GMAT Sat.AttitudeCoordinateSystem = EarthMJ2000Eq;
+GMAT Sat.EulerAngleSequence = '321';
+
+%----------------------------------------
+%---------- GroundStations
+%----------------------------------------
+
+Create GroundStation TopLeft;
+GMAT TopLeft.OrbitColor = Thistle;
+GMAT TopLeft.TargetColor = DarkGray;
+GMAT TopLeft.CentralBody = Earth;
+GMAT TopLeft.StateType = Spherical;
+GMAT TopLeft.HorizonReference = Sphere;
+GMAT TopLeft.Location1 = TLLATHERE;
+GMAT TopLeft.Location2 = TLLONHERE;
+GMAT TopLeft.Location3 = 0;
+GMAT TopLeft.Id = 'TopLeft';
+GMAT TopLeft.IonosphereModel = 'None';
+GMAT TopLeft.TroposphereModel = 'None';
+GMAT TopLeft.DataSource = 'Constant';
+GMAT TopLeft.Temperature = 295.1;
+GMAT TopLeft.Pressure = 1013.5;
+GMAT TopLeft.Humidity = 55;
+GMAT TopLeft.MinimumElevationAngle = 7;
+
+Create GroundStation TopRight;
+GMAT TopRight.OrbitColor = Thistle;
+GMAT TopRight.TargetColor = DarkGray;
+GMAT TopRight.CentralBody = Earth;
+GMAT TopRight.StateType = Spherical;
+GMAT TopRight.HorizonReference = Sphere;
+GMAT TopRight.Location1 = TRLATHERE;
+GMAT TopRight.Location2 = TRLONHERE;
+GMAT TopRight.Location3 = 0;
+GMAT TopRight.Id = 'Top Right';
+GMAT TopRight.IonosphereModel = 'None';
+GMAT TopRight.TroposphereModel = 'None';
+GMAT TopRight.DataSource = 'Constant';
+GMAT TopRight.Temperature = 295.1;
+GMAT TopRight.Pressure = 1013.5;
+GMAT TopRight.Humidity = 55;
+GMAT TopRight.MinimumElevationAngle = 7;
+
+Create GroundStation BottomLeft;
+GMAT BottomLeft.OrbitColor = Thistle;
+GMAT BottomLeft.TargetColor = DarkGray;
+GMAT BottomLeft.CentralBody = Earth;
+GMAT BottomLeft.StateType = Spherical;
+GMAT BottomLeft.HorizonReference = Sphere;
+GMAT BottomLeft.Location1 = BLLATHERE;
+GMAT BottomLeft.Location2 = BLLONHERE;
+GMAT BottomLeft.Location3 = 0;
+GMAT BottomLeft.Id = 'Bottom left';
+GMAT BottomLeft.IonosphereModel = 'None';
+GMAT BottomLeft.TroposphereModel = 'None';
+GMAT BottomLeft.DataSource = 'Constant';
+GMAT BottomLeft.Temperature = 295.1;
+GMAT BottomLeft.Pressure = 1013.5;
+GMAT BottomLeft.Humidity = 55;
+GMAT BottomLeft.MinimumElevationAngle = 7;
+
+Create GroundStation BottomRight;
+GMAT BottomRight.OrbitColor = Thistle;
+GMAT BottomRight.TargetColor = DarkGray;
+GMAT BottomRight.CentralBody = Earth;
+GMAT BottomRight.StateType = Spherical;
+GMAT BottomRight.HorizonReference = Sphere;
+GMAT BottomRight.Location1 = BRLATHERE;
+GMAT BottomRight.Location2 = BRLONHERE;
+GMAT BottomRight.Location3 = 0;
+GMAT BottomRight.Id = 'TopLeft';
+GMAT BottomRight.IonosphereModel = 'None';
+GMAT BottomRight.TroposphereModel = 'None';
+GMAT BottomRight.DataSource = 'Constant';
+GMAT BottomRight.Temperature = 295.1;
+GMAT BottomRight.Pressure = 1013.5;
+GMAT BottomRight.Humidity = 55;
+GMAT BottomRight.MinimumElevationAngle = 7;
+
+
+
+
+
+
+%----------------------------------------
+%---------- ForceModels
+%----------------------------------------
+
+Create ForceModel DefaultProp_ForceModel;
+GMAT DefaultProp_ForceModel.CentralBody = Earth;
+GMAT DefaultProp_ForceModel.PrimaryBodies = {Earth};
+GMAT DefaultProp_ForceModel.Drag = None;
+GMAT DefaultProp_ForceModel.SRP = Off;
+GMAT DefaultProp_ForceModel.RelativisticCorrection = Off;
+GMAT DefaultProp_ForceModel.ErrorControl = RSSStep;
+GMAT DefaultProp_ForceModel.GravityField.Earth.Degree = 10;
+GMAT DefaultProp_ForceModel.GravityField.Earth.Order = 10;
+GMAT DefaultProp_ForceModel.GravityField.Earth.StmLimit = 100;
+GMAT DefaultProp_ForceModel.GravityField.Earth.PotentialFile = 'JGM2.cof';
+GMAT DefaultProp_ForceModel.GravityField.Earth.TideModel = 'None';
+
+%----------------------------------------
+%---------- Propagators
+%----------------------------------------
+
+Create Propagator DefaultProp;
+GMAT DefaultProp.FM = DefaultProp_ForceModel;
+GMAT DefaultProp.Type = RungeKutta89;
+GMAT DefaultProp.InitialStepSize = 60;
+GMAT DefaultProp.Accuracy = 9.999999999999999e-012;
+GMAT DefaultProp.MinStep = 0.001;
+GMAT DefaultProp.MaxStep = 2700;
+GMAT DefaultProp.MaxStepAttempts = 50;
+GMAT DefaultProp.StopIfAccuracyIsViolated = true;
+
+%----------------------------------------
+%---------- Subscribers
+%----------------------------------------
+
+Create OrbitView DefaultOrbitView;
+GMAT DefaultOrbitView.SolverIterations = Current;
+GMAT DefaultOrbitView.UpperLeft = [ 0.2441176470588235 0 ];
+GMAT DefaultOrbitView.Size = [ 0.7305882352941177 0.976218787158145 ];
+GMAT DefaultOrbitView.RelativeZOrder = 377;
+GMAT DefaultOrbitView.Maximized = false;
+GMAT DefaultOrbitView.Add = {Sat, Earth};
+GMAT DefaultOrbitView.CoordinateSystem = EarthICRF;
+GMAT DefaultOrbitView.DrawObject = [ true true ];
+GMAT DefaultOrbitView.DataCollectFrequency = 1;
+GMAT DefaultOrbitView.UpdatePlotFrequency = 50;
+GMAT DefaultOrbitView.NumPointsToRedraw = 0;
+GMAT DefaultOrbitView.ShowPlot = true;
+GMAT DefaultOrbitView.MaxPlotPoints = 20000;
+GMAT DefaultOrbitView.ShowLabels = true;
+GMAT DefaultOrbitView.ViewPointReference = Earth;
+GMAT DefaultOrbitView.ViewPointVector = [ 30000 0 0 ];
+GMAT DefaultOrbitView.ViewDirection = Earth;
+GMAT DefaultOrbitView.ViewScaleFactor = 1;
+GMAT DefaultOrbitView.ViewUpCoordinateSystem = EarthICRF;
+GMAT DefaultOrbitView.ViewUpAxis = Z;
+GMAT DefaultOrbitView.EclipticPlane = Off;
+GMAT DefaultOrbitView.XYPlane = On;
+GMAT DefaultOrbitView.WireFrame = Off;
+GMAT DefaultOrbitView.Axes = On;
+GMAT DefaultOrbitView.Grid = Off;
+GMAT DefaultOrbitView.SunLine = Off;
+GMAT DefaultOrbitView.UseInitialView = On;
+GMAT DefaultOrbitView.StarCount = 7000;
+GMAT DefaultOrbitView.EnableStars = On;
+GMAT DefaultOrbitView.EnableConstellations = On;
+
+Create GroundTrackPlot DefaultGroundTrackPlot;
+GMAT DefaultGroundTrackPlot.SolverIterations = Current;
+GMAT DefaultGroundTrackPlot.UpperLeft = [ -0.001176470588235294 0.02259215219976219 ];
+GMAT DefaultGroundTrackPlot.Size = [ 0.7488235294117647 0.9334126040428062 ];
+GMAT DefaultGroundTrackPlot.RelativeZOrder = 392;
+GMAT DefaultGroundTrackPlot.Maximized = false;
+GMAT DefaultGroundTrackPlot.Add = {BottomLeft, BottomRight, Sat, TopLeft, TopRight};
+GMAT DefaultGroundTrackPlot.DataCollectFrequency = 1;
+GMAT DefaultGroundTrackPlot.UpdatePlotFrequency = 50;
+GMAT DefaultGroundTrackPlot.NumPointsToRedraw = 0;
+GMAT DefaultGroundTrackPlot.ShowPlot = true;
+GMAT DefaultGroundTrackPlot.MaxPlotPoints = 20000;
+GMAT DefaultGroundTrackPlot.CentralBody = Earth;
+GMAT DefaultGroundTrackPlot.TextureMap = 'ModifiedBlueMarble.jpg';
+
+% Create XYPlot Lat_Lon;
+% GMAT Lat_Lon.SolverIterations = Current;
+% GMAT Lat_Lon.UpperLeft = [ 0.04928741092636579 0.5236363636363637 ];
+% GMAT Lat_Lon.Size = [ 0.4982185273159145 0.4460606060606061 ];
+% GMAT Lat_Lon.RelativeZOrder = 8;
+% GMAT Lat_Lon.Maximized = false;
+% GMAT Lat_Lon.XVariable = Sat.Earth.Longitude;
+% GMAT Lat_Lon.YVariables = {Sat.Earth.Longitude};
+% GMAT Lat_Lon.ShowGrid = true;
+% GMAT Lat_Lon.ShowPlot = true;
+% 
+% Create XYPlot Lat_Lon_vs_Time;
+% GMAT Lat_Lon_vs_Time.SolverIterations = Current;
+% GMAT Lat_Lon_vs_Time.UpperLeft = [ 0.04928741092636579 0.5236363636363637 ];
+% GMAT Lat_Lon_vs_Time.Size = [ 0.4994061757719715 0.4484848484848485 ];
+% GMAT Lat_Lon_vs_Time.RelativeZOrder = 13;
+% GMAT Lat_Lon_vs_Time.Maximized = false;
+% GMAT Lat_Lon_vs_Time.XVariable = Sat.A1ModJulian;
+% GMAT Lat_Lon_vs_Time.YVariables = {Sat.Earth.Latitude, Sat.Earth.Longitude};
+% GMAT Lat_Lon_vs_Time.ShowGrid = true;
+% GMAT Lat_Lon_vs_Time.ShowPlot = true;
+
+Create ReportFile SatVel;
+GMAT SatVel.SolverIterations = Current;
+GMAT SatVel.UpperLeft = [ 0.07363420427553444 0.1503030303030303 ];
+GMAT SatVel.Size = [ 0.5985748218527316 0.7975757575757576 ];
+GMAT SatVel.RelativeZOrder = 69;
+GMAT SatVel.Maximized = false;
+GMAT SatVel.Filename = 'SatVel.txt';
+GMAT SatVel.Precision = 16;
+GMAT SatVel.WriteHeaders = true;
+GMAT SatVel.LeftJustify = On;
+GMAT SatVel.ZeroFill = Off;
+GMAT SatVel.FixedWidth = true;
+GMAT SatVel.Delimiter = ' ';
+GMAT SatVel.ColumnWidth = 23;
+GMAT SatVel.WriteReport = true;
+
+Create ReportFile SatLLA;
+GMAT SatLLA.SolverIterations = Current;
+GMAT SatLLA.UpperLeft = [ 0.07363420427553444 0.1503030303030303 ];
+GMAT SatLLA.Size = [ 0.5985748218527316 0.7975757575757576 ];
+GMAT SatLLA.RelativeZOrder = 69;
+GMAT SatLLA.Maximized = false;
+GMAT SatLLA.Filename = 'SatLLA.txt';
+GMAT SatLLA.Precision = 16;
+GMAT SatLLA.WriteHeaders = true;
+GMAT SatLLA.LeftJustify = On;
+GMAT SatLLA.ZeroFill = Off;
+GMAT SatLLA.FixedWidth = true;
+GMAT SatLLA.Delimiter = ' ';
+GMAT SatLLA.ColumnWidth = 23;
+GMAT SatLLA.WriteReport = true;
+
+Create ReportFile SatECEF;
+GMAT SatECEF.SolverIterations = Current;
+GMAT SatECEF.UpperLeft = [ 0.07363420427553444 0.1503030303030303 ];
+GMAT SatECEF.Size = [ 0.5985748218527316 0.7975757575757576 ];
+GMAT SatECEF.RelativeZOrder = 69;
+GMAT SatECEF.Maximized = false;
+GMAT SatECEF.Filename = 'SatECEF.txt';
+GMAT SatECEF.Precision = 16;
+GMAT SatECEF.WriteHeaders = true;
+GMAT SatECEF.LeftJustify = On;
+GMAT SatECEF.ZeroFill = Off;
+GMAT SatECEF.FixedWidth = true;
+GMAT SatECEF.Delimiter = ' ';
+GMAT SatECEF.ColumnWidth = 23;
+GMAT SatECEF.WriteReport = true;
+
+
+%----------------------------------------
+%---------- Arrays, Variables, Strings
+%----------------------------------------
+
+
+
+
+
+%----------------------------------------
+%---------- Mission Sequence
+%----------------------------------------
+
+
+
+BeginMissionSequence;
+While Sat.ElapsedSecs < Sat.Earth.OrbitPeriod
+   Propagate 'Propagate10Secs' DefaultProp(Sat) {Sat.ElapsedSecs = 10};
+   Report 'SatVel' SatVel Sat.EarthFixed.VX Sat.EarthFixed.VY Sat.EarthFixed.VZ;
+   Report 'SatLLA' SatLLA Sat.Earth.Latitude Sat.Earth.Longitude Sat.Earth.Altitude;
+   Report 'SatECEF' SatECEF Sat.EarthFixed.X Sat.EarthFixed.Y Sat.EarthFixed.Z;
+EndWhile;
+
+
+
+
+
+

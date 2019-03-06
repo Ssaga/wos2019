@@ -4,14 +4,18 @@ import numpy as np
 
 class SatcomScanConfig:
     def __init__(self,
-                 ifov_radians=np.deg2rad(1),
+                 ifov_radians=np.deg2rad(15),
                  game_divisor=(6 * 60),
                  lookang_degree=20,
                  tl=[4.472, 102.00],
                  tr=[4.472, 105.00],
                  bl=[-1, 102.00],
                  br=[-1, 105.00],
-                 gmat_dir="./GMAT/2018a/"):
+                 gmat_exec="",
+                 gmat_root_dir="",
+                 gmat_io__dir="",
+                 gmat_startup_template="",
+                 gmat_script_template=""):
         self.ifov_radians = ifov_radians
         self.game_divisor = game_divisor
         self.lookang_degree = lookang_degree
@@ -19,13 +23,17 @@ class SatcomScanConfig:
         self.tr = tr
         self.bl = bl
         self.br = br
-        self.gmat_dir=gmat_dir
+        self.gmat_exec = gmat_exec
+        self.gmat_root_dir = gmat_root_dir
+        self.gmat_io__dir = gmat_io__dir
+        self.gmat_startup_template = gmat_startup_template
+        self.gmat_script_template = gmat_script_template
 
     def __repr__(self):
         return str(vars(self))
 
 
-#----------------------------------------------------------
+# ----------------------------------------------------------
 
 class JsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -40,9 +48,12 @@ class JsonEncoder(json.JSONEncoder):
                 "tr": obj.tr,
                 "bl": obj.bl,
                 "br": obj.br,
-                "gmat_dir":obj.gmat_dir
+                "gmat_exec": obj.gmat_exec,
+                "gmat_root_dir": obj.gmat_root_dir,
+                "gmat_io__dir": obj.gmat_io__dir,
+                "gmat_startup_template": obj.gmat_startup_template,
+                "gmat_script_template": obj.gmat_script_template
             }
-
         else:
             print(type(obj))
             result = super().default(obj)
@@ -77,5 +88,9 @@ class JsonDecoder(json.JSONDecoder):
             obj['tr'],
             obj['bl'],
             obj['br'],
-            obj['gmat_dir']
+            obj['gmat_exec'],
+            obj['gmat_root_dir'],
+            obj['gmat_io__dir'],
+            obj['gmat_startup_template'],
+            obj['gmat_script_template']
         )
