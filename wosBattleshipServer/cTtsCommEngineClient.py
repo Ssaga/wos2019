@@ -37,7 +37,7 @@ class TtsClientCommEngine:
         print("\tSetup connection to TTS server... [%s]" % conn_string)
         self.socket.connect(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.setsockopt(zmq.SUBSCRIBE, b"");
+        self.socket.setsockopt(zmq.SUBSCRIBE, b"")
         self.poller.register(self.socket, zmq.POLLIN)
 
     def teardown_connect(self):

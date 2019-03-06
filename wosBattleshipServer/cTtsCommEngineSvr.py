@@ -63,7 +63,7 @@ class TtsServerCommEngine:
 
     def recv(self):
         # do nothing
-        print("\t[TTS] Receive operation is not supported");
+        print("\t[TTS] Receive operation is not supported")
 
     def send(self, msg):
         if isinstance(msg, str):

@@ -192,12 +192,12 @@ def grdBoresightIntersection(satPos, bsVec):
     ys = satPos[1]
     zs = satPos[2]
 
-    A = (u ** 2 + v ** 2) / a ** 2 + w ** 2 / b ** 2;
-    B = 2 * ((u * xs + v * ys) / a ** 2 + w * zs / b ** 2);
-    C = (xs ** 2 + ys ** 2) / a ** 2 + zs ** 2 / b ** 2 - 1;
+    A = (u ** 2 + v ** 2) / a ** 2 + w ** 2 / b ** 2
+    B = 2 * ((u * xs + v * ys) / a ** 2 + w * zs / b ** 2)
+    C = (xs ** 2 + ys ** 2) / a ** 2 + zs ** 2 / b ** 2 - 1
 
-    t1 = (-B + np.sqrt(B ** 2 - 4 * A * C)) / (2 * A);
-    t2 = (-B - np.sqrt(B ** 2 - 4 * A * C)) / (2 * A);
+    t1 = (-B + np.sqrt(B ** 2 - 4 * A * C)) / (2 * A)
+    t2 = (-B - np.sqrt(B ** 2 - 4 * A * C)) / (2 * A)
 
     intersect1 = satPos + t1 * bsVec
     intersect2 = satPos + t2 * bsVec
@@ -305,10 +305,10 @@ def getPass(satLat, satLon, satAlt, gridLat, gridLon):
     inGridLon = np.logical_and(satLon >= lonMin, satLon <= lonMax)
     inGrid = np.logical_and(inGridLat, inGridLon)
 
-    latThresh = np.abs(gridLat[0] - gridLat[1]) / 2;
-    lonThresh = np.abs(gridLon[0] - gridLon[1]) / 2;
-    mask = np.zeros((len(gridLat), len(gridLon)));
-    posIdx = np.array([]);
+    latThresh = np.abs(gridLat[0] - gridLat[1]) / 2
+    lonThresh = np.abs(gridLon[0] - gridLon[1]) / 2
+    mask = np.zeros((len(gridLat), len(gridLon)))
+    posIdx = np.array([])
 
     inGridIdx = np.nonzero(inGrid)
     if inGridIdx[0].size != 0:
@@ -324,16 +324,16 @@ def getPass(satLat, satLon, satAlt, gridLat, gridLon):
                            np.arange(0, len(inGridIdx), 1), \
                            satAlt[inGridIdx])
         for satIdx in range(0, len(satLat)):
-            latFlag = abs(satLat[satIdx] - gridLat) <= latThresh;
-            lonFlag = abs(satLon[satIdx] - gridLon) <= lonThresh;
-            latPos = np.where(latFlag == True);
-            lonPos = np.where(lonFlag == True);
+            latFlag = abs(satLat[satIdx] - gridLat) <= latThresh
+            lonFlag = abs(satLon[satIdx] - gridLon) <= lonThresh
+            latPos = np.where(latFlag == True)
+            lonPos = np.where(lonFlag == True)
 
             #        latPos = np.argmin(np.abs(satLat[satIdx] - gridLat))
             #        lonPos = np.argmin(np.abs(satLon[satIdx] - gridLon))
             if latPos[0].size and lonPos[0].size:
-                mask[latPos[0][0]][lonPos[0][0]] = 1;
-                posIdx = np.append(posIdx, satIdx);
+                mask[latPos[0][0]][lonPos[0][0]] = 1
+                posIdx = np.append(posIdx, satIdx)
 
     return mask, posIdx, satLat, satLon, satAlt
 

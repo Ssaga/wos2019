@@ -87,12 +87,12 @@ class SatcomScanner:
                                               self.config.tr,
                                               self.config.bl,
                                               self.config.br,
-                                              self.ngrids);
+                                              self.ngrids)
             stop = timer()
             print("6. Duration : %f s" % (stop - start))
 
             start = timer()
-            [mask, posIdx] = orb.getPass(satLat, satLon, gridLat, gridLon);
+            [mask, posIdx] = orb.getPass(satLat, satLon, gridLat, gridLon)
             stop = timer()
             print("7. Duration : %f s" % (stop - start))
 

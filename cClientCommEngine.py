@@ -285,7 +285,7 @@ class ClientCommEngineSubscriber(threading.Thread):
         print("\tSubscribing to server... [%s]" % conn_string)
         self.socket.connect(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.setsockopt(zmq.SUBSCRIBE, b"");
+        self.socket.setsockopt(zmq.SUBSCRIBE, b"")
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
 

@@ -177,20 +177,19 @@ def rot_fn(axis, angle):
     if axis in 'x':
         rot_mat = np.array([[1, 0, 0], 
                             [0, np.cos(angle), -np.sin(angle)],
-                            [0, np.sin(angle), np.cos(angle)]]);
+                            [0, np.sin(angle), np.cos(angle)]])
     elif axis in 'y':
         rot_mat = np.array([[np.cos(angle), 0, np.sin(angle)], 
                             [0, 1, 0],
-                            [-np.sin(angle), 0, np.cos(angle)]]);
+                            [-np.sin(angle), 0, np.cos(angle)]])
     elif axis in 'z':
         rot_mat = np.array([[np.cos(angle), -np.sin(angle), 0], 
                             [np.sin(angle), np.cos(angle), 0],
-                            [0, 0, 1]]);
+                            [0, 0, 1]])
     else: 
-        return np.zeros((3,3));
-    
-    return rot_mat;
+        return np.zeros((3,3))
 
+    return rot_mat
 
 
 ###################################################
@@ -200,26 +199,27 @@ def makeGrid(tl, tr, bl, br, ngrids):
     # tr = [top right lat, top right lon]
     # ngrids is scalar, making the grid a square (and not a rectangle)
     
-    latDiff = np.abs(tl[0] - bl[0])/ngrids/2;
-    lonDiff = np.abs(tl[1] - tr[1])/ngrids/2;
-    
-    gridLat = np.linspace( tl[0]-latDiff,  bl[0]+latDiff, ngrids);
-    gridLon = np.linspace(tl[1]+lonDiff, tr[1]-lonDiff, ngrids);
-    
-    return gridLat, gridLon;
+    latDiff = np.abs(tl[0] - bl[0])/ngrids/2
+    lonDiff = np.abs(tl[1] - tr[1])/ngrids/2
+
+    gridLat = np.linspace( tl[0]-latDiff,  bl[0]+latDiff, ngrids)
+    gridLon = np.linspace(tl[1]+lonDiff, tr[1]-lonDiff, ngrids)
+
+    return gridLat, gridLon
+
 
 ###################################################
 
 def displayGrid(mask):
-    strMask = '';
+    strMask = ''
     for row in mask:
-        strMask = strMask + '\n';
+        strMask = strMask + '\n'
         for elem in row:
             if elem > 0:
-                strMask = strMask  + 'X'; 
+                strMask = strMask  + 'X'
             else: 
-                strMask = strMask + '.';
-                
+                strMask = strMask + '.'
+
     return strMask
 #    
 #    
@@ -251,12 +251,12 @@ def getPass(satLat, satLon, gridLat, gridLon):
     inGridLon = np.logical_and(satLon >= lonMin, satLon <= lonMax)
     inGrid = np.logical_and(inGridLat, inGridLon)
     
-    ngrids = len(gridLat);
-    latThresh = np.abs(gridLat[0] - gridLat[1])/2;
-    lonThresh = np.abs(gridLon[0] - gridLon[1])/2;
-    mask = np.zeros((ngrids, ngrids));
-    posIdx = np.array([]);
-    
+    ngrids = len(gridLat)
+    latThresh = np.abs(gridLat[0] - gridLat[1])/2
+    lonThresh = np.abs(gridLon[0] - gridLon[1])/2
+    mask = np.zeros((ngrids, ngrids))
+    posIdx = np.array([])
+
     inGridIdx = np.nonzero(inGrid)
     if inGridIdx[0].size != 0:
         inGridIdx = np.append(np.min(inGridIdx)-1, inGridIdx)
@@ -268,17 +268,17 @@ def getPass(satLat, satLon, gridLat, gridLon):
                            np.arange(0, len(inGridIdx), 1), \
                            satLon[inGridIdx])
         for satIdx in range(0, len(satLat)):
-            latFlag = abs(satLat[satIdx] - gridLat) <= latThresh;
-            lonFlag = abs(satLon[satIdx] - gridLon) <= lonThresh;
-            latPos = np.where(latFlag == True);
-            lonPos = np.where(lonFlag == True);
-    
-    #        latPos = np.argmin(np.abs(satLat[satIdx] - gridLat))
+            latFlag = abs(satLat[satIdx] - gridLat) <= latThresh
+            lonFlag = abs(satLon[satIdx] - gridLon) <= lonThresh
+            latPos = np.where(latFlag == True)
+            lonPos = np.where(lonFlag == True)
+
+            #        latPos = np.argmin(np.abs(satLat[satIdx] - gridLat))
     #        lonPos = np.argmin(np.abs(satLon[satIdx] - gridLon))
             if latPos[0].size and lonPos[0].size:
-                mask[latPos[0][0]][lonPos[0][0]] = 1;
-                posIdx = np.append(posIdx, satIdx);
-        
+                mask[latPos[0][0]][lonPos[0][0]] = 1
+                posIdx = np.append(posIdx, satIdx)
+
     return mask, posIdx
         
 ################################################### 
@@ -286,9 +286,9 @@ def getPass(satLat, satLon, gridLat, gridLon):
 def getSwathWidth(satAlt, posIdx, ifov):
     #ifov - instantaneous field of view [radians]
     
-    satIdx = list(posIdx.astype(int));
-    avgAlt = np.average(satAlt[satIdx]);
-    groundSwath = avgAlt*ifov;
+    satIdx = list(posIdx.astype(int))
+    avgAlt = np.average(satAlt[satIdx])
+    groundSwath = avgAlt*ifov
     return groundSwath
 
 ################################################### 
@@ -296,43 +296,45 @@ def getSwathWidth(satAlt, posIdx, ifov):
 def getGrdDist(lat1, lon1, lat2, lon2):
     # assumes spherical earth
     # lat/lon in [deg] 
-    lat1 = np.deg2rad(lat1);  #  NEED TO CHECK FOR WRAP AROUND ISSUES
-    lon1 = np.deg2rad(lon1);
-    lat2 = np.deg2rad(lat2);
-    lon2 = np.deg2rad(lon2);
+    lat1 = np.deg2rad(lat1)  #  NEED TO CHECK FOR WRAP AROUND ISSUES
+    lon1 = np.deg2rad(lon1)
+    lat2 = np.deg2rad(lat2)
+    lon2 = np.deg2rad(lon2)
     ang = 2*np.arcsin(np.sqrt(np.sin(abs(lat1 - lat2)/2)**2 + \
                               np.cos(lat1) * np.cos(lat2) * \
-                              np.sin(abs(lon1 - lon2)/2)**2));
+                              np.sin(abs(lon1 - lon2)/2)**2))
     R_earth = 6378.137 #Radius of earth, [km]
-    grdDist = R_earth*ang;
-    
-    return grdDist;
+    grdDist = R_earth*ang
 
-################################################### 
+    return grdDist
+
+
+###################################################
     
 def swathWidth2Grid(i, groundSwath, gridLat, gridLon):
     # i is orbital incline
     # i, gridLat, and gridLon is to be used for accuracy of number of grids
     
-    vertDist = getGrdDist(gridLat[0],gridLon[0], gridLat[1], gridLon[0]);
-    horiDist = getGrdDist(gridLat[0],gridLon[0], gridLat[0], gridLon[1]);
-    diagDist = getGrdDist(gridLat[0],gridLon[0], gridLat[1], gridLon[1]);
-    
+    vertDist = getGrdDist(gridLat[0],gridLon[0], gridLat[1], gridLon[0])
+    horiDist = getGrdDist(gridLat[0],gridLon[0], gridLat[0], gridLon[1])
+    diagDist = getGrdDist(gridLat[0],gridLon[0], gridLat[1], gridLon[1])
+
     # gridOkay = [np.round(groundSwath/vertDist), np.round(groundSwath/horiDist), np.round(groundSwath/diagDist)]
     
     # gridOkay = np.array([vertDist <= groundSwath, horiDist <= groundSwath, diagDist <= groundSwath]);
     gridOkay = [vertDist, horiDist, diagDist]
-    return gridOkay;
+    return gridOkay
 
-###################################################        
+
+###################################################
 
 def addWidth(mask, gridOkay, groundSwath):
     radius = groundSwath/2
     vertDist = gridOkay[0]
     horiDist = gridOkay[1]
     minDist = np.min(gridOkay)
-    N = np.round(radius/minDist);
-    
+    N = np.round(radius/minDist)
+
     y, x = np.meshgrid(np.arange(-N,N+1)*vertDist, np.arange(-N,N+1)*horiDist)
     filt = x**2 + y**2 <= radius**2
     

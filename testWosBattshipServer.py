@@ -298,7 +298,7 @@ def wos_battleship_server():
         time.sleep(1)
 
     # Stop the communication engine and wait for it to stop
-    wosServer.stop();
+    wosServer.stop()
     wosServer.join()
     print("WOS Battlership Server -- end")
 

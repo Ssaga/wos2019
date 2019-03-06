@@ -28,7 +28,7 @@ class SatcomScanner:
     def __init__(self,
                  ngrids_x=120,
                  ngrids_y=120,
-                 rmv_iofiles=True):
+                 rmv_iofiles=False):
         self.ngrids_x = ngrids_x
         self.ngrids_y = ngrids_y
         self.config = self.load_satcom_scanner_config("satcom_scan_setting.cfg")
@@ -175,14 +175,14 @@ class SatcomScanner:
                                               self.config.tr,
                                               self.config.bl,
                                               self.config.br,
-                                              [self.ngrids_x, self.ngrids_y]);
+                                              [self.ngrids_x, self.ngrids_y])
             # print("GRID LAT: %s %s" % (gridLat, len(gridLat)))
             # print("GRID LON: %s %s" % (gridLon, len(gridLon)))
             # print("final_lat: %s %s" % (final_lat, len(final_lat)))
             # print("final_lon: %s %s" % (final_lon, len(final_lon)))
             # print("alt: %s %s" % (alt, len(alt)))
 
-            [mask, pos_idx, final_lat, final_lon, final_alt] = orb.getPass(final_lat, final_lon, alt, gridLat, gridLon);
+            [mask, pos_idx, final_lat, final_lon, final_alt] = orb.getPass(final_lat, final_lon, alt, gridLat, gridLon)
 
             if np.sum(mask) != 0:
                 gs = orb.getSwathWidth(final_alt, pos_idx, self.config.ifov_radians)

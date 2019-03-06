@@ -342,7 +342,7 @@ class WosBattleshipServer(threading.Thread):
 
     def state_get_next_stop(self):
         state_changed = False
-        if self.flag_restart_game == True:
+        if self.flag_restart_game:
             self.game_status.game_state == GameState.INIT
             state_changed = True
 
@@ -1053,7 +1053,7 @@ class WosBattleshipServer(threading.Thread):
             for ship in ship_list:
                 if isinstance(ship, ShipInfo):
                     for pos in ship.area:
-                        print("map pos: %s" % player_map_fog[int(pos[0]),int(pos[1])])
+                        # print("map pos: %s" % player_map_fog[int(pos[0]),int(pos[1])])
                         if not player_map_fog[int(pos[0]),int(pos[1])]:
                             outp_ship_list.append(copy.deepcopy(ship))
                             break

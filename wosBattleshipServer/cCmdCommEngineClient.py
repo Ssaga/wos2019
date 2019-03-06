@@ -77,4 +77,4 @@ class CmdClientCommEngine:
 
     def recv(self):
         # do nothing
-        print("\tReceive operation is not supported");
+        print("\tReceive operation is not supported")

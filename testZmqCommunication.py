@@ -148,9 +148,7 @@ def perform_client_task(list_client_comm_engine, cnt):
         else:
             print("No reply from server")
 
-        ship_list = []
-        ship_list.append(ShipInfo(1, Position(36, 20), 0, 3, False))
-        ship_list.append(ShipInfo(2, Position(2, 2), 90, 3, False))
+        ship_list = [ShipInfo(1, Position(36, 20), 0, 3, False), ShipInfo(2, Position(2, 2), 90, 3, False)]
 
         rep = list_client_comm_engine[player_turn].req_register_ships(ship_list)
         if rep is not None:
