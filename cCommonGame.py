@@ -1,6 +1,7 @@
 # from enum import Enum
 from enum import IntEnum
 import numpy as np
+import collections
 
 
 class MapData(IntEnum):
@@ -156,6 +157,36 @@ class ShipInfo:
         return result
 
 
+class UwShipInfo:
+    def __init__(self,
+                 ship_id=0,
+                 position=Position(0, 0),
+                 size=1,
+                 is_sunken=False,
+                 ship_type=ShipType.MIL):
+        self.ship_id = ship_id
+        self.ship_type = ship_type
+        # Position of of the ship head
+        self.position = position
+        self.size = size
+        self.is_sunken = is_sunken
+        # list of position occupied by the vehicle
+        # first position is the bow of the ship
+        self.area = position
+
+    def __repr__(self):
+        return str(vars(self))
+
+    def set_position(self, pos=Position(0, 0)):
+        self.set_position(pos.x, pos.y)
+
+    def set_position(self, x, y):
+        self.position.x = x
+        self.position.y = y
+        self.area.x = x
+        self.area.y = y
+
+
 class ShipMovementInfo:
     def __init__(self, ship_id, action=Action.NOP):
         self.ship_id = ship_id
@@ -172,6 +203,25 @@ class ShipMovementInfo:
             return "Hold movement for ship id %s" % self.ship_id
         else:
             return "Move ship (Id: %s) %s" % (self.ship_id, self.action_str)
+
+
+class UwShipMovementInfo:
+    def __init__(self, ship_id, actions=[]):
+        self.ship_id = ship_id
+        is_ok = True
+        if isinstance(actions, collections.Iterable):
+            for uw_action in actions:
+                if isinstance(uw_action, UwAction) is False:
+                    is_ok = False
+        else:
+            is_ok = False
+
+        self.uw_actions = list()
+        if is_ok:
+            self.uw_actions.extend(actions)
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class FireInfo:
@@ -200,9 +250,44 @@ class SatcomInfo:
         return str(vars(self))
 
 
-class UwInfo:
-    def __init__(self, val):
+# Created by ttl on 2019-02-23
+class UwAction:
+    def __init__(self):
+        # Do nothing
         pass
+
+
+# class to represent the move and scan action
+class UwActionMoveScan(UwAction):
+    def __init__(self, goto_pos=None, scan_dur=0):
+        """
+        :param goto_pos: Position of the destination / None
+        :param scan_dur: Duration of the scan operation. Unit in number of turns
+        """
+        self.goto_pos = goto_pos
+        self.scan_dur = scan_dur
+
+    def __repr__(self):
+        return str(vars(self))
+
+
+# # class to represent scan only action
+# class UwActionScan(UwAction):
+#     def __init__(self, scan_dur):
+#         self.scan_dur = scan_dur
+#
+#     def __repr__(self):
+#         return str(vars(self))
+#
+#
+# #
+# class UwActionNop(UwAction):
+#     def __init__(self):
+#         # Do nothing
+#         pass
+#
+#     def __repr__(self):
+#         return str(vars(self))
 
 
 class UwCollectedData:
@@ -218,6 +303,12 @@ class UwCollectedData:
 
     def __repr__(self):
         return str(vars(self))
+
+
+# #
+# class UwReport:
+#     def __init__(self):
+#         pass
 
 
 class GameConfig:

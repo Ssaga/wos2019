@@ -28,13 +28,20 @@ class MsgReqRegister(MsgReq):
 
 
 class MsgReqRegShips(MsgReq):
-    def __init__(self, player_id, ship_list=[]):
+    def __init__(self, player_id, ship_list=[], uw_ship_list=[]):
         MsgReq.__init__(self, player_id, 1)
+
         self.ship_list = []
         if isinstance(ship_list, collections.Iterable):
             self.ship_list.extend(ship_list)
         else:
             self.ship_list.append(ship_list)
+
+        self.uw_ship_list = []
+        if isinstance(uw_ship_list, collections.Iterable):
+            self.ship_list.extend(uw_ship_list)
+        else:
+            self.ship_list.append(uw_ship_list)
 
 
 class MsgReqConfig(MsgReq):
@@ -72,13 +79,40 @@ class MsgReqTurnSatAct(MsgReq):
         MsgReq.__init__(self, player_id, 6)
         self.satcom = satcom
 
+    def __repr__(self):
+        return str(vars(self))
 
-# class MsgReqTurnAction(MsgReq):
-# 	def __init__(self, player_id):
-# 		MsgReq.__init__(self, player_id, 7)
-# 		self.action = []
+
+class MsgReqUwAction(MsgReq):
+    def __init__(self, player_id, uw_ship_mov_inf_list=[]):
+        MsgReq.__init__(self, player_id, 7)
+        is_ok = True
+        if isinstance(uw_ship_mov_inf_list, collections.Iterable):
+            for uw_ship_mov_inf in uw_ship_mov_inf_list:
+                if isinstance(uw_ship_mov_inf, cCommonGame.UwShipMovementInfo) is False:
+                    is_ok = False
+        else:
+            is_ok = False
+
+        self.uw_ship_mov_inf = list()
+        if is_ok:
+            self.uw_ship_mov_inf.extend(uw_ship_mov_inf_list)
+
+
+class MsgReqUwReport(MsgReq):
+    def __init__(self, player_id, ship_id):
+        MsgReq.__init__(self, player_id, 8)
+        self.ship_id = ship_id
+
 
 # ----------------------------------------------------------
+
+class MsgRepUwReport(MsgRep):
+    def __init__(self, ack=False, report=[]):
+        MsgRep.__init__(self, 132)
+        self.ack = ack
+        self.report = report
+
 
 class MsgRepGameConfig(MsgRep):
     def __init__(self, ack=False, config=cCommonGame.GameConfig()):
@@ -91,6 +125,7 @@ class MsgRepTurnInfo(MsgRep):
     def __init__(self,
                  ack=False,
                  self_ship_list=[],
+                 self_uw_ship_list=[],
                  enemy_ship_list=[],
                  other_ship_list=[],
                  bombardment_list=[],
@@ -98,6 +133,7 @@ class MsgRepTurnInfo(MsgRep):
         MsgRep.__init__(self, 130)
         self.ack = ack
         self.self_ship_list = self_ship_list
+        self.self_uw_ship_list = self_uw_ship_list
         self.enemy_ship_list = enemy_ship_list
         self.other_ship_list = other_ship_list
         self.bombardment_list = bombardment_list
@@ -176,6 +212,16 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "is_sunken": obj.is_sunken
             }
 
+        elif isinstance(obj, cCommonGame.UwShipInfo):
+            result = {
+                "__class__": "UwShipInfo",
+                "ship_id": obj.ship_id,
+                "ship_type": obj.ship_type,
+                "position": obj.position,
+                "size": obj.size,
+                "is_sunken": obj.is_sunken
+            }
+
         elif isinstance(obj, cCommonGame.ShipMovementInfo):
             result = {
                 "__class__": "ShipMovementInfo",
@@ -201,6 +247,24 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "is_enable": obj.is_enable,
                 "is_rhs": obj.is_rhs
             }
+
+        elif isinstance(obj, cCommonGame.UwActionMoveScan):
+            result = {
+                "__class__": "UwActionMoveScan",
+                "goto_pos": obj.goto_pos,
+                "scan_dur": obj.scan_dur
+            }
+
+        # elif isinstance(obj, cCommonGame.UwActionScan):
+        #     result = {
+        #         "__class__": "UwActionScan",
+        #         "scan_dur": obj.scan_dur
+        #     }
+        #
+        # elif isinstance(obj, cCommonGame.UwActionNop):
+        #     result = {
+        #         "__class__": "UwActionNop"
+        #     }
 
         elif isinstance(obj, cCommonGame.GameConfig):
             result = {
@@ -239,7 +303,8 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "__class__": "MsgReqRegShips",
                 "type_id": obj.type_id,
                 "player_id": obj.player_id,
-                "ship_list": obj.ship_list
+                "ship_list": obj.ship_list,
+                "uw_ship_list": obj.uw_ship_list
             }
         elif isinstance(obj, MsgReqConfig):
             result = {
@@ -274,6 +339,20 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "player_id": obj.player_id,
                 "satcom": obj.satcom
             }
+        elif isinstance(obj, MsgReqUwAction):
+            result = {
+                "__class__": "MsgReqUwAction",
+                "type_id": obj.type_id,
+                "player_id": obj.player_id,
+                "uw_actions": obj.uw_ship_mov_inf
+            }
+        elif isinstance(obj, MsgReqUwReport):
+            result = {
+                "__class__": "MsgReqUwReport",
+                "type_id": obj.type_id,
+                "player_id": obj.player_id,
+                "ship_id": obj.ship_id
+            }
         elif isinstance(obj, MsgRepAck):
             result = {
                 "__class__": "MsgRepAck",
@@ -300,12 +379,19 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "type_id": obj.type_id,
                 "ack": obj.ack,
                 "self_ship_list": obj.self_ship_list,
+                "self_uw_ship_list": obj.self_uw_ship_list,
                 "enemy_ship_list": obj.enemy_ship_list,
                 "other_ship_list": obj.other_ship_list,
                 "bombardment_list": obj.bombardment_list,
                 "map_data": obj.map_data
             }
-
+        elif isinstance(obj, MsgRepUwReport):
+            result = {
+                "__class__": "MsgRepUwReport",
+                "type_id": obj.type_id,
+                "ack": obj.ack,
+                "report": obj.report
+            }
         elif isinstance(obj, MsgPubGameStatus):
             result = {
                 "__class__": "MsgPubGameStatus",
@@ -352,12 +438,20 @@ class MsgJsonDecoder(json.JSONDecoder):
                 result = self.parse_boundary(obj)
             elif class_type == 'ShipInfo':
                 result = self.parse_ship_info(obj)
+            elif class_type == 'UwShipInfo':
+                result = self.parse_uw_ship_info(obj)
             elif class_type == 'ShipMovementInfo':
                 result = self.parse_ship_move_info(obj)
             elif class_type == 'FireInfo':
                 result = self.parse_fire_info(obj)
             elif class_type == 'SatcomInfo':
                 result = self.parse_satcom_info(obj)
+            elif class_type == 'UwActionMoveScan':
+                result = self.parse_uw_move_scan(obj)
+            # elif class_type == 'UwActionScan':
+            #     result = self.parse_uw_scan(obj)
+            # elif class_type == 'UwActionNop':
+            #     result = self.parse_uw_nop(obj)
             elif class_type == 'GameConfig':
                 result = self.parse_game_config(obj)
             # elif class_type == 'GameStatus':
@@ -376,6 +470,10 @@ class MsgJsonDecoder(json.JSONDecoder):
                 result = self.parse_req_turn_fire_act(obj)
             elif class_type == 'MsgReqTurnSatAct':
                 result = self.parse_req_turn_sat_act(obj)
+            elif class_type == 'MsgReqUwAction':
+                result = self.parse_req_uw_action(obj)
+            elif class_type == 'MsgReqUwReport':
+                result = self.parse_req_uw_report(obj)
             elif class_type == 'MsgRepAck':
                 result = self.parse_ack(obj)
             elif class_type == 'MsgRepAckMap':
@@ -384,6 +482,8 @@ class MsgJsonDecoder(json.JSONDecoder):
                 result = self.parse_ack_game_config(obj)
             elif class_type == 'MsgRepTurnInfo':
                 result = self.parse_ack_turn_info(obj)
+            elif class_type == 'MsgRepUwReport':
+                result = self.parse_ack_uw_report(obj)
             elif class_type == 'MsgPubGameStatus':
                 result = self.parse_pub_game_status(obj)
             else:
@@ -426,6 +526,16 @@ class MsgJsonDecoder(json.JSONDecoder):
         )
 
     @staticmethod
+    def parse_uw_ship_info(obj):
+        return cCommonGame.UwShipInfo(
+            obj['ship_id'],
+            obj['position'],
+            obj['size'],
+            obj['is_sunken'],
+            obj['ship_type']
+        )
+
+    @staticmethod
     def parse_ship_move_info(obj):
         return cCommonGame.ShipMovementInfo(
             obj['ship_id'],
@@ -450,6 +560,23 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['is_enable'],
             obj['is_rhs']
         )
+
+    @staticmethod
+    def parse_uw_move_scan(obj):
+        return cCommonGame.UwActionMoveScan(
+            obj['goto_pos'],
+            obj['scan_dur']
+        )
+
+    # @staticmethod
+    # def parse_uw_scan(obj):
+    #     return cCommonGame.UwActionScan(
+    #         obj['scan_dur']
+    #     )
+
+    # @staticmethod
+    # def parse_uw_nop(obj):
+    #     return cCommonGame.UwActionNop()
 
     @staticmethod
     def parse_game_config(obj):
@@ -478,7 +605,8 @@ class MsgJsonDecoder(json.JSONDecoder):
     def parse_req_ships_placement(obj):
         return MsgReqRegShips(
             obj['player_id'],
-            obj['ship_list']
+            obj['ship_list'],
+            obj['uw_ship_list'],
         )
 
     @staticmethod
@@ -515,6 +643,20 @@ class MsgJsonDecoder(json.JSONDecoder):
         )
 
     @staticmethod
+    def parse_req_uw_action(obj):
+        return MsgReqUwAction(
+            obj['player_id'],
+            obj['uw_actions']
+        )
+
+    @staticmethod
+    def parse_req_uw_report(obj):
+        return MsgReqUwReport(
+            obj['player_id'],
+            obj['ship_id']
+        )
+
+    @staticmethod
     def parse_ack(obj):
         return MsgRepAck(
             obj['ack']
@@ -539,11 +681,20 @@ class MsgJsonDecoder(json.JSONDecoder):
         return MsgRepTurnInfo(
             obj['ack'],
             obj['self_ship_list'],
+            obj['self_uw_ship_list'],
             obj['enemy_ship_list'],
             obj['other_ship_list'],
             obj['bombardment_list'],
             obj['map_data']
         )
+
+    @staticmethod
+    def parse_ack_uw_report(obj):
+        return MsgRepUwReport(
+            obj['ack'],
+            obj['report']
+        )
+
 
     @staticmethod
     def parse_pub_game_status(obj):

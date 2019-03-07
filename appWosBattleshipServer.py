@@ -18,9 +18,11 @@ from cCommonGame import GameState
 from cCommonGame import GameStatus
 from cCommonGame import GameConfig
 from cCommonGame import ShipInfo
+from cCommonGame import UwShipInfo as CommonUwShipInfo
 from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
 from cCommonGame import SatcomInfo
+from cCommonGame import UwShipMovementInfo
 from cCommonGame import Action
 from cCommonGame import ShipType
 
@@ -30,6 +32,7 @@ from wosBattleshipServer.funcCloudGeneration import cloud_change
 from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_generation
 from wosBattleshipServer.funcCivilianShipsMovement import civilian_ship_movement
 from wosBattleshipServer.funcSatcomScan import satcom_scan
+from wosBattleshipServer.funcUwCompute import uw_compute
 
 from wosBattleshipServer.cCommon import PlayerStatus
 from wosBattleshipServer.cCommon import PlayerTurnActionCount
@@ -39,6 +42,7 @@ from wosBattleshipServer.cCommon import SvrCfgJsonDecoder
 from wosBattleshipServer.cCommon import SvrCfgJsonEncoder
 from wosBattleshipServer.cCommon import check_collision
 from wosBattleshipServer.cCommon import ServerFireInfo
+from wosBattleshipServer.cCommon import UwShipInfo
 
 from wosBattleshipServer.cTtsCommEngineSvr import TtsServerCommEngine
 
@@ -124,7 +128,7 @@ class WosBattleshipServer(threading.Thread):
         self.last_satcom_mask = dict()
         self.last_satcom_enable = dict()
 
-        # Dictionary to store the history informaiton of the enemy ship list
+        # Dictionary to store the history information of the enemy ship list
         self.hist_enemy_data_dict = dict()
 
         # Game Setup --------------------------------------------------------------
@@ -136,7 +140,7 @@ class WosBattleshipServer(threading.Thread):
 
         # Generate the round state for each player
         for i in range(self.game_setting.num_of_player):
-            self.player_remaining_action_dict[i + 1] = PlayerTurnActionCount(0, 0, 0)
+            self.player_remaining_action_dict[i + 1] = PlayerTurnActionCount(0, 0, 0, 0)
 
         # Generate Player mask
         self.generate_player_mask(self.player_boundary_layer, self.player_boundary_dict)
@@ -311,10 +315,17 @@ class WosBattleshipServer(threading.Thread):
         for player_id in self.player_remaining_action_dict.keys():
             remaining_action = self.player_remaining_action_dict.get(player_id)
             if isinstance(remaining_action, PlayerTurnActionCount):
-                total_remaining_action += (remaining_action.remain_move + remaining_action.remain_fire + remaining_action.remain_satcom)
-                print("********** Player %s remaining action %s = %s + %s + %s" % (
-                    player_id, remaining_action, remaining_action.remain_move, remaining_action.remain_fire,
-                    remaining_action.remain_satcom))
+                total_remaining_action += (remaining_action.remain_move +
+                                           remaining_action.remain_fire +
+                                           remaining_action.remain_satcom +
+                                           remaining_action.remain_uw_action)
+                print("********** Player %s remaining action %s = %s + %s + %s + %s" % (
+                    player_id,
+                    remaining_action,
+                    remaining_action.remain_move,
+                    remaining_action.remain_fire,
+                    remaining_action.remain_satcom,
+                    remaining_action.remain_uw_action))
 
         print("********** Remaining total action %s | Timeout: %s [Remaining: %s]" %
               (total_remaining_action,
@@ -342,7 +353,7 @@ class WosBattleshipServer(threading.Thread):
 
     def state_get_next_stop(self):
         state_changed = False
-        if self.flag_restart_game:
+        if self.flag_restart_game == True:
             self.game_status.game_state == GameState.INIT
             state_changed = True
 
@@ -379,6 +390,7 @@ class WosBattleshipServer(threading.Thread):
             self.player_remaining_action_dict[player_id].remain_satcom = self.game_status.allowed_action.remain_satcom
             self.player_remaining_action_dict[player_id].remain_fire = self.game_status.allowed_action.remain_fire
             self.player_remaining_action_dict[player_id].remain_move = self.game_status.allowed_action.remain_move
+            self.player_remaining_action_dict[player_id].remain_uw_action = self.game_status.allowed_action.remain_uw_action
 
 
         # initial the mask required for this turn; for all the players
@@ -452,6 +464,10 @@ class WosBattleshipServer(threading.Thread):
             if isinstance(fire_cmd, ServerFireInfo):
                 player_status = self.player_status_dict[fire_cmd.player_id]
                 self.state_setup_play_compute_fire(fire_cmd.player_id, fire_cmd.pos, player_status)
+
+        # perform uw operation if necessary
+        if self.game_setting.en_uw_action:
+            self.state_setup_play_compute_uw_ops()
 
         # for player_id in self.player_status_dict.keys():
         #     player_status = self.player_status_dict[player_id]
@@ -618,6 +634,33 @@ class WosBattleshipServer(threading.Thread):
             is_sunk = True
         return is_sunk
 
+    def state_setup_play_compute_uw_ops(self):
+        # get the list of ships (mil & civ) in the game
+        ship_list = list()
+        for player_id in self.player_status_dict.keys():
+            player_status = self.player_status_dict[player_id]
+            if isinstance(player_status, PlayerStatus):
+                for mil_ship_info in player_status.ship_list:
+                    if not mil_ship_info.is_sunken:
+                        ship_list.append(mil_ship_info)
+                    # sunken ship are not taken into consideration for the uw computation
+            # else do nothing as the player information is not found
+        for civ_ship_info in self.civilian_ship_list:
+            if not civ_ship_info.is_sunken:
+                ship_list.append(civ_ship_info)
+            # sunken ship are not taken into consideration for the uw computation
+
+        # perform the uw-ops for this turn...
+        for player_id in self.player_status_dict.keys():
+            player_status = self.player_status_dict[player_id]
+            if isinstance(player_status, PlayerStatus):
+                for uw_ship_id in player_status.uw_ship_dict.keys():
+                    uw_ship_info = player_status.uw_ship_dict[uw_ship_id]
+                    if isinstance(uw_ship_info, UwShipInfo):
+                        uw_ship_info.execute(ship_list)
+                    # else do nothing as UwShipInfo is not provided
+            # else do nothing as we cannot found the correspond user
+
     def state_setup_stop(self):
         bc_game_status = GameStatus(self.game_status.game_state,
                                     self.game_status.game_round,
@@ -693,10 +736,27 @@ class WosBattleshipServer(threading.Thread):
                                                  size=ship_info_dat.size,
                                                  is_sunken=ship_info_dat.is_sunken)
                             player_status.ship_list.append(ship_info)
-                            print(ship_info)
+                            print("Registering : %s" % ship_info)
+
+                    if self.game_setting.en_uw_action:
+                        for uw_ship_dat in msg_data.uw_ship_list:
+                            if isinstance(uw_ship_dat, CommonUwShipInfo):
+                                uw_ship_info = UwShipInfo(ship_id=uw_ship_dat.ship_id,
+                                                          ship_type=uw_ship_dat.ship_type,
+                                                          position=uw_ship_dat.position,
+                                                          size=uw_ship_dat.size,
+                                                          is_sunken=uw_ship_dat.is_sunken,
+                                                          mov_speed=1,
+                                                          scan_size=3)
+                                player_status.uw_ship_dict[uw_ship_info.ship_id] = uw_ship_info
+                                print("Registering : %s" % uw_ship_info)
+                    else:
+                        print("NOTE: Ignore all uw-ship-info as uw_action is disabled.")
 
                     # check if the placement of the ships are ok before adding them to the list
                     is_ok = self.check_ship_placement(msg_data.player_id, player_status.ship_list)
+                    if self.game_setting.en_uw_action and (len(player_status.uw_ship_dict) <= 0):
+                        is_ok &= False
                     if is_ok:
                         self.player_status_dict[msg_data.player_id] = player_status
                         ack = True
@@ -716,7 +776,7 @@ class WosBattleshipServer(threading.Thread):
                                          self.player_boundary_dict,
                                          self.game_setting.en_satellite,
                                          self.game_setting.en_satellite_func2,
-                                         self.game_setting.en_submarine)
+                                         self.game_setting.en_uw_action)
                 reply = cMessages.MsgRepGameConfig(True, game_config)
             else:
                 reply = cMessages.MsgRepAck(False)
@@ -744,6 +804,14 @@ class WosBattleshipServer(threading.Thread):
             elif isinstance(msg_data, cMessages.MsgReqTurnSatAct):
                 reply = self.state_exec_play_input_satcom(msg_data)
 
+            # Check if message is MsgReqUwAction
+            elif isinstance(msg_data, cMessages.MsgReqUwAction):
+                reply = self.state_exec_play_input_uw_action(msg_data)
+
+            # Check if message is MsgReqUwReport
+            elif isinstance(msg_data, cMessages.MsgReqUwReport):
+                reply = self.state_exec_play_input_uw_report(msg_data)
+
             # Check if message is MsgReqConfig
             elif isinstance(msg_data, cMessages.MsgReqConfig):
                 game_config = GameConfig(self.game_setting.num_of_player,
@@ -758,7 +826,7 @@ class WosBattleshipServer(threading.Thread):
                                          self.player_boundary_dict,
                                          self.game_setting.en_satellite,
                                          self.game_setting.en_satellite_func2,
-                                         self.game_setting.en_submarine)
+                                         self.game_setting.en_uw_action)
                 reply = cMessages.MsgRepGameConfig(True, game_config)
 
             else:
@@ -780,9 +848,11 @@ class WosBattleshipServer(threading.Thread):
     def state_exec_play_input_turn(self, msg_data):
 
         self_ship_list = list()
+        self_uwship_list = list()
         enemy_ship_list = list()
         other_ship_list = list()
 
+        # Get self-ships
         for ship_info in self.player_status_dict[msg_data.player_id].ship_list:
             if isinstance(ship_info, ShipInfo):
                 # Clone the player ship information
@@ -793,6 +863,11 @@ class WosBattleshipServer(threading.Thread):
                                          size=ship_info.size,
                                          is_sunken=ship_info.is_sunken)
                 self_ship_list.append(ship_info_dat)
+
+        # Get self uwships
+        if self.game_setting.en_uw_action:
+            # TODO: Get the list of uw ship
+            pass
 
         # Get the list of civilian ships
         for ship_info in self.civilian_ship_list:
@@ -854,12 +929,13 @@ class WosBattleshipServer(threading.Thread):
         print("****** Player %s: Map Data :\r\n%s" % (msg_data.player_id, map_data.T))
 
         # Generate the reply
-        reply = cMessages.MsgRepTurnInfo(True,
-                                         self_ship_list,
-                                         enemy_ship_list,
-                                         other_ship_list,
-                                         bombardment_data,
-                                         map_data.tolist())
+        reply = cMessages.MsgRepTurnInfo(ack=True,
+                                         self_ship_list=self_ship_list,
+                                         self_uw_ship_list=self_uwship_list,
+                                         enemy_ship_list=enemy_ship_list,
+                                         other_ship_list=other_ship_list,
+                                         bombardment_list=bombardment_data,
+                                         map_data=map_data.tolist())
         return reply
 
     # Operation to perform the move operation
@@ -867,7 +943,7 @@ class WosBattleshipServer(threading.Thread):
         ack = False
         remaining_action = self.player_remaining_action_dict.get(msg_data.player_id)
         if isinstance(remaining_action, PlayerTurnActionCount):
-            if (remaining_action.remain_move >= len(msg_data.move)):
+            if remaining_action.remain_move >= len(msg_data.move):
                 for action in msg_data.move:
                     if isinstance(action, ShipMovementInfo):
                         ship = self.player_status_dict[msg_data.player_id].ship_list[action.ship_id]
@@ -876,21 +952,21 @@ class WosBattleshipServer(threading.Thread):
                                 # Check if the selected ship can move forward
                                 if self.check_forward_action(ship, msg_data.player_id):
                                     ship.move_forward()
-                                    self.tts_comm_engine.send("Player %s move ship forward")
+                                    self.tts_comm_engine.send("Player %s move ship forward" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to move forward")
                             elif action.get_enum_action() == Action.CW:
                                 # Check if the selected ship can turn clockwise
                                 if self.check_turn_cw_action(ship, msg_data.player_id):
                                     ship.turn_clockwise()
-                                    self.tts_comm_engine.send("Player %s turn ship clockwise")
+                                    self.tts_comm_engine.send("Player %s turn ship clockwise" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to turn CW")
                             elif action.get_enum_action() == Action.CCW:
                                 # Check if the selected ship can turn counter-clockwise
                                 if self.check_turn_ccw_action(ship, msg_data.player_id):
                                     ship.turn_counter_clockwise()
-                                    self.tts_comm_engine.send("Player %s turn ship counter clockwise")
+                                    self.tts_comm_engine.send("Player %s turn ship counter clockwise" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to turn CCW")
                 # Update on the number of remaining move operation
@@ -990,6 +1066,55 @@ class WosBattleshipServer(threading.Thread):
         reply = cMessages.MsgRepAckMap(ack, map_data.tolist())
         return reply
 
+    # Operation to perform the uw action
+    def state_exec_play_input_uw_action(self, msg_data):
+        """
+        :param msg_data: Request Message containing the list of uw-actions
+        :return: MsgRepAck to indicate if request is successful
+        """
+        ack = False
+        if isinstance(msg_data, cMessages.MsgReqUwAction):
+            player_status = self.player_status_dict.get(msg_data.player_id)
+            for uw_ship_mov_inf in msg_data.uw_ship_mov_inf:
+                if isinstance(uw_ship_mov_inf, UwShipMovementInfo):
+                    uw_vehicle_info = player_status.uw_ship_dict.get(uw_ship_mov_inf.ship_id)
+                    if isinstance(uw_vehicle_info, UwShipInfo):
+                        if uw_vehicle_info.is_idle():
+                            uw_vehicle_info.set_ops_order(uw_ship_mov_inf.uw_actions)
+                            ack = True
+                        # else drop the data as vehicle is still busy
+                    # unable to find the related uw vehicle. Drop the data
+                # Else: data dropped as provided data is not ShipMovementInfo.
+        # else drop the data
+
+        # Create the result
+        reply = cMessages.MsgRepAck(ack)
+        return reply
+
+    # Operation to request for uw report
+    def state_exec_play_input_uw_report(self, msg_data):
+        """
+        :param msg_data: Request Message
+        :return: MsgRepUwReport.
+                 If uw-vehicle is IDLE, ack=True with report.
+                 Otherwise return ack=False
+        """
+        generated_report = None
+        ack = False
+        if isinstance(msg_data, cMessages.MsgReqUwReport):
+            player_status = self.player_status_dict.get(msg_data.player_id)
+            uw_vehicle_info = player_status.uw_ship_dict.get(msg_data.ship_id)
+            if isinstance(uw_vehicle_info, UwShipInfo):
+                if uw_vehicle_info.is_idle():
+                    collected_report = uw_vehicle_info.get_report()
+                    generated_report = uw_compute(collected_report)
+                    ack = True
+                # else drop the data as vehicle is still busy
+        # else drop the data
+        # Create the result
+        reply = cMessages.MsgRepUwReport(ack, generated_report)
+        return reply
+
     # Compute the necessary computation at the end of each turn
     def state_exec_play_compute(self, msg_data):
         # We are not expected to receive any message at this state
@@ -1053,16 +1178,15 @@ class WosBattleshipServer(threading.Thread):
             for ship in ship_list:
                 if isinstance(ship, ShipInfo):
                     for pos in ship.area:
-                        # print("map pos: %s" % player_map_fog[int(pos[0]),int(pos[1])])
+                        # print("Is ship in fog: [%s %s] %s" % (int(pos[0]),
+                        #                                int(pos[1]),
+                        #                                player_map_fog[int(pos[0]),int(pos[1])]))
                         if not player_map_fog[int(pos[0]),int(pos[1])]:
                             outp_ship_list.append(copy.deepcopy(ship))
                             break
                     # end of position for..loop
             # end of ship_list for..loop
         return  outp_ship_list
-
-
-
 
     # ---------------------------------------------------------------------------
     # Check if the placement of the ship are valid
@@ -1299,5 +1423,6 @@ def main():
 
 
 if __name__ == '__main__':
-    print("*** %s (%s)" % (__file__, time.ctime(time.time())))
+    version = "0.0.1.1"
+    print("*** %s %s (%s)" % (__file__, version, time.ctime(time.time())))
     main()

@@ -125,6 +125,7 @@ if __name__ == '__main__':
     for key, mask in satcom_mask_dict.items():
         plt.figure(key)
         plt.imshow(mask)
+        print("Type: %s" % type(mask))
     plt.show()
 
     # start = timer()
