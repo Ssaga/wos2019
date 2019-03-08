@@ -1300,4 +1300,6 @@ def main():
 
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
+    # temporary fix the seed for the congress
+    np.random.seed(0)
     main()
