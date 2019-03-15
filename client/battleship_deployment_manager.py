@@ -11,6 +11,7 @@ from client.scene_item.battleship_item import WosBattleShipItem
 from client.ship_info import ShipInfo
 
 import cCommonGame
+import numpy as np
 
 
 class WosBattleShipDeploymentManager(WosPhaseManager):
@@ -55,6 +56,21 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         # todo; Don't end if server did not acknowledged
         # self.end()
 
+    def set_ship_position(self, ship, xpos=-1, ypos=-1):
+        if xpos >= 0 and ypos >= 0:
+            ship.set_grid_position(xpos, ypos)
+        else:
+            boundary = self.wos_interface.cfg.boundary[str(self.wos_interface.player_info.player_id)]
+            # Magic number 3 to prevent out of bound for the longest ship
+            xpos = np.random.randint(boundary.min_x + 3, boundary.max_x - 3)
+            ypos = np.random.randint(boundary.min_y + 3, boundary.max_y - 3)
+            ship.set_grid_position(xpos, ypos)
+            # np.random.randint(0, 5) returns 0 to 4 inclusive
+            num_of_rotation = np.random.randint(0, 5)
+            # range(0,4) will loop from 0 to 3 inclusive
+            for i in range(0, num_of_rotation):
+                ship.rotate_ship()
+
     def start(self):
         rep = WosClientInterfaceManager().register_player()
         if not rep and not self.wos_interface.is_debug:
@@ -85,7 +101,8 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
             self.ships_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
-            self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 2)
+            # self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 2)
+            self.set_ship_position(self.ships_items[i])
         self.wos_interface.battlefield.battle_scene.centerOn(self.ships_items[-1])
 
         self.update_action_widget()

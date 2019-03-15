@@ -6,6 +6,8 @@ class WosInterface(object):
     def __init__(self):
         self.actions = None
         self.battlefield = None
+        # Server config, server_cfg not in use to be refractored
+        self.cfg = None
         self.client_cfg = None
         self.console = None
         self.is_debug = False
