@@ -91,7 +91,7 @@ def executeScript(exec_file, exec_script, startup_file=""):
         exec_cmd = exec_file + ' --minimize --run ' + exec_script
         if isinstance(startup_file, str):
             exec_cmd += ' --startup_file ' + startup_file
-        exec_cmd += ' --verbose off --exit'
+        exec_cmd += ' --exit'
 
         # executes GMAT script from command line
         print("Exec : %s" % exec_cmd)
