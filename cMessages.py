@@ -39,9 +39,9 @@ class MsgReqRegShips(MsgReq):
 
         self.uw_ship_list = []
         if isinstance(uw_ship_list, collections.Iterable):
-            self.ship_list.extend(uw_ship_list)
+            self.uw_ship_list.extend(uw_ship_list)
         else:
-            self.ship_list.append(uw_ship_list)
+            self.uw_ship_list.append(uw_ship_list)
 
 
 class MsgReqConfig(MsgReq):
@@ -85,6 +85,11 @@ class MsgReqTurnSatAct(MsgReq):
 
 class MsgReqUwAction(MsgReq):
     def __init__(self, player_id, uw_ship_mov_inf_list=[]):
+        """
+        Constructor for the MsgReqUwAction
+        :param player_id: id of the given player
+        :param uw_ship_mov_inf_list: list of cCommonGame.UwShipMovementInfo
+        """
         MsgReq.__init__(self, player_id, 7)
         is_ok = True
         if isinstance(uw_ship_mov_inf_list, collections.Iterable):
@@ -255,6 +260,13 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "scan_dur": obj.scan_dur
             }
 
+        elif isinstance(obj , cCommonGame.UwShipMovementInfo):
+            result = {
+                "__class__": "UwShipMovementInfo",
+                "ship_id": obj.ship_id,
+                "uw_actions": obj.uw_actions
+            }
+
         # elif isinstance(obj, cCommonGame.UwActionScan):
         #     result = {
         #         "__class__": "UwActionScan",
@@ -344,7 +356,7 @@ class MsgJsonEncoder(json.JSONEncoder):
                 "__class__": "MsgReqUwAction",
                 "type_id": obj.type_id,
                 "player_id": obj.player_id,
-                "uw_actions": obj.uw_ship_mov_inf
+                "uw_ship_mov_inf": obj.uw_ship_mov_inf
             }
         elif isinstance(obj, MsgReqUwReport):
             result = {
@@ -448,6 +460,8 @@ class MsgJsonDecoder(json.JSONDecoder):
                 result = self.parse_satcom_info(obj)
             elif class_type == 'UwActionMoveScan':
                 result = self.parse_uw_move_scan(obj)
+            elif class_type == 'UwShipMovementInfo':
+                result = self.parse_uw_movement_info(obj)
             # elif class_type == 'UwActionScan':
             #     result = self.parse_uw_scan(obj)
             # elif class_type == 'UwActionNop':
@@ -568,6 +582,13 @@ class MsgJsonDecoder(json.JSONDecoder):
             obj['scan_dur']
         )
 
+    @staticmethod
+    def parse_uw_movement_info(obj):
+        return cCommonGame.UwShipMovementInfo(
+            ship_id=obj['ship_id'],
+            actions=obj['uw_actions']
+        )
+
     # @staticmethod
     # def parse_uw_scan(obj):
     #     return cCommonGame.UwActionScan(
@@ -646,7 +667,7 @@ class MsgJsonDecoder(json.JSONDecoder):
     def parse_req_uw_action(obj):
         return MsgReqUwAction(
             obj['player_id'],
-            obj['uw_actions']
+            obj['uw_ship_mov_inf']
         )
 
     @staticmethod

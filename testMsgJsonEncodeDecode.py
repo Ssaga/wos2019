@@ -281,15 +281,19 @@ print("JSON  : %s" % c)
 print("Decoder: %s" % MsgJsonDecoder().decode(b).__dict__)
 
 print("MsgReqUwAction:")
-uw_actions = list()
-uw_actions.append(cCommonGame.UwActionMoveScan(goto_pos=cCommonGame.Position(10, 10),
-                                               scan_dur=10))
-uw_actions.append(cCommonGame.UwActionScan(scan_dur=10));
-uw_actions.append(cCommonGame.UwActionNop());
-uw_actions.append(cCommonGame.UwActionMoveScan(goto_pos=cCommonGame.Position(5, 15),
-                                               scan_dur=5))
-uw_actions.append(cCommonGame.UwActionScan(scan_dur=5));
-a = cMessages.MsgReqUwAction(1, uw_actions)
+ship_1_uw_actions = list()
+ship_1_uw_actions.append(cCommonGame.UwActionMoveScan(goto_pos=cCommonGame.Position(10, 10),
+                                                      scan_dur=10))
+ship_1_uw_actions.append(cCommonGame.UwActionMoveScan(scan_dur=10));
+ship_1_uw_actions.append(cCommonGame.UwActionMoveScan());
+ship_1_uw_actions.append(cCommonGame.UwActionMoveScan(goto_pos=cCommonGame.Position(5, 15),
+                                                      scan_dur=5))
+ship_1_uw_actions.append(cCommonGame.UwActionMoveScan(scan_dur=5));
+
+uw_movement_info_list = list()
+uw_movement_info_list.append(cCommonGame.UwShipMovementInfo(2, ship_1_uw_actions))
+
+a = cMessages.MsgReqUwAction(1, uw_movement_info_list)
 b = MsgJsonEncoder().encode(a)
 c = json.dumps(a, cls=cMessages.MsgJsonEncoder)
 print("Encoder: %s" % b)

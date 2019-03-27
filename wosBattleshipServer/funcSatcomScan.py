@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     print("Test satcom scanner")
     # board_size = np.array([120, 120])
-    board_size = np.array([140, 100])
+    board_size = np.array([20, 40])
     board = np.zeros(board_size.tolist())
 
     # satcom_param = SatcomInfo(6378 + 2000,
@@ -68,11 +68,19 @@ if __name__ == '__main__':
                                   150,
                                   0)
         if i is 0:
-            satcom_param = SatcomInfo(a=7000,
+            # satcom_param = SatcomInfo(a=7000,
+            #                           e=0,
+            #                           i=45,
+            #                           om=0,
+            #                           Om=101.5,
+            #                           M=0,
+            #                           is_enable=False,
+            #                           is_rhs=False)
+            satcom_param = SatcomInfo(a=8378,
                                       e=0,
-                                      i=45,
+                                      i=5,
                                       om=0,
-                                      Om=101.5,
+                                      Om=150,
                                       M=0,
                                       is_enable=False,
                                       is_rhs=False)
@@ -123,6 +131,7 @@ if __name__ == '__main__':
     print("Duration : %f s" % (stop - start))
 
     for key, mask in satcom_mask_dict.items():
+        print("Size : col=%s   row=%s" % (mask.shape[0], mask.shape[1]))
         plt.figure(key)
         plt.imshow(mask)
         print("Type: %s" % type(mask))

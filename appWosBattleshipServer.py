@@ -88,9 +88,18 @@ class WosBattleshipServer(threading.Thread):
         num_move_act = self.game_setting.num_move_act
         num_fire_act = self.game_setting.num_fire_act
         num_satcom_act = self.game_setting.num_satcom_act
+        # num_uw_action = self.game_setting.num_uw_action
         if not self.game_setting.en_satellite:
             num_satcom_act = 0
-        self.game_status = GameTurnStatus(GameState.INIT, num_move_act, num_fire_act, num_satcom_act)
+        self.game_status = GameTurnStatus(game_state=GameState.INIT,
+                                          default_move=num_move_act,
+                                          default_fire=num_fire_act,
+                                          default_satcom=num_satcom_act)
+        # self.game_status = GameTurnStatus(game_state=GameState.INIT,
+        #                                   default_move=num_move_act,
+        #                                   default_fire=num_fire_act,
+        #                                   default_satcom=num_satcom_act,
+        #                                   default_uw_action=num_uw_action)
 
         ## Added by ttl, 2019-01-31
         self.player_remaining_action_dict = dict()
@@ -864,10 +873,17 @@ class WosBattleshipServer(threading.Thread):
                                          is_sunken=ship_info.is_sunken)
                 self_ship_list.append(ship_info_dat)
 
-        # Get self uwships
+        # Get the list of uw ship
         if self.game_setting.en_uw_action:
-            # TODO: Get the list of uw ship
-            pass
+            # Retrieve the corresponding player status
+            player_status = self.player_status_dict.get(msg_data.player_id)
+            if isinstance(player_status, PlayerStatus):
+                for uw_ship_id in player_status.uw_ship_dict.keys():
+                    uw_ship_info = player_status.uw_ship_dict[uw_ship_id]
+                    if isinstance(uw_ship_info, UwShipInfo):
+                        self_uwship_list.append(uw_ship_info)
+                    # else do nothing as UwShipInfo is not provided
+            # else do nothing as we cannot found the correspond user
 
         # Get the list of civilian ships
         for ship_info in self.civilian_ship_list:
@@ -1046,8 +1062,10 @@ class WosBattleshipServer(threading.Thread):
             if remaining_action.remain_satcom > 0:
 
                 # self.last_satcom_mask[msg_data.player_id] = np.ones((self.game_setting.map_size.x, self.game_setting.map_size.y))
-                self.last_satcom_mask[msg_data.player_id] = satcom_scan(self.game_setting.map_size,
-                                                                        msg_data.satcom)
+                out_data = satcom_scan(self.game_setting.map_size,
+                                       msg_data.satcom)
+                # Transpose the satcom data to match the orientation fo the game
+                self.last_satcom_mask[msg_data.player_id] = out_data.T
                 if self.game_setting.en_satellite_func2 is True:
                     self.last_satcom_enable[msg_data.player_id] = msg_data.satcom.is_enable
                 else:

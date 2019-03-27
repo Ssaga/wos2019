@@ -11,13 +11,31 @@ from cCommonGame import UwCollectedData
 from wosBattleshipServer.uw_scan.cUwParams import UwParams
 
 
-def uw_compute(uw_data):
-    print("uw_data:")
-    if isinstance(uw_data, collections.Iterable):
-        for data in uw_data:
-            print(data)
-    else:
-        print(uw_data)
+def uw_compute(uw_data, env_noise=True, verbose=False):
+    """
+    Generate the display data based on the provided ships' information
+    :param uw_data: list of UwCollectedData containing the ships' information
+    :return: list of generated data in the following order
+                [[turn 1 north data],
+                 [turn 1 north-east data],
+                 [turn 1 east data],
+                 [turn 1 south-east data],
+                 [turn 1 south data],
+                 [turn 1 south-west data],
+                 [turn 1 west data],
+                 [turn 1 north-west data],
+                 [turn 2 north data],
+                 [turn 2 north-east data],
+                 ...
+                 [turn n north-west data]]
+    """
+    if verbose:
+        print("input uw_data:")
+        if isinstance(uw_data, collections.Iterable):
+            for data in uw_data:
+                print(data)
+        else:
+            print(uw_data)
 
     uw_params = UwParams()
     outp = list()
@@ -25,8 +43,10 @@ def uw_compute(uw_data):
     for i in range(len(uw_data)):
 
         # Generate background noise
-        # noise = np.zeros(uw_params.vector_len)
-        noise = np.random.randn(uw_params.vector_len)
+        if env_noise:
+            noise = np.random.randn(uw_params.vector_len)
+        else:
+            noise = np.zeros(uw_params.vector_len)
 
         # Check N
         sect_noise = generate_result(uw_data[i].N, noise, uw_params)
@@ -60,16 +80,20 @@ def uw_compute(uw_data):
         sect_noise = generate_result(uw_data[i].NW, noise, uw_params)
         outp.append(sect_noise.tolist())
 
+    if verbose:
+        for tmp_buf in outp:
+            print("%s" % tmp_buf)
+
     return outp
 
 
 def generate_result(ship_info_list, noise, uw_params):
     """
-
+    Generate the requested data based on the provided data
     :param ship_info_list:
-    :param noise:
-    :param uw_params:
-    :return:
+    :param environmental noise: data representing in numpy.ndarray
+    :param uw_params: parameters for the uw operation
+    :return: requested data as numpy.ndarray
     """
     sect_noise = copy.deepcopy(noise)
     if isinstance(ship_info_list, collections.Iterable):
@@ -147,6 +171,40 @@ def random_range(in_data):
 #
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
+
+    def display_generated_uw_data(in_data, print_text=False):
+        elements_per_iteration = 8
+        for i in range(elements_per_iteration):
+            data = in_data[i::elements_per_iteration]
+            disp_data = np.array(data)
+
+            if print_text:
+                print("%s" % i)
+                for print_data in data:
+                    print("%s" % print_data)
+
+            plt.subplot(4,2,i+1)
+            if i is 0:
+                plt.title("N")
+            elif i is 1:
+                plt.title("NE")
+            elif i is 2:
+                plt.title("E")
+            elif i is 3:
+                plt.title("SE")
+            elif i is 4:
+                plt.title("S")
+            elif i is 5:
+                plt.title("SW")
+            elif i is 6:
+                plt.title("W")
+            elif i is 7:
+                plt.title("NW")
+            else:
+                plt.title("???")
+            plt.imshow(disp_data)
+            plt.gca().invert_yaxis()
+        plt.show()
 
     print("Test u/w ops")
     print("Sample data")
@@ -288,47 +346,8 @@ if __name__ == '__main__':
     outp = uw_compute(collected_uw_data)
 
     if isinstance(outp, collections.Iterable):
-
-        for print_data in outp:
-            print("%s" % print_data)
-
-        for i in range(8):
-            # get the N output report
-            data = outp[i::8]
-            disp_data = np.array(data)
-
-            print("%s" % i)
-            for print_data in data:
-                print("%s" % print_data)
-
-            plt.subplot(4,2,i+1)
-            if i is 0:
-                plt.title("N")
-            elif i is 1:
-                plt.title("NE")
-            elif i is 2:
-                plt.title("E")
-            elif i is 3:
-                plt.title("SE")
-            elif i is 4:
-                plt.title("S")
-            elif i is 5:
-                plt.title("SW")
-            elif i is 6:
-                plt.title("W")
-            elif i is 7:
-                plt.title("NW")
-            else:
-                plt.title("???")
-            plt.imshow(disp_data)
-            plt.gca().invert_yaxis()
-        plt.show()
-
-        # # get the N output report
-        # disp_data = outp[0::8]
-        # disp_data = np.array(disp_data)
-        # plt.imshow(disp_data)
-        # plt.show()
+        # Display the data as image
+        display_generated_uw_data(outp)
 
     else:
         print("Data is not available or incorrect")

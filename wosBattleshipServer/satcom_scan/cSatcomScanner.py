@@ -171,11 +171,16 @@ class SatcomScanner:
             # TODO: add width to grid
             # TODO: altitude is assumed to be scalar
 
+            # [gridLat, gridLon] = orb.makeGrid(self.config.tl,
+            #                                   self.config.tr,
+            #                                   self.config.bl,
+            #                                   self.config.br,
+            #                                   [self.ngrids_x, self.ngrids_y])
             [gridLat, gridLon] = orb.makeGrid(self.config.tl,
                                               self.config.tr,
                                               self.config.bl,
                                               self.config.br,
-                                              [self.ngrids_x, self.ngrids_y])
+                                              [self.ngrids_y, self.ngrids_x])
             # print("GRID LAT: %s %s" % (gridLat, len(gridLat)))
             # print("GRID LON: %s %s" % (gridLon, len(gridLon)))
             # print("final_lat: %s %s" % (final_lat, len(final_lat)))

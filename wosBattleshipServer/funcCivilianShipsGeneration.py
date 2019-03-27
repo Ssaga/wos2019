@@ -82,7 +82,7 @@ def civilian_ship_generation(civilian_ship_list,
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
     print("Test civilian_ship_generation")
-    board_size = np.array([20, 20])
+    board_size = np.array([20, 40])
     island_layer = np.zeros(board_size.tolist())
     pos = tuple(np.divide(board_size, 2).astype(int).tolist())
     generate_island(island_layer, pos, 10)
@@ -109,4 +109,5 @@ if __name__ == '__main__':
         if isinstance(ship_info, ShipInfo):
             for pos in ship_info.area:
                 tmp_board[pos[0], pos[1]] = 2
-    print(tmp_board)
+    print("tmp_board size: col=%s   row=%s" % (tmp_board.shape[0], tmp_board.shape[1]))
+    print(tmp_board.T)

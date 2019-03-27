@@ -3,6 +3,7 @@ import numpy as np
 import time
 import math
 import collections
+import copy
 
 from cCommonGame import ShipType
 from cCommonCommEngine import ConnInfo
@@ -214,7 +215,7 @@ class UwShipInfo(CommonUwShipInfo):
             self.report.clear()
             self.reset_report = False
 
-        data = UwCollectedData()
+        data = copy.deepcopy(UwCollectedData())
         if self.remain_move_ops > 0:
             self.execute_move()
         elif self.remain_scan_ops > 0:
@@ -232,6 +233,10 @@ class UwShipInfo(CommonUwShipInfo):
 
         if not self.is_idle():
             self.report.append(data)
+
+            print("-----------------------------------------------")
+            for report_data in self.report:
+                print(report_data)
 
     def execute_move(self):
         """
@@ -261,15 +266,19 @@ class UwShipInfo(CommonUwShipInfo):
                     isinstance(data, UwCollectedData):
                 for ship_info in ship_list:
                     if isinstance(ship_info, ShipInfo):
-                        for pos in ship_info.area:
-                            dist = math.sqrt(((pos.x - self.position.x) ** 2) +
-                                             ((pos.y - self.position.y) ** 2))
-                            if dist < self.scan_size:
-                                heading = math.atan((pos.x - self.position.x) / (pos.y - self.position.y))
-                                heading = heading / math.pi * 180.0
-                                heading = ((heading + 180.0) % 360) - 180.0
-                                if heading < 0:
-                                    heading += 360
+                        for area_placement in ship_info.area:
+                            dist = math.sqrt(((area_placement[0] - self.position.x) ** 2) +
+                                             ((area_placement[1] - self.position.y) ** 2))
+                            if (dist <= self.scan_size) and (dist > 0):
+                                # heading = math.atan((area_placement[0] - self.position.x) / (area_placement[1] - self.position.y))
+                                # heading = get_heading([self.position.x, self.position.y], area_placement)
+                                heading = get_heading([self.position.x, self.position.y],
+                                                      [ship_info.position.x, ship_info.position.y])
+                                print("Pos1 [%s, %s]  Pos2 [%s, %s] Heading %s" % (
+                                    self.position.x, self.position.y,
+                                    ship_info.position.x, ship_info.position.y,
+                                    heading))
+
                                 if heading < 22.5:
                                     data.N.append(ship_info)
                                 elif heading < 67.5:
@@ -461,3 +470,32 @@ def check_collision(test_ship, obstacle_mask_dict):
         raise ValueError("Incorrect input parameters")
 
     return is_ok
+
+
+def get_heading(pos_1, pos_2):
+    """
+    Get the heading (based on true-north) of pos_2 from pos_1
+    :param pos_1: Vehicle position
+    :param pos_2: Dst position to compute the heading
+    :return: heading; unit in degree (0 to 360)
+    """
+    heading = 0
+    if isinstance(pos_1, collections.Iterable) and isinstance(pos_2, collections.Iterable):
+        vec_a = [0, 1]
+        vec_b = [(pos_2[0] - pos_1[0]), (pos_2[1] - pos_1[1])]
+        mag_a = math.sqrt((vec_a[0] * vec_a[0]) + (vec_a[1] * vec_a[1]))
+        mag_b = math.sqrt((vec_b[0] * vec_b[0]) + (vec_b[1] * vec_b[1]))
+
+        dot_product = np.dot(vec_a, vec_b)
+        heading = math.acos(dot_product / (mag_a * mag_b))
+
+        if (pos_2[0] - pos_1[0]) < 0:
+            # pos_2 is in the 3rd or 4th quadant; hence invert the sign
+            heading = -heading
+
+        heading = heading / math.pi * 180.0
+        heading = ((heading + 180.0) % 360) - 180.0
+        while heading < 0:
+            heading += 360
+
+    return heading
