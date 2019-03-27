@@ -134,9 +134,9 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
         result = None
         if isinstance(obj, ConnInfo):
             result = {
-                "__class__":"ConnInfo",
-                "addr":obj.addr,
-                "port":obj.port
+                "__class__": "ConnInfo",
+                "addr": obj.addr,
+                "port": obj.port
             }
         elif isinstance(obj, Size):
             result = {
@@ -147,8 +147,8 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
         elif isinstance(obj, ServerGameConfig):
             result = {
                 "__class__": "ServerGameConfig",
-                "req_rep_conn":obj.req_rep_conn,
-                "pub_sub_conn":obj.pub_sub_conn,
+                "req_rep_conn": obj.req_rep_conn,
+                "pub_sub_conn": obj.pub_sub_conn,
                 "polling_rate": obj.polling_rate,
                 "bc_rate": obj.bc_rate,
                 "map_size": obj.map_size,
@@ -188,7 +188,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             if class_type == 'ConnInfo':
                 result = self.parse_conn_info(obj)
             elif class_type == 'Size':
-                    result = self.parse_size(obj)
+                result = self.parse_size(obj)
             elif class_type == 'ServerGameConfig':
                 result = self.parse_svr_game_cfg(obj)
             else:
@@ -237,7 +237,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
         )
 
 
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # Check if the given ship hit any obstacle mask
 def check_collision(test_ship, obstacle_mask_dict):
     is_ok = True
@@ -252,7 +252,8 @@ def check_collision(test_ship, obstacle_mask_dict):
                             pos[1] >= obstacle_mask.shape[1] or \
                             pos[0] < 0 or pos[1] < 0:
                         is_ok = False
-                        print("!!! SHIP: %s \r\n!!!Out of boundary - %s:%s" % (test_ship, obstacle_mask_key, obstacle_mask.shape))
+                        print("!!! SHIP: %s \r\n!!!Out of boundary - %s:%s" % (
+                            test_ship, obstacle_mask_key, obstacle_mask.shape))
                         break
                     elif obstacle_mask[pos[0], pos[1]] > 0:
                         is_ok = False
@@ -269,4 +270,5 @@ def check_collision(test_ship, obstacle_mask_dict):
     else:
         is_ok = False
         raise ValueError("Incorrect input parameters")
+
     return is_ok

@@ -124,7 +124,7 @@ class WosBattleshipServer(threading.Thread):
         self.last_satcom_mask = dict()
         self.last_satcom_enable = dict()
 
-        # Dictionary to store the history informaiton of the enemy ship list
+        # Dictionary to store the history information of the enemy ship list
         self.hist_enemy_data_dict = dict()
 
         # Game Setup --------------------------------------------------------------
@@ -867,7 +867,7 @@ class WosBattleshipServer(threading.Thread):
         ack = False
         remaining_action = self.player_remaining_action_dict.get(msg_data.player_id)
         if isinstance(remaining_action, PlayerTurnActionCount):
-            if (remaining_action.remain_move >= len(msg_data.move)):
+            if remaining_action.remain_move >= len(msg_data.move):
                 for action in msg_data.move:
                     if isinstance(action, ShipMovementInfo):
                         ship = self.player_status_dict[msg_data.player_id].ship_list[action.ship_id]
@@ -876,21 +876,21 @@ class WosBattleshipServer(threading.Thread):
                                 # Check if the selected ship can move forward
                                 if self.check_forward_action(ship, msg_data.player_id):
                                     ship.move_forward()
-                                    self.tts_comm_engine.send("Player %s move ship forward")
+                                    self.tts_comm_engine.send("Player %s move ship forward" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to move forward")
                             elif action.get_enum_action() == Action.CW:
                                 # Check if the selected ship can turn clockwise
                                 if self.check_turn_cw_action(ship, msg_data.player_id):
                                     ship.turn_clockwise()
-                                    self.tts_comm_engine.send("Player %s turn ship clockwise")
+                                    self.tts_comm_engine.send("Player %s turn ship clockwise" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to turn CW")
                             elif action.get_enum_action() == Action.CCW:
                                 # Check if the selected ship can turn counter-clockwise
                                 if self.check_turn_ccw_action(ship, msg_data.player_id):
                                     ship.turn_counter_clockwise()
-                                    self.tts_comm_engine.send("Player %s turn ship counter clockwise")
+                                    self.tts_comm_engine.send("Player %s turn ship counter clockwise" % msg_data.player_id)
                                 else:
                                     print("!!! Unable to turn CCW")
                 # Update on the number of remaining move operation
@@ -970,8 +970,10 @@ class WosBattleshipServer(threading.Thread):
             if remaining_action.remain_satcom > 0:
 
                 # self.last_satcom_mask[msg_data.player_id] = np.ones((self.game_setting.map_size.x, self.game_setting.map_size.y))
-                self.last_satcom_mask[msg_data.player_id] = satcom_scan(self.game_setting.map_size,
-                                                                        msg_data.satcom)
+                out_data = satcom_scan(self.game_setting.map_size,
+                                       msg_data.satcom)
+                # Transpose the satcom data to match the orientation fo the game
+                self.last_satcom_mask[msg_data.player_id] = out_data.T
                 if self.game_setting.en_satellite_func2 is True:
                     self.last_satcom_enable[msg_data.player_id] = msg_data.satcom.is_enable
                 else:
@@ -1060,9 +1062,6 @@ class WosBattleshipServer(threading.Thread):
                     # end of position for..loop
             # end of ship_list for..loop
         return  outp_ship_list
-
-
-
 
     # ---------------------------------------------------------------------------
     # Check if the placement of the ship are valid
