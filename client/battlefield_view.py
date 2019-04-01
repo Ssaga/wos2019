@@ -3,7 +3,6 @@ from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
 from PyQt5.QtCore import QRectF
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QFont
@@ -11,7 +10,9 @@ from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
+from client.item_depth_manager import WosItemDepthManager
 from client.scene_item.terrain_item import WosTerrainItem
+from client.wos import ItemType
 import cCommonGame
 import operator
 
@@ -45,9 +46,12 @@ class WosBattleFieldView(QGraphicsView):
         self.field_info = WosFieldInfo(QPoint(40, 40), QPoint(20, 20), field_count)
 
         self.field_lines = list()
+        self.field_lines_items = list()
         self.labels = list()
+        self.labels_items = list()
         self.boundaries = dict()
-        self.terrains = list()
+        self.boundary_items = dict()
+        self.terrain_items = list()
 
         self.field_types = [cCommonGame.MapData.ISLAND, cCommonGame.MapData.CLOUD_FRIENDLY,
                             cCommonGame.MapData.CLOUD_HOSTILE, cCommonGame.MapData.ISLAND]
@@ -55,9 +59,12 @@ class WosBattleFieldView(QGraphicsView):
         self.update_field()
 
     def clear(self):
-        self.field_lines = []
-        self.labels = []
-        self.terrains = []
+        self.field_lines = list()
+        self.field_lines_items = list()
+        self.labels = list()
+        self.labels_items = list()
+        self.terrain_items = list()
+        self.boundary_items = list()
         self.scene().clear()
 
     def get_field_info(self):
@@ -69,15 +76,24 @@ class WosBattleFieldView(QGraphicsView):
 
     def update_field(self, map_data=None):
         scene = self.scene()
-        if len(self.terrains) > 0:
+        for field_line in self.field_lines_items:
+            scene.removeItem(field_line)
+        for label in self.labels_items:
+            scene.removeItem(label)
+        if len(self.terrain_items) > 0:
             # Flatten 2d to 1d for traversing
-            terrains = reduce(operator.concat, self.terrains)
+            terrains = reduce(operator.concat, self.terrain_items)
             for terrain in terrains:
                 scene.removeItem(terrain)
+        for boundary in self.boundary_items:
+            scene.removeItem(boundary)
 
-        self.field_lines = []
-        self.labels = []
-        self.terrains = []
+        self.field_lines = list()
+        self.field_lines_items = list()
+        self.labels = list()
+        self.labels_items = list()
+        self.terrain_items = list()
+        self.boundary_items = list()
 
         scene.setSceneRect(0,
                            0,
@@ -111,6 +127,7 @@ class WosBattleFieldView(QGraphicsView):
             else:
                 text_item.setFont(smaller_font)
             scene.addItem(text_item)
+            self.labels_items.append(text_item)
         for i in range(0, self.field_info.dimension.y()):
             text_item = QGraphicsTextItem(str(i))
             text_item.setFont(font)
@@ -121,33 +138,37 @@ class WosBattleFieldView(QGraphicsView):
                 pos += QPointF(-self.field_info.size.x() / 3, 0)
             text_item.setPos(pos)
             scene.addItem(text_item)
+            self.labels_items.append(text_item)
 
         # Draw grids
         pen = QPen(QColor(25, 25, 25))
         for i in self.field_lines:
-            scene.addLine(i, pen)
-
-        # Draw boundaries
-        pen = QPen(QColor(0, 0, 0), 2)
-        for i in self.boundaries.values():
-            scene.addRect(i, pen)
+            self.field_lines_items.append(scene.addLine(i, pen))
 
         # Draw grid data like water, island or clouds
         if map_data is not None:
             for col in range(0, len(map_data)):
-                self.terrains.append(list())
+                self.terrain_items.append(list())
                 for row in range(0, len(map_data[0])):
                     val = int(map_data[col][row])
                     item = WosTerrainItem(self.field_info, col, row, val)
-                    self.terrains[0].append(item)
+                    self.terrain_items[0].append(item)
                     scene.addItem(item)
         else:
             for col in range(0, self.field_info.dimension.x()):
-                self.terrains.append(list())
+                self.terrain_items.append(list())
                 for row in range(0, self.field_info.dimension.y()):
                     item = WosTerrainItem(self.field_info, col, row, cCommonGame.MapData.WATER)
-                    self.terrains[0].append(item)
+                    self.terrain_items[0].append(item)
                     scene.addItem(item)
+
+        # Draw boundaries
+        pen = QPen(QColor(0, 0, 0), 2)
+        for i in self.boundaries.values():
+            self.boundary_items.append(scene.addRect(i, pen))
+        boundary_z = WosItemDepthManager().get_depths_by_item(ItemType.BOUNDARY)
+        for boundary in self.boundary_items:
+            boundary.setZValue(boundary_z)
 
     def grid_to_pixel(self, x, y):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \
