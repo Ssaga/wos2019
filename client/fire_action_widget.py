@@ -38,5 +38,11 @@ class WosFireActionWidget(QWidget):
     def get_fire_info(self):
         return self.attack_x_spinbox.value(), self.attack_y_spinbox.value()
 
+    def set_fire_location(self, x, y):
+        self.attack_x_spinbox.blockSignals(False)
+        self.attack_x_spinbox.setValue(x)
+        self.attack_x_spinbox.blockSignals(True)
+        self.attack_y_spinbox.setValue(y)
+
     def update_location(self):
         self.location_changed.emit(self.attack_x_spinbox.value(), self.attack_y_spinbox.value())

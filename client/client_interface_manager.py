@@ -87,6 +87,15 @@ class WosClientInterfaceManager(object):
             return rep
         return False
 
+    def get_uw_report(self, ship_id):
+        rep = self.client_commEngine.req_uw_report(ship_id)
+        # print(vars(rep))
+        if isinstance(rep, cMessages.MsgRepUwReport):
+            print(vars(rep))
+            return rep
+        print(rep)
+        return False
+
     def register_player(self):
         rep = self.client_commEngine.req_register()
         # print(vars(rep))

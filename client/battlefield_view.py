@@ -1,17 +1,21 @@
 from functools import reduce
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
 from PyQt5.QtCore import QRectF
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush
+from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
+from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.terrain_item import WosTerrainItem
+from client.ship_info import ShipInfo
 import cCommonGame
 import operator
 
@@ -31,6 +35,8 @@ class WosFieldInfo:
 
 
 class WosBattleFieldView(QGraphicsView):
+    show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
+    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo)
 
     def __init__(self, field_count=QPoint(120, 120), parent=None):
         QGraphicsView.__init__(self, parent)
@@ -59,6 +65,13 @@ class WosBattleFieldView(QGraphicsView):
         self.labels = []
         self.terrains = []
         self.scene().clear()
+
+    def contextMenuEvent(self, event):
+        item = self.itemAt(event.pos())
+        if isinstance(item, WosTerrainItem):
+            self.show_terrain_context_menu.emit(event, item.terrain_type, item.x, item.y)
+        elif isinstance(item, WosBattleShipItem):
+            self.show_battleship_context_menu.emit(event, item.ship_info)
 
     def get_field_info(self):
         return self.field_info

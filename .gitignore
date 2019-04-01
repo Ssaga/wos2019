@@ -106,5 +106,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# Project specifics
 gmat_io/*
 !gmat_io/template
