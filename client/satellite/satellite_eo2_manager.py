@@ -41,11 +41,13 @@ class WosSatelliteEo2Manager(QObject):
 
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
-        dialog.setWindowTitle('Please input the 6 parameter')
+        dialog.setWindowTitle('EO Satellite 2')
         dialog.setMinimumWidth(50)
         dialog.accepted.connect(self.submit_command)
         dialog.text_list = []
 
+        label_text = ['Semi Major Axis', 'Inclination', 'Eccentricity', 'Argument of Perigee',
+                      'Right Ascension of Ascending Node', 'True Anomaly']
         default_text = [6378 + 2000, 0, 5, 0, 150, 0]
 
         layout = QGridLayout(dialog)
@@ -53,7 +55,7 @@ class WosSatelliteEo2Manager(QObject):
 
         dbl_validator = QDoubleValidator()
         for i in range(0, 6):
-            layout.addWidget(QLabel("%s:" % i), i, 0)
+            layout.addWidget(QLabel("%s:" % label_text[i]), i, 0)
             line_edit = QLineEdit()
             line_edit.setValidator(dbl_validator)
             line_edit.setText(str(default_text[i]))
