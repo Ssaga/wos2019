@@ -8,6 +8,7 @@ from client.action_widget import WosActionWidget
 from client.client_interface_manager import WosClientInterfaceManager
 from client.phase_manager import WosPhaseManager
 from client.scene_item.battleship_item import WosBattleShipItem
+from client.scene_item.underwater_ship_item import WosUnderwaterShipItem
 from client.ship_info import ShipInfo
 
 import cCommonGame
@@ -22,6 +23,7 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
     def __init__(self, wos_interface, parent=None):
         WosPhaseManager.__init__(self, wos_interface, parent)
         self.ships_items = []
+        self.ship_uw_items = []
         self.tools = None
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
@@ -40,14 +42,20 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         WosPhaseManager.end(self)
 
     def send_deployment(self, deployment_button):
-        ships = []
+        ships = list()
         for ship_item in self.ships_items:
             ships.append(ship_item.get_ship_info())
-        if WosClientInterfaceManager().send_deployment(ships) or self.wos_interface.is_debug:
+        ships_uw = list()
+        for ship_item in self.ship_uw_items:
+            ships_uw.append(ship_item.get_ship_info())
+
+        if WosClientInterfaceManager().send_deployment(ships, ships_uw) or self.wos_interface.is_debug:
             self.wos_interface.log("Server acknowledged")
             self.wos_interface.log("Please wait for all the players to deploy their ships")
             self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
             for ship_item in self.ships_items:
+                ship_item.set_is_draggable(False)
+            for ship_item in self.ship_uw_items:
                 ship_item.set_is_draggable(False)
         else:
             self.wos_interface.log(
@@ -92,17 +100,28 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
                             WosBattleShipItem(field_info, 2, 3), WosBattleShipItem(field_info, 3, 3),
                             WosBattleShipItem(field_info, 4, 4), WosBattleShipItem(field_info, 5, 4),
                             WosBattleShipItem(field_info, 6, 5), WosBattleShipItem(field_info, 7, 5)]
+        if self.wos_interface.cfg.en_submarine:
+            self.ship_uw_items = [WosUnderwaterShipItem(field_info, 8)]
 
         scene = self.wos_interface.battlefield.battle_scene.scene()
         start_position = cCommonGame.Position()
         player_id = str(self.wos_interface.player_info.player_id)
         start_position.x = self.wos_interface.cfg.boundary[player_id].min_x
         start_position.y = self.wos_interface.cfg.boundary[player_id].min_y
+        cnt = 0
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
             self.ships_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
             # self.ships_items[i].set_grid_position(start_position.x + i, start_position.y + 2)
             self.set_ship_position(self.ships_items[i])
+            cnt += 1
+        for i in range(0, len(self.ship_uw_items)):
+            scene.addItem(self.ship_uw_items[i])
+            self.ship_uw_items[i].set_ship_type(ShipInfo.Type.FRIENDLY)
+            # self.ship_uw_items[i].set_grid_position(start_position.x + cnt, start_position.y + 2)
+            self.set_ship_position(self.ship_uw_items[i])
+            cnt += 1
+
         self.wos_interface.battlefield.battle_scene.centerOn(self.ships_items[-1])
 
         self.update_action_widget()

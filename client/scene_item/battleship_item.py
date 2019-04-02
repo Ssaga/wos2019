@@ -142,7 +142,8 @@ class WosBattleShipItem(WosBattlefieldItem):
             elif self.ship_info.type is ShipInfo.Type.UNKNOWN:
                 tool_tip = "Unidentified ship"
         if self.ship_info.is_sunken:
-            tool_tip += '(Destroyed)'
+            tool_tip += ' - Destroyed'
+        tool_tip += " (%s, %s)" % (self.ship_info.position.x, self.ship_info.position.y)
         QToolTip.showText(event.screenPos(), tool_tip)
 
     def snap_to_grid(self, pos_x, pos_y):

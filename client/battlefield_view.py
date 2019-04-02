@@ -1,9 +1,11 @@
 from functools import reduce
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QLineF
 from PyQt5.QtCore import QPoint
 from PyQt5.QtCore import QPointF
 from PyQt5.QtCore import QRectF
 from PyQt5.QtGui import QBrush
+from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QPen
@@ -11,8 +13,10 @@ from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
 from client.item_depth_manager import WosItemDepthManager
-from client.scene_item.terrain_item import WosTerrainItem
 from client.wos import ItemType
+from client.scene_item.battleship_item import WosBattleShipItem
+from client.scene_item.terrain_item import WosTerrainItem
+from client.ship_info import ShipInfo
 import cCommonGame
 import operator
 
@@ -32,6 +36,8 @@ class WosFieldInfo:
 
 
 class WosBattleFieldView(QGraphicsView):
+    show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
+    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo)
 
     def __init__(self, field_count=QPoint(120, 120), parent=None):
         QGraphicsView.__init__(self, parent)
@@ -66,6 +72,13 @@ class WosBattleFieldView(QGraphicsView):
         self.terrain_items = list()
         self.boundary_items = list()
         self.scene().clear()
+
+    def contextMenuEvent(self, event):
+        item = self.itemAt(event.pos())
+        if isinstance(item, WosTerrainItem):
+            self.show_terrain_context_menu.emit(event, item.terrain_type, item.x, item.y)
+        elif isinstance(item, WosBattleShipItem):
+            self.show_battleship_context_menu.emit(event, item.ship_info)
 
     def get_field_info(self):
         return self.field_info
@@ -164,8 +177,11 @@ class WosBattleFieldView(QGraphicsView):
 
         # Draw boundaries
         pen = QPen(QColor(0, 0, 0), 2)
-        for i in self.boundaries.values():
-            self.boundary_items.append(scene.addRect(i, pen))
+        for boundary in self.boundaries.values():
+            scene.addLine(QLineF(boundary.topLeft(), boundary.topRight()), pen)
+            scene.addLine(QLineF(boundary.topRight(), boundary.bottomRight()), pen)
+            scene.addLine(QLineF(boundary.bottomRight(), boundary.bottomLeft()), pen)
+            scene.addLine(QLineF(boundary.bottomLeft(), boundary.topLeft()), pen)
         boundary_z = WosItemDepthManager().get_depths_by_item(ItemType.BOUNDARY)
         for boundary in self.boundary_items:
             boundary.setZValue(boundary_z)

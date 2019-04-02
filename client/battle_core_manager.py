@@ -1,7 +1,9 @@
 from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QMenu
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QToolButton
 from PyQt5.QtWidgets import QWidget
@@ -71,6 +73,84 @@ class WosBattleCoreManager(QObject):
             widget.location_changed.connect(fire.set_position)
             scene.addItem(fire)
 
+    def is_current_turn(self, game_status):
+        return game_status.player_turn == self.wos_interface.player_info.player_id
+
+    def show_battleship_context_menu(self, event, ship_info):
+        menu = QMenu(self.wos_interface.window)
+        for widget in self.move_action_widgets:
+            move_menu = QMenu('Move %s' % widget.get_index(), menu)
+            forward_action = QAction('Forward', move_menu)
+            forward_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.FWD})
+            forward_action.triggered.connect(self.update_move_position_from_context_menu)
+            move_menu.addAction(forward_action)
+            cw_action = QAction('Turn clockwise', move_menu)
+            cw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CW})
+            cw_action.triggered.connect(self.update_move_position_from_context_menu)
+            move_menu.addAction(cw_action)
+            ccw_action = QAction('Turn anti-clockwise', move_menu)
+            ccw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CCW})
+            ccw_action.triggered.connect(self.update_move_position_from_context_menu)
+            move_menu.addAction(ccw_action)
+            skip_action = QAction('Skip', move_menu)
+            skip_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.NOP})
+            skip_action.triggered.connect(self.update_move_position_from_context_menu)
+            move_menu.addAction(skip_action)
+            menu.addMenu(move_menu)
+        menu.exec(event.globalPos())
+
+    def show_terrain_context_menu(self, event, terrain_type, x, y):
+        menu = QMenu(self.wos_interface.window)
+        for widget in self.fire_action_widgets:
+            fire_action = QAction('Bomb %s' % widget.get_index(), menu)
+            fire_action.setData({'widget': widget, 'x': x, 'y': y})
+            fire_action.triggered.connect(self.update_fire_position_from_context_menu)
+            menu.addAction(fire_action)
+        menu.exec(event.globalPos())
+
+    def start(self):
+        self.wos_interface.battlefield.show_battleship_context_menu.connect(self.show_battleship_context_menu)
+        self.wos_interface.battlefield.show_terrain_context_menu.connect(self.show_terrain_context_menu)
+        self.wos_interface.log("<b>Battle phase</b>.")
+        self.update_configurations()
+        self.update_action_widget()
+        self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
+
+    def submit_button_pressed(self):
+        # Collate move action(s)
+        move_list = list()
+        for widget in self.move_action_widgets:
+            ship_id, action = widget.get_move_info()
+            move_info = cCommonGame.ShipMovementInfo(ship_id, action)
+            move_list.append(move_info)
+            self.wos_interface.log(move_info.to_string())
+
+        # Collate fire action(s)
+        fire_list = list()
+        for widget in self.fire_action_widgets:
+            x, y = widget.get_fire_info()
+            fire_info = cCommonGame.FireInfo(cCommonGame.Position(x, y))
+            fire_list.append(fire_info)
+            self.wos_interface.log(fire_info.to_string())
+
+        self.wos_interface.log("Sending commands to server..")
+        # Consider doing validations
+        WosClientInterfaceManager().send_action_move(move_list)
+        WosClientInterfaceManager().send_action_attack(fire_list)
+        self.wos_interface.log("Sent")
+
+        self.end_turn()
+
+        self.update_timer.start()
+
+    def update_fire_position_from_context_menu(self):
+        data = self.sender().data()
+        data['widget'].set_fire_location(data['x'], data['y'])
+
+    def update_move_position_from_context_menu(self):
+        data = self.sender().data()
+        data['widget'].set_ship_actions(data['ship_id'], data['action'])
+
     def update_ship_shadow(self):
         moves = dict()
         ship_shadows = dict()
@@ -92,15 +172,6 @@ class WosBattleCoreManager(QObject):
             # When one ship contains more than one action, we hide any outstanding shadows
             for i in range(1, len(ship_shadows[ship_id])):
                 ship_shadows[ship_id][i].hide()
-
-    def is_current_turn(self, game_status):
-        return game_status.player_turn == self.wos_interface.player_info.player_id
-
-    def start(self):
-        self.wos_interface.log("<b>Battle phase</b>.")
-        self.update_configurations()
-        self.update_action_widget()
-        self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
 
     def update_action_widget(self):
         actions_widget = self.wos_interface.actions
@@ -193,33 +264,6 @@ class WosBattleCoreManager(QObject):
         turn_info_visual = vars(turn_info)
         turn_info_visual.pop('map_data', None)
         self.wos_interface.log(turn_info_visual, cCommonGame.LogType.DEBUG)
-
-    def submit_button_pressed(self):
-        # Collate move action(s)
-        move_list = list()
-        for widget in self.move_action_widgets:
-            ship_id, action = widget.get_move_info()
-            move_info = cCommonGame.ShipMovementInfo(ship_id, action)
-            move_list.append(move_info)
-            self.wos_interface.log(move_info.to_string())
-
-        # Collate fire action(s)
-        fire_list = list()
-        for widget in self.fire_action_widgets:
-            x, y = widget.get_fire_info()
-            fire_info = cCommonGame.FireInfo(cCommonGame.Position(x, y))
-            fire_list.append(fire_info)
-            self.wos_interface.log(fire_info.to_string())
-
-        self.wos_interface.log("Sending commands to server..")
-        # Consider doing validations
-        WosClientInterfaceManager().send_action_move(move_list)
-        WosClientInterfaceManager().send_action_attack(fire_list)
-        self.wos_interface.log("Sent")
-
-        self.end_turn()
-
-        self.update_timer.start()
 
     def update_game_event(self):
         game_status = WosClientInterfaceManager().get_game_status()
