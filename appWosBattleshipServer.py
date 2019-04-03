@@ -1298,7 +1298,8 @@ def main():
 
 
 if __name__ == '__main__':
-    print("*** %s (%s)" % (__file__, time.ctime(time.time())))
+    version = "0.0.1.0.1"
+    print("*** %s %s (%s)" % (__file__, version, time.ctime(time.time())))
     # temporary fix the seed for the congress
     np.random.seed(0)
     main()
