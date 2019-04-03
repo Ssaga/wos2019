@@ -37,7 +37,7 @@ class WosFieldInfo:
 
 class WosBattleFieldView(QGraphicsView):
     show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
-    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo)
+    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo, int, int)
 
     def __init__(self, field_count=QPoint(120, 120), parent=None):
         QGraphicsView.__init__(self, parent)
@@ -75,10 +75,12 @@ class WosBattleFieldView(QGraphicsView):
 
     def contextMenuEvent(self, event):
         item = self.itemAt(event.pos())
+        scene_pos = self.mapToScene(event.pos())
         if isinstance(item, WosTerrainItem):
             self.show_terrain_context_menu.emit(event, item.terrain_type, item.x, item.y)
         elif isinstance(item, WosBattleShipItem):
-            self.show_battleship_context_menu.emit(event, item.ship_info)
+            x, y = self.pixel_to_grid(scene_pos.x(), scene_pos.y())
+            self.show_battleship_context_menu.emit(event, item.ship_info, x, y)
 
     def get_field_info(self):
         return self.field_info
@@ -189,6 +191,10 @@ class WosBattleFieldView(QGraphicsView):
     def grid_to_pixel(self, x, y):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \
                self.field_info.top_left.y() + y * self.field_info.size.y()
+
+    def pixel_to_grid(self, x, y):
+        return int((x - self.field_info.top_left.x()) / self.field_info.size.x()), \
+               int((y - self.field_info.top_left.y()) / self.field_info.size.y())
 
     def update_boundaries(self, boundaries):
         if boundaries is None:

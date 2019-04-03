@@ -9,7 +9,7 @@ from client.ship_info import ShipInfo
 
 class WosBattlefieldWidget(QWidget):
     show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
-    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo)
+    show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo, int, int)
 
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)

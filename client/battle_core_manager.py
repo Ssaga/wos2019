@@ -76,27 +76,33 @@ class WosBattleCoreManager(QObject):
     def is_current_turn(self, game_status):
         return game_status.player_turn == self.wos_interface.player_info.player_id
 
-    def show_battleship_context_menu(self, event, ship_info):
+    def show_battleship_context_menu(self, event, ship_info, x, y):
         menu = QMenu(self.wos_interface.window)
-        for widget in self.move_action_widgets:
-            move_menu = QMenu('Move %s' % widget.get_index(), menu)
-            forward_action = QAction('Forward', move_menu)
-            forward_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.FWD})
-            forward_action.triggered.connect(self.update_move_position_from_context_menu)
-            move_menu.addAction(forward_action)
-            cw_action = QAction('Turn clockwise', move_menu)
-            cw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CW})
-            cw_action.triggered.connect(self.update_move_position_from_context_menu)
-            move_menu.addAction(cw_action)
-            ccw_action = QAction('Turn anti-clockwise', move_menu)
-            ccw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CCW})
-            ccw_action.triggered.connect(self.update_move_position_from_context_menu)
-            move_menu.addAction(ccw_action)
-            skip_action = QAction('Skip', move_menu)
-            skip_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.NOP})
-            skip_action.triggered.connect(self.update_move_position_from_context_menu)
-            move_menu.addAction(skip_action)
-            menu.addMenu(move_menu)
+        if ship_info.type is ShipInfo.Type.FRIENDLY:
+            for widget in self.move_action_widgets:
+                move_menu = QMenu('Move %s' % widget.get_index(), menu)
+                forward_action = QAction('Forward', move_menu)
+                forward_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.FWD})
+                forward_action.triggered.connect(self.update_move_position_from_context_menu)
+                move_menu.addAction(forward_action)
+                cw_action = QAction('Turn clockwise', move_menu)
+                cw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CW})
+                cw_action.triggered.connect(self.update_move_position_from_context_menu)
+                move_menu.addAction(cw_action)
+                ccw_action = QAction('Turn anti-clockwise', move_menu)
+                ccw_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.CCW})
+                ccw_action.triggered.connect(self.update_move_position_from_context_menu)
+                move_menu.addAction(ccw_action)
+                skip_action = QAction('Skip', move_menu)
+                skip_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.NOP})
+                skip_action.triggered.connect(self.update_move_position_from_context_menu)
+                move_menu.addAction(skip_action)
+                menu.addMenu(move_menu)
+        for widget in self.fire_action_widgets:
+            fire_action = QAction('Bomb %s' % widget.get_index(), menu)
+            fire_action.setData({'widget': widget, 'x': x, 'y': y})
+            fire_action.triggered.connect(self.update_fire_position_from_context_menu)
+            menu.addAction(fire_action)
         menu.exec(event.globalPos())
 
     def show_terrain_context_menu(self, event, terrain_type, x, y):
