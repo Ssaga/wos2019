@@ -1,5 +1,6 @@
 import cCommonGame
 import json
+import numpy
 
 
 class WosInterface(object):
@@ -23,6 +24,8 @@ class WosInterface(object):
         try:
             with open('client/game_client.cfg') as data_file:
                 self.client_cfg = json.load(data_file)
+                random_seed = self.client_cfg['random_seed']
+                numpy.random.seed(seed=random_seed)
         except FileNotFoundError:
             print('No such file or directory: \'client/game_client2.cfg\'')
 
