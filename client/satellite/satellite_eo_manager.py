@@ -48,7 +48,7 @@ class WosSatelliteEoManager(QObject):
         dialog.accepted.connect(self.submit_command)
         dialog.text_list = []
 
-        label_text = ['Semi Major Axis', 'Inclination', 'Eccentricity', 'Argument of Perigee',
+        label_text = ['Semi Major Axis', 'Eccentricity', 'Inclination', 'Argument of Perigee',
                       'Right Ascension of Ascending Node', 'True Anomaly']
         default_text = [6378 + 2000, 0, 5, 0, 150, 0]
 
@@ -126,4 +126,4 @@ class WosSatelliteEoManager(QObject):
                                                        turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log("<font color='brown'>Failed! Only 1 satcom action per turn.</font>")
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")
