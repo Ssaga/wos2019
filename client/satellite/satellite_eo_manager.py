@@ -122,8 +122,9 @@ class WosSatelliteEoManager(QObject):
             # Handle case where update_turn was wrongly called
             if turn_info and turn_info.ack:
                 for i in range(0, len(turn_info.other_ship_list)):
-                    WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
-                                                       turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+                    if not turn_info.other_ship_list[i].is_sunken:
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")
