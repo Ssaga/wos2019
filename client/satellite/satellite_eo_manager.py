@@ -43,11 +43,13 @@ class WosSatelliteEoManager(QObject):
 
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
-        dialog.setWindowTitle('Please input the 6 parameter')
+        dialog.setWindowTitle('EO Satellite')
         dialog.setMinimumWidth(50)
         dialog.accepted.connect(self.submit_command)
         dialog.text_list = []
 
+        label_text = ['Semi Major Axis', 'Eccentricity', 'Inclination', 'Argument of Perigee',
+                      'Right Ascension of Ascending Node', 'True Anomaly']
         default_text = [6378 + 2000, 0, 5, 0, 150, 0]
 
         layout = QGridLayout(dialog)
@@ -55,7 +57,7 @@ class WosSatelliteEoManager(QObject):
 
         dbl_validator = QDoubleValidator()
         for i in range(0, 6):
-            layout.addWidget(QLabel("%s:" % i), i, 0)
+            layout.addWidget(QLabel("%s:" % label_text[i]), i, 0)
             line_edit = QLineEdit()
             line_edit.setValidator(dbl_validator)
             line_edit.setText(str(default_text[i]))
@@ -120,8 +122,9 @@ class WosSatelliteEoManager(QObject):
             # Handle case where update_turn was wrongly called
             if turn_info and turn_info.ack:
                 for i in range(0, len(turn_info.other_ship_list)):
-                    WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
-                                                       turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+                    if not turn_info.other_ship_list[i].is_sunken:
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log("<font color='brown'>Failed! Only 1 satcom action per turn.</font>")
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")

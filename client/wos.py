@@ -8,6 +8,7 @@ class ItemType(Enum):
     TERRAIN_AIR = 2
     SHIP = 3
     ANNOTATION = 4
+    BOUNDARY = 5
     TERRAIN_ON_HOVER = 999
 
 class PlayerInfo:

@@ -8,11 +8,13 @@ import cMessages
 
 import cCommonGame
 import cCommonCommEngine
+import wosBattleshipServer.cCommon as cCommon
 
 from cClientCommEngine import ClientCommEngine
 
 from wosBattleshipServer.cCommon import SvrCfgJsonDecoder
 from wosBattleshipServer.cCommon import ServerGameConfig
+
 
 is_running = True
 is_server_ready = False
@@ -54,6 +56,7 @@ def wos_test_client(num_of_rounds, player_id, boundary):
 
 
     # Test 2: Register the ships for the four client
+    # Register 3x ship
     ship_list = []
     for ship_id in range(3):
         ship_info = cCommonGame.ShipInfo(ship_id=ship_id,
@@ -70,7 +73,14 @@ def wos_test_client(num_of_rounds, player_id, boundary):
             ship_info.heading = 0
         ship_list.append(ship_info)
 
-    test_reply = client_comm_engine.req_register_ships(ship_list)
+    # Register 1x uw_ship
+    uw_ship_list = []
+    uw_ship_list.append(cCommon.UwShipInfo(ship_id=1,
+                                        position=cCommonGame.Position(boundary[0][0],
+                                                                      boundary[0][1])))
+
+    test_reply = client_comm_engine.req_register_ships(ship_list=ship_list,
+                                                       uw_ship_list=uw_ship_list)
     if isinstance(test_reply, cMessages.MsgRepAck):
         print(test_reply)
         assert (test_reply.ack == True)
@@ -126,8 +136,8 @@ def wos_test_client(num_of_rounds, player_id, boundary):
                                                                game_status.player_turn,
                                                                game_status.time_remain))
 
-        # Test 4 i  : Get the Game Turn from the server
         if isinstance(client_comm_engine, ClientCommEngine):
+            # Test 4 i  : Get the Game Turn from the server
             test_reply = client_comm_engine.req_turn_info()
             if (game_status.get_enum_game_state() != cCommonGame.GameState.STOP) and \
                     isinstance(test_reply, cMessages.MsgRepTurnInfo):
@@ -182,7 +192,74 @@ def wos_test_client(num_of_rounds, player_id, boundary):
             else:
                 assert (isinstance(test_reply, cMessages.MsgRepAck))
 
-            # Test 4 iii: Request move action
+            # Test 4 iii: Get the Game Turn from the server with satcom
+            test_reply = client_comm_engine.req_turn_info()
+            if (game_status.get_enum_game_state() != cCommonGame.GameState.STOP) and \
+                    isinstance(test_reply, cMessages.MsgRepTurnInfo):
+                print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+                assert (test_reply.ack is True)
+                # if game_status.player_turn == player_id:
+                #     assert (test_reply.ack is True)
+                # else:
+                #     assert (test_reply.ack is False)
+            elif (game_status.get_enum_game_state() == cCommonGame.GameState.STOP) and \
+                    isinstance(test_reply, cMessages.MsgRepAck):
+                print("%s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+                assert (test_reply.ack is False)
+            else:
+                print("Incorrect Msg type: %s/%s - %s %s" % (game_status.player_turn,
+                                                             player_id,
+                                                             test_reply,
+                                                             type(test_reply)))
+
+            if game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
+                assert(isinstance(test_reply, cMessages.MsgRepTurnInfo))
+            else:
+                assert (isinstance(test_reply, cMessages.MsgRepAck))
+
+            # Test 4 iv : Request uw report / action
+            test_reply = client_comm_engine.req_uw_report(ship_id=1)
+            if isinstance(test_reply, cMessages.MsgRepUwReport):
+                print("uw_report: %s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+            elif (game_status.get_enum_game_state() == cCommonGame.GameState.STOP) and \
+                    isinstance(test_reply, cMessages.MsgRepAck):
+                print("uw_report: %s/%s - %s" % (game_status.player_turn, player_id, test_reply))
+            else:
+                print("uw_report: Incorrect Msg type: %s/%s - %s %s" % (game_status.player_turn,
+                                                             player_id,
+                                                             test_reply,
+                                                             type(test_reply)))
+            if game_status.get_enum_game_state() != cCommonGame.GameState.STOP:
+                assert (isinstance(test_reply, cMessages.MsgRepUwReport))
+            else:
+                assert (isinstance(test_reply, cMessages.MsgRepAck))
+
+            if isinstance(test_reply, cMessages.MsgRepUwReport) and (test_reply.ack is True):
+                # send new order to the server
+                ship_1_uw_action_list = list()
+                ship_1_uw_action_list.append(cCommonGame.UwActionMoveScan(
+                    goto_pos=cCommonGame.Position(int((boundary[0][0] + boundary[1][0]) // 2),
+                                                  int((boundary[1][0] + boundary[1][1]) // 2)),
+                    scan_dur=10))
+                # ship_2_uw_action_list = list()
+                # ship_2_uw_action_list.append(cCommonGame.UwActionMoveScan(
+                #     goto_pos=cCommonGame.Position(int((boundary[0][0] + boundary[1][0]) // 2),
+                #                                   int((boundary[1][0] + boundary[1][1]) // 2)),
+                #     scan_dur=10))
+                uw_move_info_list = list()
+                uw_move_info_list.append(cCommonGame.UwShipMovementInfo(ship_id=1,
+                                                                        actions=ship_1_uw_action_list))
+                # uw_move_info_list.append(cCommonGame.UwShipMovementInfo(ship_id=2,
+                #                                                         actions=ship_2_uw_action_list))
+                test_reply = client_comm_engine.req_action_uw_ops(uw_move_info_list)
+                if isinstance(test_reply, cMessages.MsgRepAck):
+                    print("uw_ops_action : player_id: %s - %s" % (player_id, test_reply.ack))
+                else:
+                    print("uw_ops_action : %s" % test_reply)
+                assert (isinstance(test_reply, cMessages.MsgRepAck))
+            # else do nothing
+
+            # Test 4  v : Request move action
             move_list = list()
             move_list.append(cCommonGame.ShipMovementInfo(1, cCommonGame.Action.FWD))
             move_list.append(cCommonGame.ShipMovementInfo(1, cCommonGame.Action.CW))
@@ -207,7 +284,7 @@ def wos_test_client(num_of_rounds, player_id, boundary):
             assert (isinstance(test_reply, cMessages.MsgRepAck))
 
 
-            # Test 4 iv : Request fire action
+            # Test 4 vi : Request fire action
             fire_list = list()
             fire_list.append(cCommonGame.FireInfo(cCommonGame.Position(0, 0)))
             test_reply = client_comm_engine.req_action_fire(fire_list)

@@ -91,7 +91,7 @@ def executeScript(exec_file, exec_script, startup_file=""):
         exec_cmd = exec_file + ' --minimize --run ' + exec_script
         if isinstance(startup_file, str):
             exec_cmd += ' --startup_file ' + startup_file
-        exec_cmd += ' --verbose off --exit'
+        exec_cmd += ' --exit'
 
         # executes GMAT script from command line
         print("Exec : %s" % exec_cmd)
@@ -314,13 +314,13 @@ def getPass(satLat, satLon, satAlt, gridLat, gridLon):
     if inGridIdx[0].size != 0:
         inGridIdx = np.append(np.min(inGridIdx) - 1, inGridIdx)
         inGridIdx = np.append(inGridIdx, np.max(inGridIdx) + 1)
-        satLat = np.interp(np.arange(0, len(inGridIdx), 0.01), \
+        satLat = np.interp(np.arange(0, len(inGridIdx), 0.001), \
                            np.arange(0, len(inGridIdx), 1), \
                            satLat[inGridIdx])
-        satLon = np.interp(np.arange(0, len(inGridIdx), 0.01), \
+        satLon = np.interp(np.arange(0, len(inGridIdx), 0.001), \
                            np.arange(0, len(inGridIdx), 1), \
                            satLon[inGridIdx])
-        satAlt = np.interp(np.arange(0, len(inGridIdx), 0.01), \
+        satAlt = np.interp(np.arange(0, len(inGridIdx), 0.001), \
                            np.arange(0, len(inGridIdx), 1), \
                            satAlt[inGridIdx])
         for satIdx in range(0, len(satLat)):

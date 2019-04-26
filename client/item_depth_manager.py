@@ -23,10 +23,17 @@ class WosItemDepthManager(object):
         self.depths[ItemType.SHIP] = 3
         self.depths[ItemType.TERRAIN_AIR] = 4
         self.depths[ItemType.ANNOTATION] = 5
+        self.depths[ItemType.BOUNDARY] = 6
 
     def get_depth(self, obj):
         try:
             return self.depths.get(obj.get_type(), ItemType.UNKNOWN)
+        except:
+            return self.depths[ItemType.UNKNOWN]
+
+    def get_depths_by_item(self, item_type):
+        try:
+            return self.depths[item_type]
         except:
             return self.depths[ItemType.UNKNOWN]
 

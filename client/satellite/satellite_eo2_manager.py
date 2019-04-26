@@ -41,11 +41,13 @@ class WosSatelliteEo2Manager(QObject):
 
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
-        dialog.setWindowTitle('Please input the 6 parameter')
+        dialog.setWindowTitle('SAR Satellite')
         dialog.setMinimumWidth(50)
         dialog.accepted.connect(self.submit_command)
         dialog.text_list = []
 
+        label_text = ['Semi Major Axis', 'Eccentricity', 'Inclination', 'Argument of Perigee',
+                      'Right Ascension of Ascending Node', 'True Anomaly']
         default_text = [6378 + 2000, 0, 5, 0, 150, 0]
 
         layout = QGridLayout(dialog)
@@ -53,7 +55,7 @@ class WosSatelliteEo2Manager(QObject):
 
         dbl_validator = QDoubleValidator()
         for i in range(0, 6):
-            layout.addWidget(QLabel("%s:" % i), i, 0)
+            layout.addWidget(QLabel("%s:" % label_text[i]), i, 0)
             line_edit = QLineEdit()
             line_edit.setValidator(dbl_validator)
             line_edit.setText(str(default_text[i]))
@@ -81,7 +83,7 @@ class WosSatelliteEo2Manager(QObject):
 
         eo_button = QToolButton(widget)
         eo_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        eo_button.setText("Send EO Satellite 2")
+        eo_button.setText("Send SAR Satellite")
         eo_button.released.connect(self.display_pop_up)
         layout.addWidget(eo_button, 0, 0, 1, 3)
 
@@ -92,7 +94,7 @@ class WosSatelliteEo2Manager(QObject):
         if cfg is None or not cfg.en_satellite_func2:
             return
 
-        self.wos_interface.log("EO Satellite mode 2 is enabled")
+        self.wos_interface.log("SAR Satellite mode is enabled")
 
         self.update_action_widget()
 
@@ -107,7 +109,7 @@ class WosSatelliteEo2Manager(QObject):
         satcom.is_enable = True
         satcom.is_rhs = False
         satcom.is_rhs = (self.dialog.checkbox.checkState() == Qt.Checked)
-        self.wos_interface.log("Sending EO satellite 2..")
+        self.wos_interface.log("Sending SAR Satellite..")
         self.dialog.deleteLater()
         self.dialog = None
         rep = WosClientInterfaceManager().send_action_satcom(satcom)
@@ -117,8 +119,9 @@ class WosSatelliteEo2Manager(QObject):
             # Handle case where update_turn was wrongly called
             if turn_info and turn_info.ack:
                 for i in range(0, len(turn_info.other_ship_list)):
-                    WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
-                                                       turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+                    if not turn_info.other_ship_list[i].is_sunken:
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log("<font color='brown'>Failed! Only 1 satcom action per turn.</font>")
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")

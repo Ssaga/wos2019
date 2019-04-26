@@ -1,11 +1,14 @@
 import cCommonGame
 import json
+import numpy
 
 
 class WosInterface(object):
     def __init__(self):
         self.actions = None
         self.battlefield = None
+        # Server config, server_cfg not in use to be refractored
+        self.cfg = None
         self.client_cfg = None
         self.console = None
         self.is_debug = False
@@ -21,6 +24,8 @@ class WosInterface(object):
         try:
             with open('client/game_client.cfg') as data_file:
                 self.client_cfg = json.load(data_file)
+                random_seed = self.client_cfg['random_seed']
+                numpy.random.seed(seed=random_seed)
         except FileNotFoundError:
             print('No such file or directory: \'client/game_client2.cfg\'')
 

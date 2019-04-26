@@ -114,6 +114,12 @@ class ClientCommEngine:
         print("Teardown completed")
 
     def send(self, msg):
+        """
+        Send the given message to the server.
+        Note: This is a blocking operation
+        :param msg: Msg Request type sub-class
+        :return: reply msg from the server
+        """
         # reset the connection if required
         if (self.reset_conn is True):
             self.setup_connect()
@@ -160,6 +166,10 @@ class ClientCommEngine:
         return reply
 
     def req_register(self):
+        """
+        Get the game map data initialized at start-up
+        :return: MsgRepAckMap msg
+        """
         request = cMessages.MsgReqRegister(self.client_id)
         data = self.send(request)
         reply = None
@@ -167,8 +177,16 @@ class ClientCommEngine:
             reply = data
         return reply
 
-    def req_register_ships(self, ship_list):
-        request = cMessages.MsgReqRegShips(self.client_id, ship_list)
+    def req_register_ships(self, ship_list=[], uw_ship_list=[]):
+        """
+        Message for the player to register their ships for the game
+        :param ship_list: List of ShipInfo to be registered
+        :param uw_ship_list: List of UwShipInfo to be registered
+        :return: MsgRepAck msg [indicate if it is successful]
+        """
+        request = cMessages.MsgReqRegShips(player_id=self.client_id,
+                                           ship_list=ship_list,
+                                           uw_ship_list=uw_ship_list)
         data = self.send(request)
         reply = None
         if isinstance(data, cMessages.MsgRep):
@@ -176,6 +194,10 @@ class ClientCommEngine:
         return reply
 
     def req_config(self):
+        """
+        Request the configuration of the current game
+        :return: MsgRepGameConfig msg
+        """
         request = cMessages.MsgReqConfig(self.client_id)
         data = self.send(request)
         reply = None
@@ -184,6 +206,16 @@ class ClientCommEngine:
         return reply
 
     def req_turn_info(self):
+        """
+        Get the information of the player for the current turn
+        This includes the following:
+            - List of Player ships' status
+            - List of Civilian / Enemy ships visable to the user
+            - Information on the player being bombarded
+            - Map data [Cloud and Island]
+            - Player's Uw ships' position
+        :return: MsgRepTurnInfo msg
+        """
         request = cMessages.MsgReqTurnInfo(self.client_id)
         data = self.send(request)
         reply = None
@@ -192,6 +224,11 @@ class ClientCommEngine:
         return reply
 
     def req_action_move(self, move):
+        """
+        Send the data for the Ship Movement Action
+        :param move: ShipMovementInfo / List of ShipMovementInfo
+        :return: MsgRepAck msg
+        """
         request = cMessages.MsgReqTurnMoveAct(self.client_id, move)
         data = self.send(request)
         reply = None
@@ -200,6 +237,11 @@ class ClientCommEngine:
         return reply
 
     def req_action_fire(self, fire):
+        """
+        Send the data for the Fire Action
+        :param fire: FireInfo / List of FireInfo
+        :return: MsgRepAck msg
+        """
         request = cMessages.MsgReqTurnFireAct(self.client_id, fire)
         data = self.send(request)
         reply = None
@@ -208,7 +250,39 @@ class ClientCommEngine:
         return reply
 
     def req_action_satcom(self, satcom):
+        """
+        Send the Satcom parameter to trigger a satcom action
+        :param satcom: SatcomInfo class
+        :return: MsgRepAckMap msg
+        """
         request = cMessages.MsgReqTurnSatAct(self.client_id, satcom)
+        data = self.send(request)
+        reply = None
+        if isinstance(data, cMessages.MsgRep):
+            reply = data
+        return reply
+
+    def req_action_uw_ops(self, uw_actions):
+        """
+        Send a list of required uw operation to the server
+        :param uw_actions: List of UwAction msgs
+        :return: MsgRepAck msg
+        """
+        request = cMessages.MsgReqUwAction(self.client_id, uw_actions)
+        data = self.send(request)
+        reply = None
+        if isinstance(data, cMessages.MsgRep):
+            reply = data
+        return reply
+
+    def req_uw_report(self, ship_id):
+        """
+        Request for the uw report from the uw action list carried-out by the
+        uw operation
+        :param ship_id: Ship Id of the uw ship
+        :return: MsgRepUwReport msg
+        """
+        request = cMessages.MsgReqUwReport(self.client_id, ship_id)
         data = self.send(request)
         reply = None
         if isinstance(data, cMessages.MsgRep):
@@ -285,7 +359,7 @@ class ClientCommEngineSubscriber(threading.Thread):
         print("\tSubscribing to server... [%s]" % conn_string)
         self.socket.connect(conn_string)
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.setsockopt(zmq.SUBSCRIBE, b"")
+        self.socket.setsockopt(zmq.SUBSCRIBE, b"");
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
 

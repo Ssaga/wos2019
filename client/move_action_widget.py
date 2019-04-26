@@ -36,6 +36,17 @@ class WosMoveActionWidget(QWidget):
     def get_move_info(self):
         return self.move_ship_combo.currentData(), self.move_action_combo.currentData()
 
+    def set_ship_actions(self, ship_id, action):
+        self.move_ship_combo.setCurrentText(str(ship_id))
+        if action == cCommonGame.Action.FWD:
+            self.move_action_combo.setCurrentText('Forward')
+        elif action == cCommonGame.Action.CW:
+            self.move_action_combo.setCurrentText('Turn clockwise')
+        elif action == cCommonGame.Action.CCW:
+            self.move_action_combo.setCurrentText('Turn anti-clockwise')
+        else:
+            self.move_action_combo.setCurrentText('Skip')
+
     def update_move_ship_combo(self, ships):
         self.move_ship_combo.blockSignals(True)
         # Preserve last command

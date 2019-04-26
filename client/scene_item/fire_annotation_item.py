@@ -61,6 +61,7 @@ class WosFireAnnotationItem(WosBattlefieldItem):
         pixel = self.map_grid_to_position(x, y)
         self.prepareGeometryChange()
         self.body = QRectF(pixel.x(), pixel.y(), self.field_info.size.x(), self.field_info.size.y())
+        self.update()
 
     def show_tool_tip(self, event):
         QToolTip.showText(event.screenPos(), "%s (%s, %s)" % (self.name, self.x, self.y))

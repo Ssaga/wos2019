@@ -1,11 +1,12 @@
 import threading
 import time
 import collections
+import numpy as np
 
 from cClientCommEngine import ClientCommEngine
 from cServerCommEngine import ServerCommEngine
 from cCommonCommEngine import ConnInfo
-from cCommonGame import Position
+from cCommonGame import Position, UwActionMoveScan
 from cCommonGame import Action
 from cCommonGame import GameStatus
 from cCommonGame import GameState
@@ -13,14 +14,19 @@ from cCommonGame import ShipInfo
 from cCommonGame import FireInfo
 from cCommonGame import ShipMovementInfo
 from cCommonGame import SatcomInfo
+from cCommonGame import ShipType
+from cCommonGame import UwShipInfo
+from cCommonGame import UwActionMoveScan
+# from cCommonGame import UwActionScan
+# from cCommonGame import UwActionNop
 import cMessages
 
 run_count = 0
 total_turn_cnt = 4
 total_round_cnt = 1
 total_exec_cnt = (total_round_cnt * total_turn_cnt) + total_turn_cnt
-bc_rate = 500		# unit in milliseconds
-polling_rate = 500	# unit in milliseconds
+bc_rate = 500  # unit in milliseconds
+polling_rate = 500  # unit in milliseconds
 
 
 # ---------------------------------------------------------------------
@@ -68,37 +74,85 @@ def perform_server_task(server_comm_engine, cnt):
             msg_rep = None
             if msg_req.type_id == 0:
                 print("\tServer: RECV: Request Register")
-                map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
-                msg_rep = cMessages.MsgRepAckMap(True, map_data)
-            elif msg_req.type_id == 6:
-                print("\tServer: RECV: Request satcom action")
-                map_data = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+                map_data = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
                 msg_rep = cMessages.MsgRepAckMap(True, map_data)
             elif msg_req.type_id == 2:
                 print("\tServer: RECV: Request Game Configure")
                 msg_rep = cMessages.MsgRepAck(True)
             elif msg_req.type_id == 3:
                 print("\tServer: RECV: Request Turn Info")
+                self_ship_list = list()
+                self_ship_list.append(ShipInfo(1, Position(1, 1), 0, 1, False))
+                self_ship_list.append(ShipInfo(2, Position(2, 2), 90, 2, False))
+                self_ship_list.append(ShipInfo(3, Position(3, 3), 180, 2, False))
+
+                enemy_ship_list = list()
+                enemy_ship_list.append(ShipInfo(1, Position(1, 1), 180, 1, False))
+                enemy_ship_list.append(ShipInfo(2, Position(2, 2), 270, 2, False))
+                enemy_ship_list.append(ShipInfo(3, Position(3, 3), 0, 2, False))
+
+                other_ship_list = list()
+                other_ship_list.append(ShipInfo(ship_id=1,
+                                                position=Position(1, 1),
+                                                heading=0,
+                                                size=1,
+                                                is_sunken=False,
+                                                ship_type=ShipType.CIV))
+                other_ship_list.append(ShipInfo(ship_id=2,
+                                                position=Position(2, 2),
+                                                heading=90,
+                                                size=2,
+                                                is_sunken=False,
+                                                ship_type=ShipType.CIV))
+                other_ship_list.append(ShipInfo(ship_id=3,
+                                                position=Position(3, 3),
+                                                heading=180,
+                                                size=2,
+                                                is_sunken=False,
+                                                ship_type=ShipType.CIV))
+                self_uw_ship_list = list()
+                self_uw_ship_list.append(UwShipInfo(1, Position(1, 1)))
+                self_uw_ship_list.append(UwShipInfo(2, Position(2, 2)))
+
+                bombardment_list = list()
+                bombardment_list.append(Position(0, 0))
+                bombardment_list.append(Position(1, 1))
+
                 msg_rep = cMessages.MsgRepTurnInfo(True,
-                                                   [ShipInfo(1, Position(1, 1), 0, 1, False),
-                                                    ShipInfo(2, Position(2, 2), 90, 2, False),
-                                                    ShipInfo(3, Position(3, 3), 180, 3, False),
-                                                    ShipInfo(4, Position(4, 4), 270, 4, True)],
-                                                   [Position(5, 5),
-                                                    Position(6, 6),
-                                                    Position(7, 7)],
+                                                   self_ship_list,
+                                                   self_uw_ship_list,
+                                                   enemy_ship_list,
+                                                   other_ship_list,
+                                                   bombardment_list,
                                                    [[1, 1, 1, 1],
                                                     [1, 0, 0, 1],
                                                     [1, 0, 0, 1],
                                                     [1, 1, 1, 1]])
+            elif msg_req.type_id == 6:
+                print("\tServer: RECV: Request satcom action")
+                map_data = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+                msg_rep = cMessages.MsgRepAckMap(True, map_data)
+
+            elif msg_req.type_id == 7:
+                print("\tServer: RECV: Request UW report")
+                report = list()
+                for i in range(8):
+                    data = list()
+                    for j in range(8):
+                        data.append(np.ones(50).tolist())
+                    report.append(data)
+                msg_rep = cMessages.MsgRepUwReport(True, report)
+
             else:
                 ack = True
                 if msg_req.type_id == 1:
                     print("\tServer: RECV: Request Ship registration")
                 elif msg_req.type_id == 4:
-                    print("\tServer: RECV: Request move acion")
+                    print("\tServer: RECV: Request move action")
                 elif msg_req.type_id == 5:
-                    print("\tServer: RECV: Request fire acion")
+                    print("\tServer: RECV: Request fire action")
+                elif msg_req.type_id == 7:
+                    print("\tServer: RECV: Request UW action")
                 else:
                     ack = False
                 msg_rep = cMessages.MsgRepAck(ack)
@@ -148,9 +202,16 @@ def perform_client_task(list_client_comm_engine, cnt):
         else:
             print("No reply from server")
 
-        ship_list = [ShipInfo(1, Position(36, 20), 0, 3, False), ShipInfo(2, Position(2, 2), 90, 3, False)]
+        ship_list = list()
+        ship_list.append(ShipInfo(1, Position(36, 20), 0, 3, False))
+        ship_list.append(ShipInfo(2, Position(2, 2), 90, 3, False))
 
-        rep = list_client_comm_engine[player_turn].req_register_ships(ship_list)
+        uw_ship_list = list()
+        uw_ship_list.append(UwShipInfo(1, Position(10, 10)))
+        uw_ship_list.append(UwShipInfo(1, Position(20, 20)))
+
+        rep = list_client_comm_engine[player_turn].req_register_ships(ship_list,
+                                                                      uw_ship_list)
         if rep is not None:
             print(vars(rep))
         else:
@@ -177,18 +238,45 @@ def perform_client_task(list_client_comm_engine, cnt):
         # move_action.append(ShipMovementInfo(1, Action.FWD))
         # move_action.append(ShipMovementInfo(1, Action.CW))
         rep = list_client_comm_engine[player_turn].req_action_move([ShipMovementInfo(1, Action.FWD),
-                                                                    ShipMovementInfo(2, Action.CW),
-                                                                    ShipMovementInfo(3, Action.CCW)])
+                                                                    ShipMovementInfo(2, Action.CW)])
         if rep is None:
             print("No valid reply from server")
         else:
             print(vars(rep))
+
         # Fire at the enemy
         # fire_action = []
         # fire_action.append(FireInfo(Position(1, 1)))
         # fire_action.append(FireInfo(Position(2, 2)))
         rep = list_client_comm_engine[player_turn].req_action_fire([FireInfo(Position(1, 1)),
                                                                     FireInfo(Position(2, 2))])
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+
+        # Req UW
+        uw_ops = list()
+        uw_ops.append(UwActionMoveScan(goto_pos=Position(1, 1),
+                                       scan_dur=1))
+        uw_ops.append(UwActionMoveScan(scan_dur=1))
+        uw_ops.append(UwActionMoveScan())
+
+        rep = list_client_comm_engine[player_turn].req_action_uw_ops(uw_ops)
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+
+        # Req uw report
+        rep = list_client_comm_engine[player_turn].req_uw_report()
+        if rep is None:
+            print("No valid reply from server")
+        else:
+            print(vars(rep))
+
+        # Req turn info
+        rep = list_client_comm_engine[player_turn].req_turn_info()
         if rep is None:
             print("No valid reply from server")
         else:

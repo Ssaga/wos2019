@@ -90,6 +90,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# PyCharm project settings
+.idea
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -102,3 +105,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Project specifics
+gmat_io/*
+!gmat_io/template

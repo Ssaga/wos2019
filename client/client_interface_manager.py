@@ -87,6 +87,15 @@ class WosClientInterfaceManager(object):
             return rep
         return False
 
+    def get_uw_report(self, ship_id):
+        rep = self.client_commEngine.req_uw_report(ship_id)
+        # print(vars(rep))
+        if isinstance(rep, cMessages.MsgRepUwReport):
+            print(vars(rep))
+            return rep
+        print(rep)
+        return False
+
     def register_player(self):
         rep = self.client_commEngine.req_register()
         # print(vars(rep))
@@ -96,14 +105,12 @@ class WosClientInterfaceManager(object):
 
     def send_action_attack(self, fire_list):
         rep = self.client_commEngine.req_action_fire(fire_list)
-        print(vars(rep))
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False
 
     def send_action_move(self, move_list):
         rep = self.client_commEngine.req_action_move(move_list)
-        print(vars(rep))
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False
@@ -114,9 +121,14 @@ class WosClientInterfaceManager(object):
             return rep
         return False
 
-    def send_deployment(self, ship_list):
-        rep = self.client_commEngine.req_register_ships(ship_list)
-        print(vars(rep))
+    def send_action_uw_ops(self, uw_actions):
+        rep = self.client_commEngine.req_action_uw_ops(uw_actions)
+        if isinstance(rep, cMessages.MsgRepAck):
+            return rep
+        return False
+
+    def send_deployment(self, ship_list, ship_uw_list=list()):
+        rep = self.client_commEngine.req_register_ships(ship_list, ship_uw_list)
         if isinstance(rep, cMessages.MsgRepAck):
             return rep.ack
         return False
