@@ -12,7 +12,7 @@ import threading
 
 # import wosBattleshipServer.satcom_scan.orbitFns_v2 as orb
 # import wosBattleshipServer.satcom_scan.orbitFns_v3 as orb
-import wosBattleshipServer.satcom_scan.orbitFns_v4 as orb
+import wosBattleshipServer.satcom_scan.orbitFns_v5 as orb
 
 from wosBattleshipServer.satcom_scan.cSatcomScannerConfig import JsonDecoder
 from wosBattleshipServer.satcom_scan.cSatcomScannerConfig import JsonEncoder
@@ -73,6 +73,7 @@ class SatcomScanner:
         """
         # Added by ttl
         # setup the directory for the operation
+        extra = self.config.extra
         isOk = True
         print(os.path.dirname(os.path.realpath(__file__)))
         count = 0
@@ -180,7 +181,8 @@ class SatcomScanner:
                                               self.config.tr,
                                               self.config.bl,
                                               self.config.br,
-                                              [self.ngrids_y, self.ngrids_x])
+                                              [self.ngrids_y, self.ngrids_x], 
+                                              extra)
             # print("GRID LAT: %s %s" % (gridLat, len(gridLat)))
             # print("GRID LON: %s %s" % (gridLon, len(gridLon)))
             # print("final_lat: %s %s" % (final_lat, len(final_lat)))
@@ -189,10 +191,12 @@ class SatcomScanner:
 
             [mask, pos_idx, final_lat, final_lon, final_alt] = orb.getPass(final_lat, final_lon, alt, gridLat, gridLon)
 
+            
             if np.sum(mask) != 0:
                 gs = orb.getSwathWidth(final_alt, pos_idx, self.config.ifov_radians)
                 grid_okay = orb.swathWidth2Grid(gs, gridLat, gridLon)
                 mask = orb.addWidth(mask, grid_okay, gs)
+            mask = mask[extra:-extra, extra:-extra]
 
         else:
             print('Infeasible Orbital Parameters!')

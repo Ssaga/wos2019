@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from setuptools.command.easy_install import easy_install
 
 
 class SatcomScanConfig:
@@ -11,6 +12,7 @@ class SatcomScanConfig:
                  tr=[4.472, 105.00],
                  bl=[-1, 102.00],
                  br=[-1, 105.00],
+                 extra=30,
                  gmat_exec="",
                  gmat_root_dir="",
                  gmat_io__dir="",
@@ -23,6 +25,7 @@ class SatcomScanConfig:
         self.tr = tr
         self.bl = bl
         self.br = br
+        self.extra = extra
         self.gmat_exec = gmat_exec
         self.gmat_root_dir = gmat_root_dir
         self.gmat_io__dir = gmat_io__dir
@@ -48,6 +51,7 @@ class JsonEncoder(json.JSONEncoder):
                 "tr": obj.tr,
                 "bl": obj.bl,
                 "br": obj.br,
+                "extra": obj.extra,
                 "gmat_exec": obj.gmat_exec,
                 "gmat_root_dir": obj.gmat_root_dir,
                 "gmat_io__dir": obj.gmat_io__dir,
@@ -88,6 +92,7 @@ class JsonDecoder(json.JSONDecoder):
             obj['tr'],
             obj['bl'],
             obj['br'],
+            obj['extra'],
             obj['gmat_exec'],
             obj['gmat_root_dir'],
             obj['gmat_io__dir'],

@@ -26,7 +26,8 @@ class ServerGameConfig:
                  map_size=Size(120, 120),
                  countdown_duration=30,  # Unit in seconds
                  island_coverage=0,
-                 cloud_coverage=0,
+                 cloud_coverage_min=0,
+                 cloud_coverage_max=0,
                  cloud_seed_cnt=0,
                  civilian_ship_count=0,
                  civilian_ship_move_probility=0.25,
@@ -48,7 +49,8 @@ class ServerGameConfig:
         self.map_size = map_size
         self.countdown_duration = countdown_duration
         self.island_coverage = island_coverage
-        self.cloud_coverage = cloud_coverage
+        self.cloud_coverage_min = cloud_coverage_min
+        self.cloud_coverage_max = cloud_coverage_max
         self.cloud_seed_cnt = cloud_seed_cnt
         self.civilian_ship_count = civilian_ship_count
         self.civilian_ship_move_probility = civilian_ship_move_probility
@@ -350,7 +352,8 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "map_size": obj.map_size,
                 "countdown_duration": obj.countdown_duration,
                 "island_coverage": obj.island_coverage,
-                "cloud_coverage": obj.cloud_coverage,
+                "cloud_coverage_min": obj.cloud_coverage_min,
+                "cloud_coverage_max": obj.cloud_coverage_max,
                 "cloud_seed_cnt": obj.cloud_seed_cnt,
                 "civilian_ship_count": obj.civilian_ship_count,
                 "civilian_ship_move_probility": obj.civilian_ship_move_probility,
@@ -410,28 +413,29 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
     @staticmethod
     def parse_svr_game_cfg(obj):
         return ServerGameConfig(
-            obj['req_rep_conn'],
-            obj['pub_sub_conn'],
-            obj['polling_rate'],
-            obj['bc_rate'],
-            obj['map_size'],
-            obj['countdown_duration'],
-            obj['island_coverage'],
-            obj['cloud_coverage'],
-            obj['cloud_seed_cnt'],
-            obj['civilian_ship_count'],
-            obj['civilian_ship_move_probility'],
-            obj['num_of_rounds'],
-            obj['num_of_player'],
-            obj['num_of_row'],
-            obj["num_move_act"],
-            obj["num_fire_act"],
-            obj["num_satcom_act"],
-            obj["num_uw_action"],
-            obj['radar_cross_table'],
-            obj['en_satellite'],
-            obj['en_satellite_func2'],
-            obj['en_uw_action']
+            req_rep_conn=obj['req_rep_conn'],
+            pub_sub_conn=obj['pub_sub_conn'],
+            polling_rate=obj['polling_rate'],
+            bc_rate=obj['bc_rate'],
+            map_size=obj['map_size'],
+            countdown_duration=obj['countdown_duration'],
+            island_coverage=obj['island_coverage'],
+            cloud_coverage_min=obj['cloud_coverage_min'],
+            cloud_coverage_max=obj['cloud_coverage_max'],
+            cloud_seed_cnt=obj['cloud_seed_cnt'],
+            civilian_ship_count=obj['civilian_ship_count'],
+            civilian_ship_move_probility=obj['civilian_ship_move_probility'],
+            num_of_rounds=obj['num_of_rounds'],
+            num_of_player=obj['num_of_player'],
+            num_of_row=obj['num_of_row'],
+            num_move_act=obj["num_move_act"],
+            num_fire_act=obj["num_fire_act"],
+            num_satcom_act=obj["num_satcom_act"],
+            num_uw_action=obj["num_uw_action"],
+            radar_cross_table=obj['radar_cross_table'],
+            en_satellite=obj['en_satellite'],
+            en_satellite_func2=obj['en_satellite_func2'],
+            en_uw_action=obj['en_uw_action']
         )
 
 

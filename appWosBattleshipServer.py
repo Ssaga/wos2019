@@ -21,14 +21,15 @@ from cCommonGame import ShipInfo
 from cCommonGame import UwShipInfo as CommonUwShipInfo
 from cCommonGame import ShipMovementInfo
 from cCommonGame import FireInfo
-from cCommonGame import SatcomInfo
+# from cCommonGame import SatcomInfo
 from cCommonGame import UwShipMovementInfo
 from cCommonGame import Action
 from cCommonGame import ShipType
 
 from wosBattleshipServer.funcIslandGeneration import island_generation
-from wosBattleshipServer.funcCloudGeneration import cloud_generation
-from wosBattleshipServer.funcCloudGeneration import cloud_change
+# from wosBattleshipServer.funcCloudGeneration import cloud_generation
+# from wosBattleshipServer.funcCloudGeneration import cloud_change
+from wosBattleshipServer.funcCloudGeneration import CloudGrid
 from wosBattleshipServer.funcCivilianShipsGeneration import civilian_ship_generation
 from wosBattleshipServer.funcCivilianShipsMovement import civilian_ship_movement
 from wosBattleshipServer.funcSatcomScan import satcom_scan
@@ -143,7 +144,7 @@ class WosBattleshipServer(threading.Thread):
         # Game Setup --------------------------------------------------------------
         # Generate the array required
         self.island_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
-        self.cloud_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
+        # self.cloud_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
         self.civilian_ship_list = list()
         self.civilian_ship_layer = np.zeros((self.game_setting.map_size.x, self.game_setting.map_size.y), dtype=np.int)
 
@@ -181,12 +182,19 @@ class WosBattleshipServer(threading.Thread):
         print(self.island_layer.T)
 
         # Generate the cloud
-        cloud_generation(self.cloud_layer,
-                         self.game_setting.cloud_coverage,
-                         self.game_setting.cloud_seed_cnt)
-        self.cloud_layer = self.cloud_layer.astype(np.int)
+        self.cloud_grid = CloudGrid(shape=(self.game_setting.map_size.x,
+                                           self.game_setting.map_size.y),
+                                    coverage=(self.game_setting.cloud_coverage_min,
+                                              self.game_setting.cloud_coverage_max),
+                                    seed=self.game_setting.cloud_seed_cnt)
         print("Cloud data: ---------------------------------------------")
-        print(self.cloud_layer.T)
+        print(self.cloud_grid.grid.T)
+        # cloud_generation(self.cloud_layer,
+        #                  self.game_setting.cloud_coverage,
+        #                  self.game_setting.cloud_seed_cnt)
+        # self.cloud_layer = self.cloud_layer.astype(np.int)
+        # print("Cloud data: ---------------------------------------------")
+        # print(self.cloud_layer.T)
 
         # Generate the civilian ships
         for key in self.player_boundary_dict:
@@ -410,9 +418,10 @@ class WosBattleshipServer(threading.Thread):
         self.game_status.game_round = self.game_status.game_round + 1
 
         # generate the cloud to be used for this round
-        cloud_change(self.cloud_layer,
-                     self.game_setting.cloud_coverage)
-        self.cloud_layer = self.cloud_layer.astype(np.int)
+        self.cloud_grid.step()
+        # cloud_change(self.cloud_layer,
+        #              self.game_setting.cloud_coverage)
+        # self.cloud_layer = self.cloud_layer.astype(np.int)
 
         # generate new position of the civilian ships
         civilian_ship_movement(self.civilian_ship_list,
@@ -666,7 +675,8 @@ class WosBattleshipServer(threading.Thread):
                 for uw_ship_id in player_status.uw_ship_dict.keys():
                     uw_ship_info = player_status.uw_ship_dict[uw_ship_id]
                     if isinstance(uw_ship_info, UwShipInfo):
-                        uw_ship_info.execute(ship_list)
+                        for i in range(self.game_setting.num_uw_action):
+                            uw_ship_info.execute(ship_list)
                     # else do nothing as UwShipInfo is not provided
             # else do nothing as we cannot found the correspond user
 
@@ -1157,13 +1167,17 @@ class WosBattleshipServer(threading.Thread):
         player_map_mask = self.player_boundary_layer[player_id]
 
         # Get the cloud data
-        cloud_friendly = self.cloud_layer * player_map_mask * MapData.CLOUD_FRIENDLY
-        cloud_hostile = self.cloud_layer * np.invert(player_map_mask) * MapData.CLOUD_HOSTILE
+        cloud_friendly = self.cloud_grid.grid * player_map_mask * MapData.CLOUD_FRIENDLY
+        cloud_hostile = self.cloud_grid.grid * np.invert(player_map_mask) * MapData.CLOUD_HOSTILE
+        # cloud_friendly = self.cloud_layer * player_map_mask * MapData.CLOUD_FRIENDLY
+        # cloud_hostile = self.cloud_layer * np.invert(player_map_mask) * MapData.CLOUD_HOSTILE
 
         # Update the fog of war and and hostile cloud
         satcom_mask = self.last_satcom_mask.get(player_id)
         if isinstance(satcom_mask, np.ndarray) and \
-                (satcom_mask.shape == self.cloud_layer.shape):
+                (satcom_mask.shape == self.cloud_grid.grid.shape):
+        # if isinstance(satcom_mask, np.ndarray) and \
+        #         (satcom_mask.shape == self.cloud_layer.shape):
             self.turn_map_fog[player_id] = self.turn_map_fog[player_id] * np.invert(satcom_mask.astype(np.bool))
             if self.last_satcom_enable[player_id]:
                 cloud_hostile = cloud_hostile * (self.turn_map_fog[player_id] == MapData.FOG_OF_WAR)
@@ -1443,6 +1457,4 @@ def main():
 if __name__ == '__main__':
     version = "0.0.1.1"
     print("*** %s %s (%s)" % (__file__, version, time.ctime(time.time())))
-    # temporary fix the seed for the congress
-    np.random.seed(0)
     main()
