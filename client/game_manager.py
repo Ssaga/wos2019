@@ -40,8 +40,8 @@ class WosGameManager(QObject):
     def change_state(self, old_state, new_state):
         self.state = new_state
         state_manager = self.state_managers[self.state]
-        state_manager.start()
         state_manager.phase_ended.connect(self.next_state)
+        state_manager.start()
 
     def next_state(self):
-         self.state_changed.emit(self.state, self.state + 1)
+        self.state_changed.emit(self.state, self.state + 1)

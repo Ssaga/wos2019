@@ -1,6 +1,7 @@
 import cCommonGame
 import json
 import numpy
+import sys
 
 
 class WosInterface(object):
@@ -8,14 +9,15 @@ class WosInterface(object):
         self.actions = None
         self.battlefield = None
         # Server config, server_cfg not in use to be refractored
-        self.cfg = None
-        self.client_cfg = None
+        self.cfg = dict()
+        self.client_cfg = dict()
         self.console = None
         self.is_debug = False
         self.player_info = None
         self.server_cfg = None
         self.window = None
         self.read_client_config()
+        self.overwrite_client_config()
 
     def client_config(self):
         return self.client_cfg
@@ -28,6 +30,13 @@ class WosInterface(object):
                 numpy.random.seed(seed=random_seed)
         except FileNotFoundError:
             print('No such file or directory: \'client/game_client2.cfg\'')
+
+    def overwrite_client_config(self):
+        if len(sys.argv) > 1:
+            try:
+                self.client_cfg.update(json.loads(sys.argv[1]))
+            except TypeError:
+                print("Second argument must be a valid JSON string")
 
     def log(self, text, type=cCommonGame.LogType.GAME):
         self.console.log_simple(text, type)
