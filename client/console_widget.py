@@ -40,7 +40,6 @@ class WosConsoleWidget(QDockWidget):
             self.console.ensureCursorVisible()
 
     def url_clicked(self, link):
-        print (link)
         QDesktopServices.openUrl(link)
 
     def set_log_level(self, mode):
