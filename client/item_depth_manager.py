@@ -20,9 +20,9 @@ class WosItemDepthManager(object):
         self.depths[ItemType.UNKNOWN] = 0
         self.depths[ItemType.TERRAIN_LAND] = 1
         self.depths[ItemType.TERRAIN_ON_HOVER] = 2
-        self.depths[ItemType.UW_SHIP] = 3
-        self.depths[ItemType.SHIP] = 4
-        self.depths[ItemType.TERRAIN_AIR] = 5
+        self.depths[ItemType.SHIP] = 3
+        self.depths[ItemType.TERRAIN_AIR] = 4
+        self.depths[ItemType.UW_SHIP] = 5
         self.depths[ItemType.ANNOTATION] = 6
         self.depths[ItemType.BOUNDARY] = 7
 
