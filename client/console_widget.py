@@ -1,8 +1,8 @@
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QGridLayout
-from PyQt5.QtWidgets import QTextEdit
+from PyQt5.QtWidgets import QTextBrowser
 from PyQt5.QtWidgets import QDockWidget
 from PyQt5.QtWidgets import QWidget
-from enum import Enum
 import cCommonGame
 import datetime
 
@@ -20,7 +20,10 @@ class WosConsoleWidget(QDockWidget):
         self.setWidget(widget)
         layout = QGridLayout(widget)
 
-        self.console = QTextEdit('', self)
+        self.console = QTextBrowser(self)
+        self.console.setReadOnly(True)
+        self.console.setOpenLinks(False)
+        self.console.anchorClicked.connect(self.url_clicked)
         layout.addWidget(self.console, 0, 0)
 
     def log_simple(self, text, type=cCommonGame.LogType.GAME):
@@ -35,6 +38,10 @@ class WosConsoleWidget(QDockWidget):
                 line = "{}: {}<br>".format(date_and_time_string, text)
             self.console.insertHtml(line)
             self.console.ensureCursorVisible()
+
+    def url_clicked(self, link):
+        print (link)
+        QDesktopServices.openUrl(link)
 
     def set_log_level(self, mode):
         self.mode = mode
