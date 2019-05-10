@@ -12,8 +12,9 @@ class WosBattleManager(WosPhaseManager):
         WosPhaseManager.__init__(self, wos_interface, parent)
         self.wos_interface = wos_interface
         self.battle_core_manager = WosBattleCoreManager(wos_interface)
-        self.features = list()
+        self.battle_core_manager.battle_ended.connect(self.end)
 
+        self.features = list()
         self.features.append(self.battle_core_manager)
         self.features.append(WosSatelliteEoManager(wos_interface, self.battle_core_manager))
         self.features.append(WosSatelliteEo2Manager(wos_interface, self.battle_core_manager))

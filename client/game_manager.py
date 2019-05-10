@@ -3,8 +3,9 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject
 from PyQt5.QtCore import QTimer
 from client.battle_manager import WosBattleManager
-from client.creation_manager import WosCreationManager
 from client.battleship_deployment_manager import WosBattleShipDeploymentManager
+from client.creation_manager import WosCreationManager
+from client.final_manager import WosFinalManager
 
 
 class WosGameManager(QObject):
@@ -27,7 +28,7 @@ class WosGameManager(QObject):
         self.state_managers[WosGameManager.GameState.DEPLOYMENT] = WosBattleShipDeploymentManager(self.wos_interface,
                                                                                                   self)
         self.state_managers[WosGameManager.GameState.BATTLE] = WosBattleManager(self.wos_interface, self)
-        self.state_managers[WosGameManager.GameState.END] = None
+        self.state_managers[WosGameManager.GameState.END] = WosFinalManager(self.wos_interface, self)
 
         self.state_changed.connect(self.change_state)
 

@@ -22,6 +22,7 @@ import cCommonGame
 class WosBattleCoreManager(QObject):
     UPDATE_INTERVAL_IN_MS = 1000
 
+    battle_ended = pyqtSignal()
     turn_ended = pyqtSignal()
     turn_started = pyqtSignal()
 
@@ -317,11 +318,16 @@ class WosBattleCoreManager(QObject):
 
     def update_game_event_parallel(self):
         game_status = WosClientInterfaceManager().get_game_status()
-        if game_status is not None and self.current_player_round != game_status.game_round:
-            self.wos_interface.log("Round %s started" % game_status.game_round)
-            self.update_turn()
-            self.current_player_turn = game_status.player_turn
-            self.current_player_round = game_status.game_round
+        if game_status is not None:
+            # Check end of game
+            if game_status.game_state_str == 'STOP':
+                self.battle_ended.emit()
+                return
+            elif self.current_player_round != game_status.game_round:
+                self.wos_interface.log("Round %s started" % game_status.game_round)
+                self.update_turn()
+                self.current_player_turn = game_status.player_turn
+                self.current_player_round = game_status.game_round
 
         if game_status is not None:
             self.time_widget.set_time(game_status.time_remain)
