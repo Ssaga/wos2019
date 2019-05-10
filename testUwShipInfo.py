@@ -8,20 +8,17 @@ import wosBattleshipServer.funcUwCompute
 import wosBattleshipServer.cCommon
 import cCommonGame
 
-
-def display_generated_uw_data(in_data, verbose=False):
+def plot_generated_uw_data(in_data, verbose=False):
     if isinstance(in_data, collections.Iterable):
         for i in range(8):
-            # get the N output report
-            data = in_data[i::8]
-            disp_data = np.array(data)
+            data = in_data[i]
 
             if verbose:
                 print("------------------------------------------------------")
                 print("# %s" % i)
-                for print_data in data:
-                    print("%s" % print_data)
+                print("%s" % data)
 
+            plt.figure(1)
             plt.subplot(4, 2, i + 1)
             if i is 0:
                 plt.title("N")
@@ -41,11 +38,90 @@ def display_generated_uw_data(in_data, verbose=False):
                 plt.title("NW")
             else:
                 plt.title("???")
-            plt.imshow(disp_data)
+            plt.plot(data)
             plt.gca().invert_yaxis()
-        plt.show()
+        # plt.show()
     else:
         print("Unsupported variable-type")
+
+def plot_generated_uw_data_as_img(in_data, verbose=False):
+    if isinstance(in_data, collections.Iterable):
+        for i in range(8):
+            data = np.array(in_data[i])
+            data = data.reshape((-1, 100));
+
+            if verbose:
+                print("------------------------------------------------------")
+                print("# %s" % i)
+                for print_data in data:
+                    print("%s" % print_data)
+
+            # Perform fft to get the frequent domain of the signal
+            data = np.real(np.fft.fft(data[:]))
+
+            plt.figure(2)
+            plt.subplot(4, 2, i + 1)
+            if i is 0:
+                plt.title("N")
+            elif i is 1:
+                plt.title("NE")
+            elif i is 2:
+                plt.title("E")
+            elif i is 3:
+                plt.title("SE")
+            elif i is 4:
+                plt.title("S")
+            elif i is 5:
+                plt.title("SW")
+            elif i is 6:
+                plt.title("W")
+            elif i is 7:
+                plt.title("NW")
+            else:
+                plt.title("???")
+            plt.imshow(data)
+            plt.gca().invert_yaxis()
+        # plt.show()
+    else:
+        print("Unsupported variable-type")
+
+# def plot_generated_uw_data(in_data, verbose=False):
+#     if isinstance(in_data, collections.Iterable):
+#         for i in range(8):
+#             # get the N output report
+#             data = in_data[i::8]
+#             disp_data = np.array(data)
+#
+#             if verbose:
+#                 print("------------------------------------------------------")
+#                 print("# %s" % i)
+#                 for print_data in data:
+#                     print("%s" % print_data)
+#
+#             plt.subplot(4, 2, i + 1)
+#             if i is 0:
+#                 plt.title("N")
+#             elif i is 1:
+#                 plt.title("NE")
+#             elif i is 2:
+#                 plt.title("E")
+#             elif i is 3:
+#                 plt.title("SE")
+#             elif i is 4:
+#                 plt.title("S")
+#             elif i is 5:
+#                 plt.title("SW")
+#             elif i is 6:
+#                 plt.title("W")
+#             elif i is 7:
+#                 plt.title("NW")
+#             else:
+#                 plt.title("???")
+#             plt.imshow(disp_data)
+#             plt.gca().invert_yaxis()
+#         # plt.show()
+#     else:
+#         print("Unsupported variable-type")
 
 
 if __name__ == '__main__':
@@ -149,7 +225,9 @@ if __name__ == '__main__':
     processed_report = uw_compute(uw_ship_report, False)
 
     # display the processed report
-    display_generated_uw_data(processed_report, True)
+    plot_generated_uw_data(processed_report, True)
+    plot_generated_uw_data_as_img(processed_report, True)
+    plt.show()
 
     # check if the required ship is in the report
     # todo: ...

@@ -41,7 +41,8 @@ class ServerGameConfig:
                  radar_cross_table=[1.0, 1.0, 1.0, 1.0],
                  en_satellite=False,
                  en_satellite_func2=False,
-                 en_uw_action=False):
+                 en_uw_action=False,
+                 uw_warm_up_dur=2):
         self.req_rep_conn = req_rep_conn
         self.pub_sub_conn = pub_sub_conn
         self.polling_rate = polling_rate
@@ -66,6 +67,7 @@ class ServerGameConfig:
         self.en_satellite = bool(en_satellite)
         self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_uw_action = bool(en_uw_action)
+        self.uw_warm_up_dur = int(uw_warm_up_dur)
 
     def __repr__(self):
         return str(vars(self))
@@ -149,7 +151,8 @@ class UwShipInfo(CommonUwShipInfo):
                  is_sunken=False,
                  ship_type=ShipType.MIL,
                  mov_speed=1,
-                 scan_size=3):
+                 scan_size=3,
+                 warm_up_dur=2):
         CommonUwShipInfo.__init__(self=self,
                                   ship_id=ship_id,
                                   position=position,
@@ -166,6 +169,8 @@ class UwShipInfo(CommonUwShipInfo):
         self.reset_report = False
         self.orders = list()
         self.report = list()
+        self.warm_up_dur = warm_up_dur
+        self.warm_up_cnt = 0
 
     def set_ops_order(self, orders=[]):
         """
@@ -174,6 +179,7 @@ class UwShipInfo(CommonUwShipInfo):
         :return: None
         """
         self.orders = orders
+        self.warm_up_cnt = self.warm_up_dur
         self.reset_report = True
 
     def set_cmd(self, pos=None, scan_dur=0):
@@ -218,7 +224,9 @@ class UwShipInfo(CommonUwShipInfo):
             self.reset_report = False
 
         data = copy.deepcopy(UwCollectedData())
-        if self.remain_move_ops > 0:
+        if self.warm_up_cnt > 0:
+            self.execute_warm_up()
+        elif self.remain_move_ops > 0:
             self.execute_move()
         elif self.remain_scan_ops > 0:
             self.execute_scan(data=data, ship_list=ship_list)
@@ -233,12 +241,20 @@ class UwShipInfo(CommonUwShipInfo):
             # elif isinstance(order, UwActionScan):
             #     self.set_cmd(scan_dur=order.scan_dur)
 
-        if not self.is_idle():
+        if (not self.is_idle()) and (self.warm_up_cnt is 0):
             self.report.append(data)
 
             print("-----------------------------------------------")
             for report_data in self.report:
                 print(report_data)
+
+    def execute_warm_up(self):
+        """
+        Manage the warm-up penerat required
+        :return:
+        """
+        if self.warm_up_cnt > 0:
+            self.warm_up_cnt -= 1
 
     def execute_move(self):
         """
@@ -367,7 +383,9 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "radar_cross_table": obj.radar_cross_table,
                 "en_satellite": obj.en_satellite,
                 "en_satellite_func2": obj.en_satellite_func2,
-                "en_uw_action": obj.en_uw_action
+                "en_uw_action": obj.en_uw_action,
+                "uw_warm_up_dur": obj.uw_warm_up_dur
+
             }
         else:
             result = super().default(self, obj)
@@ -435,7 +453,8 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             radar_cross_table=obj['radar_cross_table'],
             en_satellite=obj['en_satellite'],
             en_satellite_func2=obj['en_satellite_func2'],
-            en_uw_action=obj['en_uw_action']
+            en_uw_action=obj['en_uw_action'],
+            uw_warm_up_dur=obj['uw_warm_up_dur']
         )
 
 

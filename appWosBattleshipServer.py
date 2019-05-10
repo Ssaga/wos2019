@@ -689,6 +689,21 @@ class WosBattleshipServer(threading.Thread):
         print("** Game end ------------------------------------")
         print(self.get_player_score())
         print("** ---------------------------------------------")
+
+        # Voice reporting of score
+        for key, player in self.player_status_dict.items():
+
+            sunken_count = 0
+            for ship_info in player.ship_list:
+                if ship_info.is_sunken:
+                    sunken_count += 1
+            score = (player.hit_enemy_count * 1.0) - (player.hit_civilian_count * 0.0) - (sunken_count * 0.5)
+
+            self.tts_comm_engine.send("Player %s hit %2d enemy ship" % (key, player.hit_enemy_count))
+            self.tts_comm_engine.send("Player %s hit %2d civilian ship" % (key, player.hit_civilian_count))
+            self.tts_comm_engine.send("Player %s ship sunk %2d" % (key, sunken_count))
+            self.tts_comm_engine.send("Player %s score %6.1f" % (key, score))
+
         self.tts_comm_engine.send("Game Ended")
 
     # ---------------------------------------------------------------------------
@@ -766,7 +781,8 @@ class WosBattleshipServer(threading.Thread):
                                                           size=uw_ship_dat.size,
                                                           is_sunken=uw_ship_dat.is_sunken,
                                                           mov_speed=1,
-                                                          scan_size=3)
+                                                          scan_size=3,
+                                                          warm_up_dur=self.game_setting.uw_warm_up_dur)
                                 player_status.uw_ship_dict[uw_ship_info.ship_id] = uw_ship_info
                                 print("Registering : %s" % uw_ship_info)
                     else:

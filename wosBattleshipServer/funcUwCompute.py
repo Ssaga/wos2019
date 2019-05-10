@@ -16,18 +16,14 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
     Generate the display data based on the provided ships' information
     :param uw_data: list of UwCollectedData containing the ships' information
     :return: list of generated data in the following order
-                [[turn 1 north data],
-                 [turn 1 north-east data],
-                 [turn 1 east data],
-                 [turn 1 south-east data],
-                 [turn 1 south data],
-                 [turn 1 south-west data],
-                 [turn 1 west data],
-                 [turn 1 north-west data],
-                 [turn 2 north data],
-                 [turn 2 north-east data],
-                 ...
-                 [turn n north-west data]]
+                [[north data in time domain],
+                 [north-east data in time domain],
+                 [east data in time domain],
+                 [south-east data in time domain],
+                 [south data in time domain],
+                 [south-west data in time domain],
+                 [west data in time domain],
+                 [north-west data in time domain]]
     """
     if verbose:
         print("input uw_data:")
@@ -39,6 +35,7 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
 
     uw_params = UwParams()
     outp = list()
+    tmp_buf = list()
 
     for i in range(len(uw_data)):
 
@@ -50,41 +47,124 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
 
         # Check N
         sect_noise = generate_result(uw_data[i].N, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
-        # Check NE  
+        # Check NE
         sect_noise = generate_result(uw_data[i].NE, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check E
         sect_noise = generate_result(uw_data[i].E, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check SE
         sect_noise = generate_result(uw_data[i].SE, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check S
         sect_noise = generate_result(uw_data[i].S, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check SW
         sect_noise = generate_result(uw_data[i].SW, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check W
         sect_noise = generate_result(uw_data[i].W, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
 
         # Check NW
         sect_noise = generate_result(uw_data[i].NW, noise, uw_params)
-        outp.append(sect_noise.tolist())
+        tmp_buf.append(sect_noise.tolist())
+
+    for i in range(8):
+        # Covert the data into time-domain for each direction
+        data = tmp_buf[i::8]
+        data = np.real(np.fft.ifft(data[:]))
+        data = data.ravel()
+
+        outp.append(data.tolist())
 
     if verbose:
         for tmp_buf in outp:
             print("%s" % tmp_buf)
 
     return outp
+
+# def uw_compute(uw_data, env_noise=True, verbose=False):
+#     """
+#     Generate the display data based on the provided ships' information
+#     :param uw_data: list of UwCollectedData containing the ships' information
+#     :return: list of generated data in the following order
+#                 [[turn 1 north data],
+#                  [turn 1 north-east data],
+#                  [turn 1 east data],
+#                  [turn 1 south-east data],
+#                  [turn 1 south data],
+#                  [turn 1 south-west data],
+#                  [turn 1 west data],
+#                  [turn 1 north-west data],
+#                  [turn 2 north data],
+#                  [turn 2 north-east data],
+#                  ...
+#                  [turn n north-west data]]
+#     """
+#     if verbose:
+#         print("input uw_data:")
+#         if isinstance(uw_data, collections.Iterable):
+#             for data in uw_data:
+#                 print(data)
+#         else:
+#             print(uw_data)
+#
+#     uw_params = UwParams()
+#     outp = list()
+#
+#     for i in range(len(uw_data)):
+#
+#         # Generate background noise
+#         if env_noise:
+#             noise = np.random.randn(uw_params.vector_len)
+#         else:
+#             noise = np.zeros(uw_params.vector_len)
+#
+#         # Check N
+#         sect_noise = generate_result(uw_data[i].N, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check NE
+#         sect_noise = generate_result(uw_data[i].NE, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check E
+#         sect_noise = generate_result(uw_data[i].E, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check SE
+#         sect_noise = generate_result(uw_data[i].SE, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check S
+#         sect_noise = generate_result(uw_data[i].S, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check SW
+#         sect_noise = generate_result(uw_data[i].SW, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check W
+#         sect_noise = generate_result(uw_data[i].W, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#         # Check NW
+#         sect_noise = generate_result(uw_data[i].NW, noise, uw_params)
+#         outp.append(sect_noise.tolist())
+#
+#     if verbose:
+#         for tmp_buf in outp:
+#             print("%s" % tmp_buf)
+#
+#     return outp
 
 
 def generate_result(ship_info_list, noise, uw_params):
