@@ -1,0 +1,1 @@
+set PYTHONPATH=D:\WPy-3702\python-3.7.0.amd64\python.exe
