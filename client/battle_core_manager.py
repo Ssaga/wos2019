@@ -13,6 +13,7 @@ from client.fire_action_widget import WosFireActionWidget
 from client.move_action_widget import WosMoveActionWidget
 from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.fire_annotation_item import WosFireAnnotationItem
+from client.scene_item.underwater_ship_item import WosUnderwaterShipItem
 from client.ship_info import ShipInfo
 from client.time_widget import WosTimeWidget
 import cCommonGame
@@ -59,6 +60,14 @@ class WosBattleCoreManager(QObject):
         scene.addItem(ship_item)
         return ship_item
 
+    def insert_uw_to_scene(self, scene, ship_info, ship_type):
+        ship_item = WosUnderwaterShipItem(self.field_info, ship_info.ship_id)
+        ship_item.set_grid_position(ship_info.position.x, ship_info.position.y)
+        ship_item.set_ship_type(ship_type)
+        ship_item.set_is_draggable(False)
+        scene.addItem(ship_item)
+        return ship_item
+
     def insert_annotations_to_scene(self, scene):
         for widget in self.move_action_widgets:
             ship_shadow = self.ships_friendly_items[0].clone()
@@ -82,7 +91,8 @@ class WosBattleCoreManager(QObject):
             for widget in self.move_action_widgets:
                 move_menu = QMenu('Move %s' % widget.get_index(), menu)
                 forward_action = QAction('Forward', move_menu)
-                forward_action.setData({'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.FWD})
+                forward_action.setData(
+                    {'widget': widget, 'ship_id': ship_info.ship_id, 'action': cCommonGame.Action.FWD})
                 forward_action.triggered.connect(self.update_move_position_from_context_menu)
                 move_menu.addAction(forward_action)
                 cw_action = QAction('Turn clockwise', move_menu)
@@ -239,6 +249,7 @@ class WosBattleCoreManager(QObject):
         self.wos_interface.battlefield.update_map(turn_info.map_data)
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
+        # Place friendly objects
         self.ships_friendly_items = dict()
         for i in range(0, len(turn_info.self_ship_list)):
             if not turn_info.self_ship_list[i].is_sunken:
@@ -247,6 +258,14 @@ class WosBattleCoreManager(QObject):
                     ship_id = ship_item.ship_info.ship_id
                     self.ships_friendly_items[ship_id] = ship_item
 
+        for i in range(0, len(turn_info.self_uw_ship_list)):
+            if not turn_info.self_uw_ship_list[i].is_sunken:
+                ship_item = self.insert_uw_to_scene(scene, turn_info.self_uw_ship_list[i], ShipInfo.Type.FRIENDLY)
+                if ship_item is not None:
+                    ship_id = ship_item.ship_info.ship_id
+                    self.ships_friendly_items[ship_id] = ship_item
+
+        # Place hostile objects
         self.ships_hostile_items = []
         for i in range(0, len(turn_info.enemy_ship_list)):
             if not turn_info.enemy_ship_list[i].is_sunken:
@@ -254,6 +273,7 @@ class WosBattleCoreManager(QObject):
                 if ship_item is not None:
                     self.ships_hostile_items.append(ship_item)
 
+        # Place miscellaneous objects such as civilian ships
         self.ships_other_items = []
         for i in range(0, len(turn_info.other_ship_list)):
             if not turn_info.other_ship_list[i].is_sunken:
@@ -261,13 +281,13 @@ class WosBattleCoreManager(QObject):
                 if ship_item is not None:
                     self.ships_other_items.append(ship_item)
 
+        # Update command widget
         for widget in self.move_action_widgets:
             widget.update_move_ship_combo(self.ships_friendly_items)
-
-        self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
-
         self.time_widget.setEnabled(True)
         self.wos_interface.actions.setEnabled(True)
+
+        self.insert_annotations_to_scene(self.wos_interface.battlefield.battle_scene.scene())
 
         # Display turn info in log, except for map_data
         turn_info_visual = vars(turn_info)

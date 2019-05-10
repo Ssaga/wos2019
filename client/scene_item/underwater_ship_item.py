@@ -16,7 +16,7 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
 
         self.ship_info = UwShipInfo(ship_id, cCommonGame.Position(0, 0))
 
-        self.set_type(ItemType.SHIP)
+        self.set_type(ItemType.UW_SHIP)
         self.ship_info.moved.connect(self.ship_moved)
 
         self.field_info = field_info
@@ -41,6 +41,12 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
 
     def boundingRect(self):
         return self.body
+
+    def clone(self):
+        ship_item = WosUnderwaterShipItem(self.field_info, self.ship_info.ship_id)
+        ship_item.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)
+        ship_item.set_is_draggable(self.is_draggable)
+        return ship_item
 
     def get_ship_info(self):
         return self.ship_info

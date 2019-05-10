@@ -6,9 +6,10 @@ class ItemType(Enum):
     UNKNOWN = 0
     TERRAIN_LAND = 1
     TERRAIN_AIR = 2
-    SHIP = 3
-    ANNOTATION = 4
-    BOUNDARY = 5
+    UW_SHIP = 3
+    SHIP = 4
+    ANNOTATION = 5
+    BOUNDARY = 6
     TERRAIN_ON_HOVER = 999
 
 class PlayerInfo:

@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QWidget
+from client.wos import ItemType
 
 import cCommonGame
 
@@ -53,7 +54,7 @@ class WosMoveActionWidget(QWidget):
         old_text = self.move_ship_combo.currentText()
         self.move_ship_combo.clear()
         for ship_id, ship in ships.items():
-            if not ship.ship_info.is_sunken:
+            if ship and not ship.ship_info.is_sunken and ship.type is ItemType.SHIP:
                 self.move_ship_combo.addItem(str(ship_id), ship_id)
         if not old_text:
             # Default index
