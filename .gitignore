@@ -109,3 +109,4 @@ venv.bak/
 # Project specifics
 gmat_io/*
 !gmat_io/template
+uw_report/*
