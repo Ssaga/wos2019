@@ -8,6 +8,8 @@ from client.action_widget import WosActionWidget
 from client.client_interface_manager import WosClientInterfaceManager
 from client.underwater.issue_waypoints_dialog import WosIssueWaypointsDialog
 import cCommonGame
+import numpy as np
+import os
 
 
 class WosUwManager(QObject):
@@ -17,40 +19,22 @@ class WosUwManager(QObject):
         self.wos_interface = wos_interface
         self.battle_core_manager = battle_core_manager
         self.command_dialog = None
-        self.report_dialog = None
+        self.report_button = None
+        self.report_cache = None
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
-        self.battle_core_manager.turn_ended.connect(self.end_turn)
+        self.battle_core_manager.turn_started.connect(self.update_turn)
 
     def display_command_pop_up(self):
         if self.command_dialog is not None:
             self.command_dialog.deleteLater()
             self.command_dialog = None
 
-        self.command_dialog = WosIssueWaypointsDialog(self.field_info.size.x() - 1, self.field_info.size.y() - 1)
+        self.command_dialog = WosIssueWaypointsDialog(self.field_info.dimension.x() - 1,
+                                                      self.field_info.dimension.y() - 1)
         self.command_dialog.orders_issued.connect(self.submit_command)
         self.command_dialog.show()
         self.command_dialog.raise_()
         self.command_dialog.activateWindow()
-
-    def display_report_pop_up(self):
-        if self.report_dialog is not None:
-            self.report_dialog.deleteLater()
-            self.report_dialog = None
-
-        rep = WosClientInterfaceManager().get_uw_report(8)
-        if rep and rep.ack:
-            self.wos_interface.log(rep)
-        else:
-            self.wos_interface.log('No report to retrieve.')
-
-        # self.report_dialog = WosIssueWaypointsDialog(self.field_info.size.x() - 1, self.field_info.size.y() - 1)
-        # self.report_dialog.orders_issued.connect(self.submit_command)
-        # self.report_dialog.show()
-        # self.report_dialog.raise_()
-        # self.report_dialog.activateWindow()
-
-    def end_turn(self):
-        pass
 
     def update_action_widget(self):
         actions_widget = self.wos_interface.actions
@@ -70,11 +54,27 @@ class WosUwManager(QObject):
 
         report_button = QToolButton(widget)
         report_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        report_button.setText("View Report")
-        report_button.released.connect(self.display_report_pop_up)
+        report_button.setText("Save Report")
+        report_button.setEnabled(False)
+        report_button.released.connect(self.save_report)
         layout.addWidget(report_button, 0, 2, 1, 1)
+        self.report_button = report_button
 
         actions_widget.add_widget(widget, WosActionWidget.WidgetType.ACTION_ADDON)
+
+    def update_turn(self):
+        rep = WosClientInterfaceManager().get_uw_report(8)
+        if rep and rep.ack and len(rep.report) > 0:
+            self.report_button.setEnabled(True)
+            self.report_cache = rep.report
+            self.wos_interface.log("Your UW report is ready")
+        else:
+            self.report_button.setEnabled(False)
+
+    def save_report(self):
+        os.makedirs("uw_report", exist_ok=True)
+        np.save("uw_report/latest", self.report_cache)
+        self.wos_interface.log("Saved to <a href=\"uw_report\">uw_report/latest.npy</a>")
 
     def start(self):
         cfg = self.wos_interface.cfg
@@ -88,6 +88,7 @@ class WosUwManager(QObject):
     def submit_command(self, orders):
         uw_ship_move_info = [cCommonGame.UwShipMovementInfo(8, orders)]
         self.wos_interface.log("Sending orders to underwater vehicle..")
+        self.wos_interface.log(orders, cCommonGame.LogType.DEBUG)
         self.command_dialog.deleteLater()
         self.command_dialog = None
         rep = WosClientInterfaceManager().send_action_uw_ops(uw_ship_move_info)

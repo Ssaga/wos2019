@@ -23,6 +23,7 @@ class WosBattleCoreManager(QObject):
     UPDATE_INTERVAL_IN_MS = 1000
 
     turn_ended = pyqtSignal()
+    turn_started = pyqtSignal()
 
     def __init__(self, wos_interface, parent=None):
         QObject.__init__(self, parent)
@@ -241,8 +242,6 @@ class WosBattleCoreManager(QObject):
             self.update_timer.start()
             return
 
-        self.wos_interface.log('Your turn, please issue your commands')
-
         scene = self.wos_interface.battlefield.battle_scene.scene()
         self.wos_interface.battlefield.clear_scene()
 
@@ -293,6 +292,9 @@ class WosBattleCoreManager(QObject):
         turn_info_visual = vars(turn_info)
         turn_info_visual.pop('map_data', None)
         self.wos_interface.log(turn_info_visual, cCommonGame.LogType.DEBUG)
+
+        self.turn_started.emit()
+        self.wos_interface.log('Your turn, please issue your commands')
 
     def update_game_event(self):
         game_status = WosClientInterfaceManager().get_game_status()
