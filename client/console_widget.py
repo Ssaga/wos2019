@@ -11,17 +11,14 @@ class WosConsoleWidget(QDockWidget):
     def __init__(self, parent=None):
         QDockWidget.__init__(self, parent)
 
-        # self.mode = cCommonGame.LogType.ALL
-        self.mode = cCommonGame.LogType.GAME
+        self.mode = cCommonGame.LogType.ALL
 
         self.setWindowTitle('Console')
         self.setMinimumWidth(500)
 
         widget = QWidget(self)
         self.setWidget(widget)
-
-        layout = QGridLayout(self)
-        widget.setLayout(layout)
+        layout = QGridLayout(widget)
 
         self.console = QTextEdit('', self)
         layout.addWidget(self.console, 0, 0)
@@ -38,3 +35,6 @@ class WosConsoleWidget(QDockWidget):
                 line = "{}: {}<br>".format(date_and_time_string, text)
             self.console.insertHtml(line)
             self.console.ensureCursorVisible()
+
+    def set_log_level(self, mode):
+        self.mode = mode

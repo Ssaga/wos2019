@@ -20,9 +20,7 @@ class WosActionWidget(QDockWidget):
 
         widget = QWidget(self)
         self.setWidget(widget)
-
-        self.layout = QGridLayout(self)
-        widget.setLayout(self.layout)
+        self.layout = QGridLayout(widget)
 
         self.spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addItem(self.spacer)

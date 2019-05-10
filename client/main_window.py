@@ -25,6 +25,7 @@ class WosMainWindow(QMainWindow):
         self.setCentralWidget(self.interface.battlefield)
 
         self.interface.console = WosConsoleWidget(self)
+        self.interface.console.set_log_level(int(self.interface.client_cfg['log_mode']))
         self.addDockWidget(Qt.BottomDockWidgetArea, self.interface.console)
 
         self.interface.actions = WosActionWidget(self)
