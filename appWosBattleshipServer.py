@@ -334,7 +334,7 @@ class WosBattleshipServer(threading.Thread):
             if isinstance(remaining_action, PlayerTurnActionCount):
                 total_remaining_action += (remaining_action.remain_move +
                                            remaining_action.remain_fire +
-                                           remaining_action.remain_satcom +
+                                           # remaining_action.remain_satcom +   # hotfix to race condition
                                            remaining_action.remain_uw_action)
                 print("********** Player %s remaining action %s = %s + %s + %s + %s" % (
                     player_id,
