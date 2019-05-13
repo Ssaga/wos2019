@@ -64,10 +64,12 @@ class WosUwManager(QObject):
 
     def update_turn(self):
         rep = WosClientInterfaceManager().get_uw_report(8)
+        if rep:
+            self.wos_interface.log(vars(rep), cCommonGame.LogType.DEBUG)
         if rep and rep.ack and len(rep.report) > 0:
             self.report_button.setEnabled(True)
             self.report_cache = rep.report
-            self.wos_interface.log("Your UW report is ready")
+            self.wos_interface.log("You have UW report available")
         else:
             self.report_button.setEnabled(False)
 
@@ -80,9 +82,7 @@ class WosUwManager(QObject):
         cfg = self.wos_interface.cfg
         if cfg is None or not cfg.en_submarine:
             return
-
-        self.wos_interface.log("Underwater mode is enabled")
-
+        self.wos_interface.log("UW mode is enabled")
         self.update_action_widget()
 
     def submit_command(self, orders):

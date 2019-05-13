@@ -33,6 +33,9 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
         else:
             print(uw_data)
 
+    if not uw_data:
+        return list()
+
     uw_params = UwParams()
     outp = list()
     tmp_buf = list()
@@ -90,6 +93,7 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
             print("%s" % tmp_buf)
 
     return outp
+
 
 # def uw_compute(uw_data, env_noise=True, verbose=False):
 #     """
@@ -252,6 +256,7 @@ def random_range(in_data):
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
 
+
     def display_generated_uw_data(in_data, print_text=False):
         elements_per_iteration = 8
         for i in range(elements_per_iteration):
@@ -263,7 +268,7 @@ if __name__ == '__main__':
                 for print_data in data:
                     print("%s" % print_data)
 
-            plt.subplot(4,2,i+1)
+            plt.subplot(4, 2, i + 1)
             if i is 0:
                 plt.title("N")
             elif i is 1:
@@ -285,6 +290,7 @@ if __name__ == '__main__':
             plt.imshow(disp_data)
             plt.gca().invert_yaxis()
         plt.show()
+
 
     print("Test u/w ops")
     print("Sample data")
@@ -377,30 +383,30 @@ if __name__ == '__main__':
                                                          is_sunken=False)]))
     collected_uw_data.append(UwCollectedData())
     collected_uw_data.append(UwCollectedData(NE=[ShipInfo(ship_id=0,
-                                                         ship_type=ShipType.MIL,
-                                                         position=Position(0, 0),
-                                                         heading=0,
-                                                         size=2,
-                                                         is_sunken=False)],
+                                                          ship_type=ShipType.MIL,
+                                                          position=Position(0, 0),
+                                                          heading=0,
+                                                          size=2,
+                                                          is_sunken=False)],
                                              NW=[ShipInfo(ship_id=1,
-                                                         ship_type=ShipType.CIV,
-                                                         position=Position(1, 2),
-                                                         heading=180,
-                                                         size=2,
-                                                         is_sunken=False)]))
+                                                          ship_type=ShipType.CIV,
+                                                          position=Position(1, 2),
+                                                          heading=180,
+                                                          size=2,
+                                                          is_sunken=False)]))
     collected_uw_data.append(UwCollectedData())
     collected_uw_data.append(UwCollectedData(SE=[ShipInfo(ship_id=0,
-                                                         ship_type=ShipType.MIL,
-                                                         position=Position(0, 0),
-                                                         heading=0,
-                                                         size=4,
-                                                         is_sunken=False)],
+                                                          ship_type=ShipType.MIL,
+                                                          position=Position(0, 0),
+                                                          heading=0,
+                                                          size=4,
+                                                          is_sunken=False)],
                                              SW=[ShipInfo(ship_id=1,
-                                                         ship_type=ShipType.CIV,
-                                                         position=Position(1, 2),
-                                                         heading=180,
-                                                         size=4,
-                                                         is_sunken=False)]))
+                                                          ship_type=ShipType.CIV,
+                                                          position=Position(1, 2),
+                                                          heading=180,
+                                                          size=4,
+                                                          is_sunken=False)]))
     collected_uw_data.append(UwCollectedData())
     collected_uw_data.append(UwCollectedData())
     collected_uw_data.append(UwCollectedData())
