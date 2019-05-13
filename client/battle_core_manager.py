@@ -39,6 +39,7 @@ class WosBattleCoreManager(QObject):
         self.map_size_y = 120
         self.fire_action_widgets = list()
         self.move_action_widgets = list()
+        self.is_turn_ended_emitted = True
         self.ships_friendly_items = dict()
         self.ships_other_items = list()
         self.ships_hostile_items = list()
@@ -52,6 +53,7 @@ class WosBattleCoreManager(QObject):
         self.time_widget.setEnabled(False)
         self.wos_interface.actions.setEnabled(False)
         self.turn_ended.emit()
+        self.is_turn_ended_emitted = True
 
     def insert_ship_to_scene(self, scene, ship_info, ship_type):
         ship_item = WosBattleShipItem(self.field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
@@ -243,6 +245,10 @@ class WosBattleCoreManager(QObject):
             self.update_timer.start()
             return
 
+        if not self.is_turn_ended_emitted:
+            self.end_turn()
+        self.is_turn_ended_emitted = False
+
         scene = self.wos_interface.battlefield.battle_scene.scene()
         self.wos_interface.battlefield.clear_scene()
 
@@ -331,6 +337,8 @@ class WosBattleCoreManager(QObject):
 
         if game_status is not None:
             self.time_widget.set_time(game_status.time_remain)
+            if game_status.time_remain <= 0:
+                self.end_turn()
 
         # Update event again in x seconds time
         self.update_timer.start()
