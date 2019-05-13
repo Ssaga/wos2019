@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QGraphicsTextItem
 from PyQt5.QtWidgets import QGraphicsView
 from client.item_depth_manager import WosItemDepthManager
 from client.wos import ItemType
+from client.scene_item.boundary_label_item import WosBoundaryLabelItem
 from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.terrain_item import WosTerrainItem
 from client.ship_info import ShipInfo
@@ -57,6 +58,7 @@ class WosBattleFieldView(QGraphicsView):
         self.labels_items = list()
         self.boundaries = dict()
         self.boundary_items = dict()
+        self.boundary_text_items = list()
         self.terrain_items = list()
 
         self.field_types = [cCommonGame.MapData.ISLAND, cCommonGame.MapData.CLOUD_FRIENDLY,
@@ -109,6 +111,7 @@ class WosBattleFieldView(QGraphicsView):
         self.labels_items = list()
         self.terrain_items = list()
         self.boundary_items = list()
+        self.boundary_text_items = list()
 
         scene.setSceneRect(0,
                            0,
@@ -178,15 +181,22 @@ class WosBattleFieldView(QGraphicsView):
                     scene.addItem(item)
 
         # Draw boundaries
-        pen = QPen(QColor(0, 0, 0), 2)
-        for boundary in self.boundaries.values():
-            scene.addLine(QLineF(boundary.topLeft(), boundary.topRight()), pen)
-            scene.addLine(QLineF(boundary.topRight(), boundary.bottomRight()), pen)
-            scene.addLine(QLineF(boundary.bottomRight(), boundary.bottomLeft()), pen)
-            scene.addLine(QLineF(boundary.bottomLeft(), boundary.topLeft()), pen)
+        pen = QPen(QColor(0, 0, 0), 3)
+        for player_id, boundary in self.boundaries.items():
+            self.boundary_items.append(scene.addLine(QLineF(boundary.topLeft(), boundary.topRight()), pen))
+            self.boundary_items.append(scene.addLine(QLineF(boundary.topRight(), boundary.bottomRight()), pen))
+            self.boundary_items.append(scene.addLine(QLineF(boundary.bottomRight(), boundary.bottomLeft()), pen))
+            self.boundary_items.append(scene.addLine(QLineF(boundary.bottomLeft(), boundary.topLeft()), pen))
+            boundary_text_item = WosBoundaryLabelItem(player_id, boundary)
+            scene.addItem(boundary_text_item)
+            self.boundary_text_items.append(boundary_text_item)
+
+
         boundary_z = WosItemDepthManager().get_depths_by_item(ItemType.BOUNDARY)
         for boundary in self.boundary_items:
             boundary.setZValue(boundary_z)
+        for boundary_text in self.boundary_text_items:
+            boundary_text.setZValue(boundary_z)
 
     def grid_to_pixel(self, x, y):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \

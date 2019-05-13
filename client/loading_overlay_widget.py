@@ -50,7 +50,7 @@ class LoadingOverlayWidget(QWidget):
                 20, 20)
 
         # Draw loading message
-        painter.setFont(QFont("", 25, QFont.Bold))
+        painter.setFont(QFont('Calibri', 25, QFont.Bold))
         painter.drawText(QRect(0, height / 2 + 30 * math.sin(2 * math.pi * 2 / 6.0) + 25, width, 50), Qt.AlignCenter,
                          self.text)
 
