@@ -129,6 +129,7 @@ class WosBattleCoreManager(QObject):
         menu.exec(event.globalPos())
 
     def start(self):
+        self.wos_interface.toggle_overlay(True, 'Game commencing..')
         self.wos_interface.battlefield.show_battleship_context_menu.connect(self.show_battleship_context_menu)
         self.wos_interface.battlefield.show_terrain_context_menu.connect(self.show_terrain_context_menu)
         self.wos_interface.log("<b>Battle phase</b>.")
@@ -249,6 +250,8 @@ class WosBattleCoreManager(QObject):
             self.end_turn()
         self.is_turn_ended_emitted = False
 
+        self.wos_interface.toggle_overlay(True, 'Updating new turn..')
+
         scene = self.wos_interface.battlefield.battle_scene.scene()
         self.wos_interface.battlefield.clear_scene()
 
@@ -303,6 +306,8 @@ class WosBattleCoreManager(QObject):
         self.turn_started.emit()
         self.wos_interface.log('Your turn, please issue your commands')
 
+        self.wos_interface.toggle_overlay(False)
+
     def update_game_event(self):
         game_status = WosClientInterfaceManager().get_game_status()
         if game_status is not None:
@@ -338,6 +343,7 @@ class WosBattleCoreManager(QObject):
         if game_status is not None:
             self.time_widget.set_time(game_status.time_remain)
             if game_status.time_remain <= 0:
+                self.wos_interface.toggle_overlay(True, 'Updating new turn..')
                 self.end_turn()
 
         # Update event again in x seconds time

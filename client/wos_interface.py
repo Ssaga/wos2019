@@ -13,6 +13,7 @@ class WosInterface(object):
         self.client_cfg = dict()
         self.console = None
         self.is_debug = False
+        self.loading_widget = None
         self.player_info = None
         self.server_cfg = None
         self.window = None
@@ -43,6 +44,15 @@ class WosInterface(object):
 
     def main_window(self):
         return self.window
+
+    def toggle_overlay(self, is_show, text="Please wait..."):
+        if self.loading_widget is None:
+            return
+        if is_show:
+            self.loading_widget.set_text(text)
+            self.loading_widget.show()
+        else:
+            self.loading_widget.close()
 
     def server_config(self):
         return self.server_cfg

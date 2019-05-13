@@ -43,8 +43,8 @@ class WosSatelliteEoManager(QObject):
 
         # Since server requires a mandatory satcom action, we force issue one at end turn regardless if user had
         # executed one or not
-        satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
-        WosClientInterfaceManager().send_action_satcom(satcom)
+        # satcom = cCommonGame.SatcomInfo(0, 0, 0, 0, 0, 0, False, False)
+        # WosClientInterfaceManager().send_action_satcom(satcom)
 
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
@@ -105,6 +105,8 @@ class WosSatelliteEoManager(QObject):
     def submit_command(self):
         # if self.eo_button is not None:
         #     self.eo_button.setEnabled(False)
+        self.wos_interface.log("Sending EO satellite..")
+        self.wos_interface.toggle_overlay(True, 'Sending EO Satellite..')
 
         satcom = cCommonGame.SatcomInfo()
         satcom.a = float(self.dialog.text_list[0].text())
@@ -115,11 +117,9 @@ class WosSatelliteEoManager(QObject):
         satcom.M = float(self.dialog.text_list[5].text())
         satcom.is_enable = False
         satcom.is_rhs = False
-        self.wos_interface.log("Sending EO satellite..")
         self.dialog.deleteLater()
         self.dialog = None
-        # Stubs
-        # satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
+
         rep = WosClientInterfaceManager().send_action_satcom(satcom)
         if rep and rep.ack:
             self.wos_interface.log('Success!')
@@ -133,3 +133,5 @@ class WosSatelliteEoManager(QObject):
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")
+
+        self.wos_interface.toggle_overlay(False)

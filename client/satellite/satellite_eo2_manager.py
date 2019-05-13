@@ -102,6 +102,9 @@ class WosSatelliteEo2Manager(QObject):
         self.update_action_widget()
 
     def submit_command(self):
+        self.wos_interface.log("Sending SAR Satellite..")
+        self.wos_interface.toggle_overlay(True, 'Sending SAR Satellite..')
+
         satcom = cCommonGame.SatcomInfo()
         satcom.a = float(self.dialog.text_list[0].text())
         satcom.e = float(self.dialog.text_list[1].text())
@@ -112,9 +115,9 @@ class WosSatelliteEo2Manager(QObject):
         satcom.is_enable = True
         satcom.is_rhs = False
         satcom.is_rhs = (self.dialog.checkbox.checkState() == Qt.Checked)
-        self.wos_interface.log("Sending SAR Satellite..")
         self.dialog.deleteLater()
         self.dialog = None
+
         rep = WosClientInterfaceManager().send_action_satcom(satcom)
         if rep and rep.ack:
             self.wos_interface.log('Success!')
@@ -128,3 +131,5 @@ class WosSatelliteEo2Manager(QObject):
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")
+
+        self.wos_interface.toggle_overlay(False)

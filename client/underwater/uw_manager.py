@@ -93,8 +93,10 @@ class WosUwManager(QObject):
         self.update_action_widget()
 
     def submit_command(self, orders):
-        uw_ship_move_info = [cCommonGame.UwShipMovementInfo(8, orders)]
         self.wos_interface.log("Sending orders to underwater vehicle..")
+        self.wos_interface.toggle_overlay(True, 'Sending orders to underwater vehicle..')
+
+        uw_ship_move_info = [cCommonGame.UwShipMovementInfo(8, orders)]
         self.wos_interface.log(orders, cCommonGame.LogType.DEBUG)
         self.command_dialog.deleteLater()
         self.command_dialog = None
@@ -104,3 +106,5 @@ class WosUwManager(QObject):
         else:
             self.wos_interface.log(
                 "<font color='brown'>Failed! The underwater vehicle is still executing its previous commands.</font>")
+
+        self.wos_interface.toggle_overlay(False)

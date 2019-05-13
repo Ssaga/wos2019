@@ -42,6 +42,7 @@ class WosGameManager(QObject):
         self.state = new_state
         state_manager = self.state_managers[self.state]
         state_manager.phase_ended.connect(self.next_state)
+        self.wos_interface.toggle_overlay(False)
         state_manager.start()
 
     def next_state(self):
