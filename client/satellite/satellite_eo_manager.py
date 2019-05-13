@@ -36,6 +36,11 @@ class WosSatelliteEoManager(QObject):
         self.dialog.activateWindow()
 
     def end_turn(self):
+        if self.dialog is not None:
+            self.dialog.reject()
+            self.dialog.deleteLater()
+            self.dialog = None
+
         # Since server requires a mandatory satcom action, we force issue one at end turn regardless if user had
         # executed one or not
         satcom = cCommonGame.SatcomInfo(6378 + 2000, 0, 5, 0, 150, 0, False, False)
@@ -127,4 +132,4 @@ class WosSatelliteEoManager(QObject):
                                                            turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")

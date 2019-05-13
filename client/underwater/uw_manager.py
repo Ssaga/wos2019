@@ -23,6 +23,7 @@ class WosUwManager(QObject):
         self.report_cache = None
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
         self.battle_core_manager.turn_started.connect(self.update_turn)
+        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def display_command_pop_up(self):
         if self.command_dialog is not None:
@@ -35,6 +36,12 @@ class WosUwManager(QObject):
         self.command_dialog.show()
         self.command_dialog.raise_()
         self.command_dialog.activateWindow()
+
+    def end_turn(self):
+        if self.command_dialog is not None:
+            self.command_dialog.reject()
+            self.command_dialog.deleteLater()
+            self.command_dialog = None
 
     def update_action_widget(self):
         actions_widget = self.wos_interface.actions

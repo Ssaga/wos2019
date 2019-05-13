@@ -37,7 +37,10 @@ class WosSatelliteEo2Manager(QObject):
         self.dialog.activateWindow()
 
     def end_turn(self):
-        pass
+        if self.dialog is not None:
+            self.dialog.reject()
+            self.dialog.deleteLater()
+            self.dialog = None
 
     def make_pop_up_dialog(self):
         dialog = QDialog(self.wos_interface.main_window())
@@ -124,4 +127,4 @@ class WosSatelliteEo2Manager(QObject):
                                                            turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
-            self.wos_interface.log("<font color='brown'>Failed! Only 1 imaging action per turn.</font>")
+            self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")
