@@ -26,18 +26,25 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         self.setRotation(30)
 
         self.brushes = dict()
-        self.brushes[ShipInfo.Type.FRIENDLY] = QBrush(QColor(0, 200, 0, 255))
-        self.brushes[ShipInfo.Type.HOSTILE] = QBrush(QColor(200, 0, 0, 255))
-        self.brushes[ShipInfo.Type.CIVILIAN] = QBrush(QColor(200, 200, 200, 255))
-        self.brushes[ShipInfo.Type.UNKNOWN] = QBrush(QColor(200, 200, 0, 255))
+        self.brushes[ShipInfo.Type.FRIENDLY] = QBrush(QColor(0, 200, 0, 168))
+        self.brushes[ShipInfo.Type.HOSTILE] = QBrush(QColor(200, 0, 0, 168))
+        self.brushes[ShipInfo.Type.CIVILIAN] = QBrush(QColor(200, 200, 200, 168))
+        self.brushes[ShipInfo.Type.UNKNOWN] = QBrush(QColor(200, 200, 0, 168))
         self.brushes[ShipInfo.Type.SHADOW] = QBrush(QColor(0, 0, 0, 0))
+        self.brushes_hover = dict()
+        self.brushes_hover[ShipInfo.Type.FRIENDLY] = QBrush(QColor(0, 200, 0, 255))
+        self.brushes_hover[ShipInfo.Type.HOSTILE] = QBrush(QColor(200, 0, 0, 255))
+        self.brushes_hover[ShipInfo.Type.CIVILIAN] = QBrush(QColor(200, 200, 200, 255))
+        self.brushes_hover[ShipInfo.Type.UNKNOWN] = QBrush(QColor(200, 200, 0, 255))
+        self.brushes_hover[ShipInfo.Type.SHADOW] = QBrush(QColor(0, 0, 0, 0))
+        self.brush = self.brushes[self.ship_info.type]
         self.pens = dict()
-        self.pens[ShipInfo.Type.FRIENDLY] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.FRIENDLY] = QPen(QColor(0, 0, 0, 168))
         self.pens[ShipInfo.Type.HOSTILE] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.CIVILIAN] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.UNKNOWN] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.SHADOW] = QPen(QColor(0, 255, 0, 255), 2, Qt.DashLine)
-        self.pen = QPen(QColor(0, 0, 0, 255))
+        self.pen = self.pens[self.ship_info.type]
 
     def boundingRect(self):
         return self.body
@@ -52,11 +59,13 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         return self.ship_info
 
     def hoverEnterEvent(self, event):
+        self.brush = self.brushes_hover[self.ship_info.type]
         self.pens[self.ship_info.type].setWidth(2)
         self.show_tool_tip(event)
         self.update()
 
     def hoverLeaveEvent(self, event):
+        self.brush = self.brushes[self.ship_info.type]
         self.pens[self.ship_info.type].setWidth(1)
         QToolTip.hideText()
         self.update()
@@ -65,7 +74,7 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         self.show_tool_tip(event)
 
     def paint(self, painter, style, widget=None):
-        painter.setBrush(self.brushes[self.ship_info.type])
+        painter.setBrush(self.brush)
         painter.setPen(self.pens[self.ship_info.type])
         painter.drawEllipse(self.body)
 
