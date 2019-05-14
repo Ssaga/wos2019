@@ -10,8 +10,8 @@ from client.phase_manager import WosPhaseManager
 from client.scene_item.battleship_item import WosBattleShipItem
 from client.scene_item.underwater_ship_item import WosUnderwaterShipItem
 from client.ship_info import ShipInfo
-
 import cCommonGame
+import copy
 import numpy as np
 
 
@@ -76,16 +76,23 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         if xpos >= 0 and ypos >= 0:
             ship.set_grid_position(xpos, ypos)
         else:
-            boundary = self.wos_interface.cfg.boundary[str(self.wos_interface.player_info.player_id)]
-            # Magic number 3 to prevent out of bound for the longest ship
-            xpos = np.random.randint(boundary.min_x + 3, boundary.max_x - 3)
-            ypos = np.random.randint(boundary.min_y + 3, boundary.max_y - 3)
-            ship.set_grid_position(xpos, ypos)
-            # np.random.randint(0, 5) returns 0 to 4 inclusive
-            num_of_rotation = np.random.randint(0, 5)
-            # range(0,4) will loop from 0 to 3 inclusive
-            for i in range(0, num_of_rotation):
-                ship.rotate_ship()
+            while True:
+                boundary = self.wos_interface.cfg.boundary[str(self.wos_interface.player_info.player_id)]
+                # Magic number 3 to prevent out of bound for the longest ship
+                xpos = np.random.randint(boundary.min_x + 3, boundary.max_x - 3)
+                ypos = np.random.randint(boundary.min_y + 3, boundary.max_y - 3)
+                ship.set_grid_position(xpos, ypos)
+                # np.random.randint(0, 5) returns 0 to 4 inclusive
+                num_of_rotation = np.random.randint(0, 5)
+                # range(0,4) will loop from 0 to 3 inclusive
+                for i in range(0, num_of_rotation):
+                    ship.rotate_ship()
+                # Perform check(inefficient one) on whether ship has collided with other objects on the map
+                ships_items = copy.copy(self.ships_items)
+                if ship in ships_items:
+                    ships_items.remove(ship)
+                if self.wos_interface.battlefield.is_locations_accessible(ship.ship_info.get_placement(), ships_items):
+                    break
 
     def start(self):
         rep = WosClientInterfaceManager().register_player()

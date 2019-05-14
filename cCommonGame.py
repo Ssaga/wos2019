@@ -186,6 +186,9 @@ class UwShipInfo:
         self.area.x = x
         self.area.y = y
 
+    def get_placement(self):
+        return [[self.position.x, self.position.y]]
+
 
 class ShipMovementInfo:
     def __init__(self, ship_id, action=Action.NOP):

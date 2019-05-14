@@ -50,6 +50,7 @@ class WosBattleFieldView(QGraphicsView):
         self.centerOn(0, 0)
         self.setBackgroundBrush(QBrush(QColor(0, 0, 200, 128)))
 
+        self.map_data = None
         self.field_info = WosFieldInfo(QPoint(40, 40), QPoint(20, 20), field_count)
 
         self.field_lines = list()
@@ -204,6 +205,17 @@ class WosBattleFieldView(QGraphicsView):
         return self.field_info.top_left.x() + x * self.field_info.size.x(), \
                self.field_info.top_left.y() + y * self.field_info.size.y()
 
+    def is_locations_accessible(self, locs, ships_items=list()):
+        for loc in locs:
+            if self.map_data[loc[0]][loc[1]] & cCommonGame.MapData.ISLAND:
+                return False
+            for ship in ships_items:
+                other_ship_locs = ship.ship_info.get_placement()
+                for other_ship_loc in other_ship_locs:
+                    if other_ship_loc == loc:
+                        return False
+        return True
+
     def pixel_to_grid(self, x, y):
         return int((x - self.field_info.top_left.x()) / self.field_info.size.x()), \
                int((y - self.field_info.top_left.y()) / self.field_info.size.y())
@@ -221,6 +233,7 @@ class WosBattleFieldView(QGraphicsView):
             self.boundaries[player_id] = rect
 
     def update_map(self, map_data):
+        self.map_data = map_data
         self.field_info.set_dimension(QPoint(len(map_data), len(map_data[0])))
         self.update_field(map_data)
 

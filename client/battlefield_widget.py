@@ -28,5 +28,8 @@ class WosBattlefieldWidget(QWidget):
     def generate_scene(self, width, height):
         self.battle_scene.set_dimension(width, height)
 
+    def is_locations_accessible(self, locs, ships_items=[]):
+        return self.battle_scene.is_locations_accessible(locs, ships_items)
+
     def update_map(self, map_data):
         self.battle_scene.update_map(map_data)
