@@ -13,7 +13,7 @@ import qtawesome
 
 
 class WosIssueWaypointsDialog(QDialog):
-    DEFAULT_NUMBER_OF_WAYPOINTS = 3
+    DEFAULT_NUMBER_OF_WAYPOINTS = 1
 
     orders_issued = pyqtSignal(list)
 

@@ -38,7 +38,7 @@ class WosTerrainItem(WosBattlefieldItem):
         # Brushes for different terrain type, one terrain type may have multiple brushes
         self.brushes = dict()
         self.brushes[cCommonGame.MapData.WATER] = [QBrush(QColor(0, 0, 0, 0)), Qt.Dense7Pattern]
-        self.brushes[cCommonGame.MapData.ISLAND] = [QBrush(QColor(194, 194, 64, 255), Qt.Dense1Pattern)]
+        self.brushes[cCommonGame.MapData.ISLAND] = [QBrush(QColor(160, 82, 45, 255), Qt.Dense1Pattern)]
         self.brushes[cCommonGame.MapData.CLOUD_FRIENDLY] = [QBrush(QColor(240, 240, 240, 128), Qt.Dense1Pattern)]
         self.brushes[cCommonGame.MapData.CLOUD_HOSTILE] = [QBrush(QColor(240, 240, 240, 255), Qt.SolidPattern),
                                                            QBrush(QColor(0, 0, 0, 255), Qt.FDiagPattern)]

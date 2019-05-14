@@ -11,8 +11,9 @@ import cCommonGame
 
 
 class WosUnderwaterShipItem(WosBattlefieldItem):
-    def __init__(self, field_info, ship_id=0, name='Underwater vehicle', x=0, y=0):
+    def __init__(self, field_info, drag_boundary, ship_id=0, name='Underwater vehicle', x=0, y=0):
         WosBattlefieldItem.__init__(self, field_info)
+        self.drag_boundary = drag_boundary
 
         self.ship_info = UwShipInfo(ship_id, cCommonGame.Position(0, 0))
 
@@ -78,6 +79,13 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         painter.setPen(self.pens[self.ship_info.type])
         painter.drawEllipse(self.body)
 
+    def point_is_within(self, x, y):
+        x1 = self.drag_boundary.min_x
+        x2 = self.drag_boundary.max_x
+        y1 = self.drag_boundary.min_y
+        y2 = self.drag_boundary.max_y
+        return x1 <= x < x2 and y1 <= y < y2
+
     def mouseReleaseEvent(self, event):
         if self.drag_delta is not None:
             self.drag_delta = None
@@ -104,4 +112,7 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
 
     def snap_to_grid(self, pos_x, pos_y):
         p = self.map_position_to_grid(pos_x, pos_y)
-        self.set_grid_position(p.x(), p.y())
+        if self.drag_boundary is None or self.point_is_within(p.x(), p.y()):
+            self.set_grid_position(p.x(), p.y())
+        else:
+            self.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)

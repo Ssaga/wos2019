@@ -60,7 +60,7 @@ class WosBattleCoreManager(QObject):
         self.is_turn_ended_emitted = True
 
     def insert_ship_to_scene(self, scene, ship_info, ship_type):
-        ship_item = WosBattleShipItem(self.field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
+        ship_item = WosBattleShipItem(self.field_info, None, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
         ship_item.set_grid_position(ship_info.position.x, ship_info.position.y)
         ship_item.set_heading(ship_info.heading)
         ship_item.set_ship_type(ship_type)
@@ -69,7 +69,7 @@ class WosBattleCoreManager(QObject):
         return ship_item
 
     def insert_uw_to_scene(self, scene, ship_info, ship_type):
-        ship_item = WosUnderwaterShipItem(self.field_info, ship_info.ship_id)
+        ship_item = WosUnderwaterShipItem(self.field_info, None, ship_info.ship_id)
         ship_item.set_grid_position(ship_info.position.x, ship_info.position.y)
         ship_item.set_ship_type(ship_type)
         ship_item.set_is_draggable(False)
@@ -78,7 +78,7 @@ class WosBattleCoreManager(QObject):
 
     def insert_annotations_to_scene(self, scene):
         for widget in self.move_action_widgets:
-            ship_shadow = self.ships_friendly_items[0].clone()
+            ship_shadow = WosBattleShipItem(self.field_info, None, -1, 2, False)
             scene.addItem(ship_shadow)
             self.ships_shadow_items[widget.get_index()] = ship_shadow
             widget.combo_updated.connect(self.update_ship_shadow)

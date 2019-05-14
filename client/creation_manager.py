@@ -34,6 +34,8 @@ class WosCreationManager(WosPhaseManager):
         else:
             self.wos_interface.log(
                 "<font color='red'>Fail to connect to server / register player with ID: %s</font>" % player_id)
+            self.wos_interface.log(
+                "<font color='red'>Please restart the game</font>")
 
         return is_success
 

@@ -8,8 +8,9 @@ import cCommonGame
 
 
 class WosBattleShipItem(WosBattlefieldItem):
-    def __init__(self, field_info, ship_id=0, length=5, is_sunken=False):
+    def __init__(self, field_info, drag_boundary, ship_id=0, length=5, is_sunken=False):
         WosBattlefieldItem.__init__(self, field_info)
+        self.drag_boundary = drag_boundary
 
         self.ship_info = ShipInfo(ship_id, cCommonGame.Position(0, 0))
         self.ship_info.size = length
@@ -104,6 +105,23 @@ class WosBattleShipItem(WosBattlefieldItem):
         if self.ship_info.is_sunken:
             self.draw_cross(painter)
 
+    def point_is_within(self, x, y):
+        old_x = self.ship_info.position.x
+        old_y = self.ship_info.position.y
+        self.set_grid_position(x, y)
+        positions = self.ship_info.get_placement()
+        x1 = self.drag_boundary.min_x
+        x2 = self.drag_boundary.max_x
+        y1 = self.drag_boundary.min_y
+        y2 = self.drag_boundary.max_y
+        is_within = True
+        for position in positions:
+            if not (x1 <= position[0] < x2 and y1 <= position[1] < y2):
+                is_within = False
+                break
+        self.set_grid_position(old_x, old_y)
+        return is_within
+
     def rotate_ship(self):
         self.ship_info.turn_clockwise()
 
@@ -148,7 +166,10 @@ class WosBattleShipItem(WosBattlefieldItem):
 
     def snap_to_grid(self, pos_x, pos_y):
         p = self.map_position_to_grid(pos_x, pos_y)
-        self.set_grid_position(p.x(), p.y())
+        if self.drag_boundary is None or self.point_is_within(p.x(), p.y()):
+            self.set_grid_position(p.x(), p.y())
+        else:
+            self.set_grid_position(self.ship_info.position.x, self.ship_info.position.y)
 
     def update_body(self):
         self.start_pos = QPointF(self.field_info.size.x() * 0.2, self.field_info.size.y() * 0.2)

@@ -105,24 +105,30 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
 
         cfg = self.wos_interface.cfg
         self.wos_interface.battlefield.battle_scene.update_boundaries(cfg.boundary)
+        player_id = str(self.wos_interface.player_info.player_id)
+        player_boundary = self.wos_interface.cfg.boundary[player_id]
+
         if rep:
             self.wos_interface.battlefield.update_map(rep.map_data)
 
         field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
 
         # todo: Read config file for squad list, stub for now
-        self.ships_items = [WosBattleShipItem(field_info, 0, 2), WosBattleShipItem(field_info, 1, 2),
-                            WosBattleShipItem(field_info, 2, 3), WosBattleShipItem(field_info, 3, 3),
-                            WosBattleShipItem(field_info, 4, 4), WosBattleShipItem(field_info, 5, 4),
-                            WosBattleShipItem(field_info, 6, 5), WosBattleShipItem(field_info, 7, 5)]
+        self.ships_items = [WosBattleShipItem(field_info, player_boundary, 0, 2),
+                            WosBattleShipItem(field_info, player_boundary, 1, 2),
+                            WosBattleShipItem(field_info, player_boundary, 2, 3),
+                            WosBattleShipItem(field_info, player_boundary, 3, 3),
+                            WosBattleShipItem(field_info, player_boundary, 4, 4),
+                            WosBattleShipItem(field_info, player_boundary, 5, 4),
+                            WosBattleShipItem(field_info, player_boundary, 6, 5),
+                            WosBattleShipItem(field_info, player_boundary, 7, 5)]
         if self.wos_interface.cfg.en_submarine:
-            self.ship_uw_items = [WosUnderwaterShipItem(field_info, 8)]
+            self.ship_uw_items = [WosUnderwaterShipItem(field_info, player_boundary, 8)]
 
         scene = self.wos_interface.battlefield.battle_scene.scene()
         start_position = cCommonGame.Position()
-        player_id = str(self.wos_interface.player_info.player_id)
-        start_position.x = self.wos_interface.cfg.boundary[player_id].min_x
-        start_position.y = self.wos_interface.cfg.boundary[player_id].min_y
+        start_position.x = player_boundary.min_x
+        start_position.y = player_boundary.min_y
         cnt = 0
         for i in range(0, len(self.ships_items)):
             scene.addItem(self.ships_items[i])
