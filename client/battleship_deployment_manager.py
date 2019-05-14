@@ -28,6 +28,13 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         self.update_timer = QTimer(self)
         self.update_timer.setSingleShot(True)
         self.update_timer.timeout.connect(self.update_game_event)
+        self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
+
+    def clean_up(self):
+        self.update_timer.timeout.disconnect(self.update_game_event)
+        self.update_timer.stop()
+        if self.tools is not None:
+            self.tools.deleteLater()
 
     def deployment_button_pressed(self):
         self.wos_interface.log("Sending deployment to server..")
@@ -35,10 +42,12 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         self.deployment_ended.emit(self.sender())
 
     def end(self):
-        actions_widget = self.wos_interface.actions
-        actions_widget.remove_widget(self.tools)
-        self.tools.deleteLater()
-        self.tools = None
+        self.update_timer.stop()
+        if self.tools is not None:
+            actions_widget = self.wos_interface.actions
+            actions_widget.remove_widget(self.tools)
+            self.tools.deleteLater()
+            self.tools = None
         WosPhaseManager.end(self)
 
     def send_deployment(self, deployment_button):
@@ -52,7 +61,6 @@ class WosBattleShipDeploymentManager(WosPhaseManager):
         if WosClientInterfaceManager().send_deployment(ships, ships_uw) or self.wos_interface.is_debug:
             self.wos_interface.log("Server acknowledged")
             self.wos_interface.log("Please wait for all the players to deploy their ships")
-            self.update_timer.start(self.UPDATE_INTERVAL_IN_MS)
             for ship_item in self.ships_items:
                 ship_item.set_is_draggable(False)
             for ship_item in self.ship_uw_items:

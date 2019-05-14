@@ -38,6 +38,12 @@ class WosGameManager(QObject):
         timer.timeout.connect(self.next_state)
         timer.start(100)
 
+    def clean_up(self):
+        for state in self.state_managers.values():
+            if state is not None:
+                state.clean_up()
+        self.state_managers.clear()
+
     def change_state(self, old_state, new_state):
         self.state = new_state
         state_manager = self.state_managers[self.state]

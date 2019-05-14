@@ -21,7 +21,9 @@ class LoadingOverlayWidget(QWidget):
         self.counter = 0
 
     def closeEvent(self, event):
-        self.killTimer(self.timer)
+        if self.timer is not None:
+            self.killTimer(self.timer)
+            self.timer = None
 
     def paintEvent(self, event):
         # Resize to parent

@@ -20,6 +20,9 @@ class WosInterface(object):
         self.read_client_config()
         self.overwrite_client_config()
 
+    def clean_up(self):
+        self.loading_widget.deleteLater()
+
     def client_config(self):
         return self.client_cfg
 

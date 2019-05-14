@@ -49,6 +49,10 @@ class WosBattleCoreManager(QObject):
         self.update_timer.timeout.connect(self.update_game_event_parallel)
         self.time_widget = None
 
+    def clean_up(self):
+        self.update_timer.timeout.disconnect(self.update_game_event_parallel)
+        self.update_timer.stop()
+
     def end_turn(self):
         self.time_widget.setEnabled(False)
         self.wos_interface.actions.setEnabled(False)

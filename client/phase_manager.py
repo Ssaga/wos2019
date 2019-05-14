@@ -9,6 +9,9 @@ class WosPhaseManager(QObject):
         QObject.__init__(self, parent)
         self.wos_interface = wos_interface
 
+    def clean_up(self):
+        pass
+
     def start(self):
         raise NotImplementedError()
 
