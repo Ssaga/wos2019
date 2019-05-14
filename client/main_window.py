@@ -39,7 +39,7 @@ class WosMainWindow(QMainWindow):
     def make_widgets(self):
         self.wos_interface.toggle_overlay(True, 'Initialising...')
 
-        self.wos_interface.battlefield = WosBattlefieldWidget(self)
+        self.wos_interface.battlefield = WosBattlefieldWidget(self.wos_interface, self)
         self.setCentralWidget(self.wos_interface.battlefield)
 
         self.wos_interface.console = WosConsoleWidget(self)

@@ -40,7 +40,7 @@ class WosBattleFieldView(QGraphicsView):
     show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
     show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo, int, int)
 
-    def __init__(self, field_count=QPoint(120, 120), parent=None):
+    def __init__(self, wos_interface, field_count=QPoint(120, 120), parent=None):
         QGraphicsView.__init__(self, parent)
 
         scene = QGraphicsScene(self)
@@ -61,6 +61,8 @@ class WosBattleFieldView(QGraphicsView):
         self.boundary_text_items = list()
         self.terrain_items = list()
 
+        self.show_boundary_text_items = 'show_player_label' in wos_interface.client_cfg and \
+                                        wos_interface.client_cfg['show_player_label'] == 'true'
         self.field_types = [cCommonGame.MapData.ISLAND, cCommonGame.MapData.CLOUD_FRIENDLY,
                             cCommonGame.MapData.CLOUD_HOSTILE, cCommonGame.MapData.ISLAND]
 
@@ -187,10 +189,10 @@ class WosBattleFieldView(QGraphicsView):
             self.boundary_items.append(scene.addLine(QLineF(boundary.topRight(), boundary.bottomRight()), pen))
             self.boundary_items.append(scene.addLine(QLineF(boundary.bottomRight(), boundary.bottomLeft()), pen))
             self.boundary_items.append(scene.addLine(QLineF(boundary.bottomLeft(), boundary.topLeft()), pen))
-            boundary_text_item = WosBoundaryLabelItem(player_id, boundary)
-            scene.addItem(boundary_text_item)
-            self.boundary_text_items.append(boundary_text_item)
-
+            if self.show_boundary_text_items:
+                boundary_text_item = WosBoundaryLabelItem(player_id, boundary)
+                scene.addItem(boundary_text_item)
+                self.boundary_text_items.append(boundary_text_item)
 
         boundary_z = WosItemDepthManager().get_depths_by_item(ItemType.BOUNDARY)
         for boundary in self.boundary_items:
