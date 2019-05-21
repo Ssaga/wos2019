@@ -71,6 +71,11 @@ class WosBattleshipServer(threading.Thread):
         # Thread Setup --------------------------------------------------------------
         # load the game setting
         self.game_setting = self.load_server_setting("game_server.cfg")
+
+        # setup the random seed value
+        if self.game_setting.rand_seed >= 0:
+            np.random.seed(self.game_setting.rand_seed);
+
         # setup the communication engine
         self.comm_engine = ServerCommEngine(self.game_setting.req_rep_conn,
                                             self.game_setting.pub_sub_conn,
@@ -1250,13 +1255,13 @@ class WosBattleshipServer(threading.Thread):
                 boundary = np.invert(boundary)
                 obstacle_dict["Boundary"] = boundary
 
-            # # add the island
-            # if isinstance(self.island_layer, np.ndarray):
-            #     obstacle_dict["Island"] = self.island_layer
-            #
-            # # add the civilian ship
-            # if isinstance(self.civilian_ship_layer, np.ndarray):
-            #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+            # add the island
+            if isinstance(self.island_layer, np.ndarray):
+                obstacle_dict["Island"] = self.island_layer
+
+            # add the civilian ship
+            if isinstance(self.civilian_ship_layer, np.ndarray):
+                obstacle_dict["civilian_ship"] = self.civilian_ship_layer
 
             for ship_info in ship_list:
                 if isinstance(ship_info, ShipInfo):
@@ -1285,13 +1290,13 @@ class WosBattleshipServer(threading.Thread):
             boundary = np.invert(boundary)
             obstacle_dict["Boundary"] = boundary
 
-        # # add the island
-        # if isinstance(self.island_layer, np.ndarray):
-        #     obstacle_dict["Island"] = self.island_layer
-        #
-        # # add the civilian ship
-        # if isinstance(self.civilian_ship_layer, np.ndarray):
-        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+        # add the island
+        if isinstance(self.island_layer, np.ndarray):
+            obstacle_dict["Island"] = self.island_layer
+
+        # add the civilian ship
+        if isinstance(self.civilian_ship_layer, np.ndarray):
+            obstacle_dict["civilian_ship"] = self.civilian_ship_layer
 
         is_ok = check_collision(test_ship, obstacle_dict)
 
@@ -1311,13 +1316,13 @@ class WosBattleshipServer(threading.Thread):
             boundary = np.invert(boundary)
             obstacle_dict["Boundary"] = boundary
 
-        # # add the island
-        # if isinstance(self.island_layer, np.ndarray):
-        #     obstacle_dict["Island"] = self.island_layer
-        #
-        # # add the civilian ship
-        # if isinstance(self.civilian_ship_layer, np.ndarray):
-        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+        # add the island
+        if isinstance(self.island_layer, np.ndarray):
+            obstacle_dict["Island"] = self.island_layer
+
+        # add the civilian ship
+        if isinstance(self.civilian_ship_layer, np.ndarray):
+            obstacle_dict["civilian_ship"] = self.civilian_ship_layer
 
         is_ok = check_collision(test_ship, obstacle_dict)
 
@@ -1336,13 +1341,13 @@ class WosBattleshipServer(threading.Thread):
             boundary = np.invert(boundary)
             obstacle_dict["Boundary"] = boundary
 
-        # # add the island
-        # if isinstance(self.island_layer, np.ndarray):
-        #     obstacle_dict["Island"] = self.island_layer
-        #
-        # # add the civilian ship
-        # if isinstance(self.civilian_ship_layer, np.ndarray):
-        #     obstacle_dict["civilian_ship"] = self.civilian_ship_layer
+        # add the island
+        if isinstance(self.island_layer, np.ndarray):
+            obstacle_dict["Island"] = self.island_layer
+
+        # add the civilian ship
+        if isinstance(self.civilian_ship_layer, np.ndarray):
+            obstacle_dict["civilian_ship"] = self.civilian_ship_layer
 
         is_ok = check_collision(test_ship, obstacle_dict)
 
@@ -1350,6 +1355,11 @@ class WosBattleshipServer(threading.Thread):
 
     # ---------------------------------------------------------------------------
     def load_server_setting(self, filename):
+        """
+        Load the configuration from the provided json file
+        :param filename: full pathname of the file containing the config setting
+        :return: ServerGameConfig class
+        """
         write_config = False
         game_setting = None
         try:
@@ -1471,6 +1481,6 @@ def main():
 
 
 if __name__ == '__main__':
-    version = "0.0.1.1"
+    version = "0.0.1.2"
     print("*** %s %s (%s)" % (__file__, version, time.ctime(time.time())))
     main()

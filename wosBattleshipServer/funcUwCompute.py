@@ -256,7 +256,6 @@ def random_range(in_data):
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
 
-
     def display_generated_uw_data(in_data, print_text=False):
         elements_per_iteration = 8
         for i in range(elements_per_iteration):
