@@ -42,7 +42,8 @@ class ServerGameConfig:
                  en_satellite=False,
                  en_satellite_func2=False,
                  en_uw_action=False,
-                 uw_warm_up_dur=2):
+                 uw_warm_up_dur=2,
+                 rand_seed = -1):
         self.req_rep_conn = req_rep_conn
         self.pub_sub_conn = pub_sub_conn
         self.polling_rate = polling_rate
@@ -68,6 +69,7 @@ class ServerGameConfig:
         self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_uw_action = bool(en_uw_action)
         self.uw_warm_up_dur = int(uw_warm_up_dur)
+        self.rand_seed = int(rand_seed)
 
     def __repr__(self):
         return str(vars(self))
@@ -223,30 +225,38 @@ class UwShipInfo(CommonUwShipInfo):
             self.report.clear()
             self.reset_report = False
 
-        data = copy.deepcopy(UwCollectedData())
-        if self.warm_up_cnt > 0:
-            self.execute_warm_up()
-        elif self.remain_move_ops > 0:
-            self.execute_move()
-        elif self.remain_scan_ops > 0:
-            self.execute_scan(data=data, ship_list=ship_list)
+        if not self.is_idle():
+            data = copy.deepcopy(UwCollectedData())
+            is_warm_up_dirty = False
+            if self.warm_up_cnt > 0:
+                self.execute_warm_up()
+                is_warm_up_dirty = True
+            elif self.remain_move_ops > 0:
+                self.execute_move()
+            elif self.remain_scan_ops > 0:
+                self.execute_scan(data=data, ship_list=ship_list)
 
-        if ((len(self.orders) > 0)
-                and (self.remain_move_ops == 0)
-                and (self.remain_scan_ops == 0)):
-            order = self.orders.pop(0)
-            if isinstance(order, UwActionMoveScan):
-                self.set_cmd(pos=order.goto_pos,
-                             scan_dur=order.scan_dur)
-            # elif isinstance(order, UwActionScan):
-            #     self.set_cmd(scan_dur=order.scan_dur)
+            if ((len(self.orders) > 0)
+                    and (self.remain_move_ops == 0)
+                    and (self.remain_scan_ops == 0)):
+                order = self.orders.pop(0)
+                if isinstance(order, UwActionMoveScan):
+                    self.set_cmd(pos=order.goto_pos,
+                                 scan_dur=order.scan_dur)
+                # elif isinstance(order, UwActionScan):
+                #     self.set_cmd(scan_dur=order.scan_dur)
 
-        if (not self.is_idle()) and (self.warm_up_cnt is 0):
-            self.report.append(data)
-
+            if is_warm_up_dirty is False:
+                self.report.append(data)
+                print("-----------------------------------------------")
+                for report_data in self.report:
+                    print(report_data)
+            elif not self.is_idle():
+                print("-----------------------------------------------")
+                print("System warming up : %s" % self.warm_up_cnt)
+        else:
             print("-----------------------------------------------")
-            for report_data in self.report:
-                print(report_data)
+            print("System is idle")
 
     def execute_warm_up(self):
         """
@@ -384,8 +394,7 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "en_satellite": obj.en_satellite,
                 "en_satellite_func2": obj.en_satellite_func2,
                 "en_uw_action": obj.en_uw_action,
-                "uw_warm_up_dur": obj.uw_warm_up_dur
-
+                "uw_warm_up_dur": obj.uw_warm_up_dur,
             }
         else:
             result = super().default(self, obj)
@@ -454,7 +463,8 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             en_satellite=obj['en_satellite'],
             en_satellite_func2=obj['en_satellite_func2'],
             en_uw_action=obj['en_uw_action'],
-            uw_warm_up_dur=obj['uw_warm_up_dur']
+            uw_warm_up_dur=obj['uw_warm_up_dur'],
+            rand_seed=obj['rand_seed']
         )
 
 
