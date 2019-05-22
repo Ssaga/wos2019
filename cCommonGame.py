@@ -9,6 +9,7 @@ class MapData(IntEnum):
     ISLAND = 1
     CLOUD_FRIENDLY = 2          # Cloud in friendly area
     CLOUD_HOSTILE = 4           # Cloud in hostile area
+    BLACK = 64
     FOG_OF_WAR = 128
 
 

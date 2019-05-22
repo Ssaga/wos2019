@@ -33,6 +33,7 @@ class WosTerrainItem(WosBattlefieldItem):
                          cCommonGame.MapData.ISLAND: 'Island',
                          cCommonGame.MapData.CLOUD_FRIENDLY: 'Cloud',
                          cCommonGame.MapData.CLOUD_HOSTILE: 'Cloud',
+                         cCommonGame.MapData.BLACK: 'SAR',
                          cCommonGame.MapData.FOG_OF_WAR: 'Fog'}
 
         # Brushes for different terrain type, one terrain type may have multiple brushes
@@ -42,6 +43,11 @@ class WosTerrainItem(WosBattlefieldItem):
         self.brushes[cCommonGame.MapData.CLOUD_FRIENDLY] = [QBrush(QColor(240, 240, 240, 128), Qt.Dense1Pattern)]
         self.brushes[cCommonGame.MapData.CLOUD_HOSTILE] = [QBrush(QColor(240, 240, 240, 255), Qt.SolidPattern),
                                                            QBrush(QColor(0, 0, 0, 255), Qt.FDiagPattern)]
+        self.brushes[cCommonGame.MapData.BLACK] = [QBrush(QColor(180, 180, 180, 255), Qt.SolidPattern),
+                                                   QBrush(QColor(0, 0, 0, 255), Qt.FDiagPattern)]
+        self.brushes[cCommonGame.MapData.BLACK + cCommonGame.MapData.ISLAND] = [
+            QBrush(QColor(50, 50, 50, 255), Qt.SolidPattern),
+            QBrush(QColor(0, 0, 0, 255), Qt.FDiagPattern)]
         self.brushes[cCommonGame.MapData.FOG_OF_WAR] = [QBrush(QColor(100, 100, 100, 255), Qt.SolidPattern),
                                                         QBrush(QColor(0, 0, 0, 255), Qt.FDiagPattern)]
         self.pen = QPen(QColor(0, 0, 0, 255))
@@ -77,10 +83,22 @@ class WosTerrainItem(WosBattlefieldItem):
             for brush in brushes:
                 painter.setBrush(brush)
                 painter.drawRect(self.body)
+        elif self.terrain_type & cCommonGame.MapData.BLACK:
+            brushes = self.brushes[cCommonGame.MapData.BLACK]
+            for brush in brushes:
+                painter.setBrush(brush)
+                painter.drawRect(self.body)
+            for terrain, brushes in self.brushes.items():
+                if self.terrain_type & terrain == self.terrain_type:
+                    brushes = self.brushes[self.terrain_type]
+                    for brush in brushes:
+                        painter.setBrush(brush)
+                        painter.drawRect(self.body)
         else:
             for terrain in self.terrains:
-                if self.terrain_type & terrain:
-                    brushes = self.brushes[terrain]
+                t = self.terrain_type & terrain
+                if t > 0:
+                    brushes = self.brushes[t]
                     for brush in brushes:
                         painter.setBrush(brush)
                         painter.drawRect(self.body)
