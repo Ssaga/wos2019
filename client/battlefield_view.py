@@ -40,7 +40,7 @@ class WosBattleFieldView(QGraphicsView):
     show_terrain_context_menu = pyqtSignal(QContextMenuEvent, int, int, int)
     show_battleship_context_menu = pyqtSignal(QContextMenuEvent, ShipInfo, int, int)
 
-    def __init__(self, wos_interface, field_count=QPoint(120, 120), parent=None):
+    def __init__(self, wos_interface, field_size=QPoint(20, 20), field_dimension=QPoint(120, 120), parent=None):
         QGraphicsView.__init__(self, parent)
 
         scene = QGraphicsScene(self)
@@ -51,7 +51,7 @@ class WosBattleFieldView(QGraphicsView):
         self.setBackgroundBrush(QBrush(QColor(0, 0, 200, 128)))
 
         self.map_data = None
-        self.field_info = WosFieldInfo(QPoint(40, 40), QPoint(20, 20), field_count)
+        self.field_info = WosFieldInfo(QPoint(40, 40), field_size, field_dimension)
 
         self.field_lines = list()
         self.field_lines_items = list()
