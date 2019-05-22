@@ -24,8 +24,6 @@ class WosSatelliteEo2Manager(QObject):
         self.battle_core_manager = battle_core_manager
         self.dialog = None
 
-        self.battle_core_manager.turn_ended.connect(self.end_turn)
-
     def display_pop_up(self):
         if self.dialog is not None:
             self.dialog.deleteLater()
@@ -96,10 +94,9 @@ class WosSatelliteEo2Manager(QObject):
         cfg = self.wos_interface.cfg
         if cfg is None or not cfg.en_satellite_func2:
             return
-
         self.wos_interface.log("SAR Satellite mode is enabled")
-
         self.update_action_widget()
+        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def submit_command(self):
         self.wos_interface.log("Sending SAR Satellite..")

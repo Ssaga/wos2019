@@ -22,8 +22,6 @@ class WosUwManager(QObject):
         self.report_button = None
         self.report_cache = None
         self.field_info = self.wos_interface.battlefield.battle_scene.get_field_info()
-        self.battle_core_manager.turn_started.connect(self.update_turn)
-        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def display_command_pop_up(self):
         if self.command_dialog is not None:
@@ -91,6 +89,8 @@ class WosUwManager(QObject):
             return
         self.wos_interface.log("UW mode is enabled")
         self.update_action_widget()
+        self.battle_core_manager.turn_started.connect(self.update_turn)
+        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def submit_command(self, orders):
         self.wos_interface.log("Sending orders to underwater vehicle..")

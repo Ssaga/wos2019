@@ -23,8 +23,6 @@ class WosSatelliteEoManager(QObject):
         self.dialog = None
         self.eo_button = None
 
-        self.battle_core_manager.turn_ended.connect(self.end_turn)
-
     def display_pop_up(self):
         if self.dialog is not None:
             self.dialog.deleteLater()
@@ -97,10 +95,9 @@ class WosSatelliteEoManager(QObject):
         cfg = self.wos_interface.cfg
         if cfg is None or not cfg.en_satellite:
             return
-
         self.wos_interface.log("EO Satellite mode is enabled")
-
         self.update_action_widget()
+        self.battle_core_manager.turn_ended.connect(self.end_turn)
 
     def submit_command(self):
         # if self.eo_button is not None:
