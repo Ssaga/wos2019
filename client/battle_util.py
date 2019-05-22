@@ -7,7 +7,7 @@ class WosBattleUtil:
     def insert_ship_to_scene(battle_scene, ship_info, ship_type):
         scene = battle_scene.scene()
         field_info = battle_scene.get_field_info()
-        ship_item = WosBattleShipItem(field_info, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
+        ship_item = WosBattleShipItem(field_info, None, ship_info.ship_id, ship_info.size, ship_info.is_sunken)
         ship_item.set_grid_position(ship_info.position.x, ship_info.position.y)
         ship_item.set_heading(ship_info.heading)
         ship_item.set_ship_type(ship_type)
