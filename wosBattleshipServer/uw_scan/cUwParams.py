@@ -3,10 +3,10 @@ import json
 
 class UwParams:
     def __init__(self,
-                 civ_sr=[8, 4, 3, 2],
-                 civ_br=[3, 4, 3, 4],
-                 mil_sr=[12, 10, 8, 7],
-                 mil_br=[5, 6, 7, 4],
+                 civ_sr=[8, 4, 3, 2, 1],
+                 civ_br=[3, 4, 3, 4, 1],
+                 mil_sr=[12, 10, 8, 7, 1],
+                 mil_br=[5, 6, 7, 4, 1],
                  snr=[15, 25],
                  snr_decay=[1, 1.5],
                  snr_br=[1, 2],
