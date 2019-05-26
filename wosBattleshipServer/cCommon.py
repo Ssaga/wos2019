@@ -12,6 +12,7 @@ from cCommonGame import Position
 from cCommonGame import GameState
 from cCommonGame import ShipInfo
 from cCommonGame import UwShipInfo as CommonUwShipInfo
+from cCommonGame import UwDetectInfo
 from cCommonGame import UwActionMoveScan
 # from cCommonGame import UwActionScan
 from cCommonGame import UwCollectedData
@@ -39,6 +40,10 @@ class ServerGameConfig:
                  num_satcom_act=1,
                  num_uw_action=1,
                  radar_cross_table=[1.0, 1.0, 1.0, 1.0],
+                 atr_cross_table=[[0.0, 1.0, 1.0, 1.0],
+                                  [1.0, 0.0, 1.0, 1.0],
+                                  [1.0, 1.0, 0.0, 1.0],
+                                  [1.0, 1.0, 1.0, 0.0]],
                  en_satellite=False,
                  en_satellite_func2=False,
                  en_uw_action=False,
@@ -65,6 +70,8 @@ class ServerGameConfig:
         self.num_uw_action = int(num_uw_action)
         self.radar_cross_table = []
         self.radar_cross_table.extend(radar_cross_table)
+        self.atr_cross_table = []
+        self.atr_cross_table.extend(atr_cross_table)
         self.en_satellite = bool(en_satellite)
         self.en_satellite_func2 = bool(en_satellite_func2)
         self.en_uw_action = bool(en_uw_action)
@@ -298,34 +305,37 @@ class UwShipInfo(CommonUwShipInfo):
                             dist = math.sqrt(((area_placement[0] - self.position.x) ** 2) +
                                              ((area_placement[1] - self.position.y) ** 2))
                             if (dist <= self.scan_size) and (dist > 0):
-                                # heading = math.atan((area_placement[0] - self.position.x) / (area_placement[1] - self.position.y))
-                                # heading = get_heading([self.position.x, self.position.y], area_placement)
                                 heading = get_heading([self.position.x, self.position.y],
-                                                      [ship_info.position.x, ship_info.position.y])
-                                print("Pos1 [%s, %s]  Pos2 [%s, %s] Heading %s" % (
+                                                      [area_placement[0], area_placement[1]])
+                                print("Pos1 [%s, %s]  Pos2 [%s, %s]  ShipId %s  Heading %s  Dist %s" % (
                                     self.position.x, self.position.y,
-                                    ship_info.position.x, ship_info.position.y,
-                                    heading))
+                                    area_placement[0], area_placement[1],
+                                    ship_info.ship_id,
+                                    heading,
+                                    dist))
 
                                 if heading < 22.5:
-                                    data.N.append(ship_info)
+                                    data.N.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 67.5:
-                                    data.NE.append(ship_info)
+                                    data.NE.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 112.5:
-                                    data.E.append(ship_info)
+                                    data.E.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 157.5:
-                                    data.SE.append(ship_info)
+                                    data.SE.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 202.5:
-                                    data.S.append(ship_info)
+                                    data.S.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 247.5:
-                                    data.SW.append(ship_info)
+                                    data.SW.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 292.5:
-                                    data.W.append(ship_info)
+                                    data.W.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 elif heading < 337.5:
-                                    data.NW.append(ship_info)
+                                    data.NW.append(UwDetectInfo(ship_info=ship_info, dist=dist))
                                 else:
-                                    data.N.append(ship_info)
-                                break
+                                    data.N.append(UwDetectInfo(ship_info=ship_info, dist=dist))
+
+                                # RMV on 2019-05-22: Remove the break to consider the whole area of the ship
+                                # break
+
                             # else do nothing as ship is not within range
                     # else data is not shipinfo, cannot proceed
             # else shipinfo list is not provided. cannot proceed
@@ -391,6 +401,7 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "num_satcom_act": obj.num_satcom_act,
                 "num_uw_action": obj.num_uw_action,
                 "radar_cross_table": obj.radar_cross_table,
+                "atr_cross_table": obj.atr_cross_table,
                 "en_satellite": obj.en_satellite,
                 "en_satellite_func2": obj.en_satellite_func2,
                 "en_uw_action": obj.en_uw_action,
@@ -460,6 +471,7 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             num_satcom_act=obj["num_satcom_act"],
             num_uw_action=obj["num_uw_action"],
             radar_cross_table=obj['radar_cross_table'],
+            atr_cross_table=obj['atr_cross_table'],
             en_satellite=obj['en_satellite'],
             en_satellite_func2=obj['en_satellite_func2'],
             en_uw_action=obj['en_uw_action'],

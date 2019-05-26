@@ -86,7 +86,8 @@ class TestUwShipInfo(unittest.TestCase):
         print("Report:")
         print("\tnum of row: %s " % len(uw_ship_report))
         for uw_ship_report_data in uw_ship_report:
-            print("\t%s" % uw_ship_report_data)
+            if isinstance(uw_ship_report, cCommonGame.UwDetectInfo):
+                print("\tDist: %s   Ship: %s" % (uw_ship_report_data.dist, uw_ship_report_data.ship_info))
 
         # convert the ship report
         processed_report = uw_compute(uw_ship_report, False)

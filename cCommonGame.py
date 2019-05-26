@@ -9,7 +9,7 @@ class MapData(IntEnum):
     ISLAND = 1
     CLOUD_FRIENDLY = 2          # Cloud in friendly area
     CLOUD_HOSTILE = 4           # Cloud in hostile area
-    BLACK = 64
+    BLACK = 64                  # Disable Color
     FOG_OF_WAR = 128
 
 
@@ -78,7 +78,8 @@ class ShipInfo:
                  heading=0,
                  size=0,
                  is_sunken=False,
-                 ship_type=ShipType.MIL):
+                 ship_type=ShipType.MIL,
+                 player_id=-1):
         self.ship_id = ship_id
         self.ship_type = ship_type
         # Position of of the ship head
@@ -86,6 +87,7 @@ class ShipInfo:
         self.heading = heading
         self.size = size
         self.is_sunken = is_sunken
+        self.player_id = player_id
         # list of position occupied by the vehicle
         # first position is the bow of the ship
         self.area = self.get_placement()
@@ -189,6 +191,12 @@ class UwShipInfo:
 
     def get_placement(self):
         return [[self.position.x, self.position.y]]
+
+
+class UwDetectInfo:
+    def __init__(self, ship_info, dist):
+        self.ship_info = ship_info
+        self.dist = dist
 
 
 class ShipMovementInfo:

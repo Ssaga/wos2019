@@ -1,6 +1,8 @@
 import zmq
+import json
 
 from cCommonCommEngine import ConnInfo
+from wosBattleshipServer.cTtsCommEngineMsg import MsgJsonEncoder
 
 
 #
@@ -66,6 +68,10 @@ class TtsServerCommEngine:
         print("\t[TTS] Receive operation is not supported")
 
     def send(self, msg):
+
+        if msg is not None:
+            msg = json.dumps(msg, cls=MsgJsonEncoder)
+
         if isinstance(msg, str):
             if self.socket is not None:
                 try:

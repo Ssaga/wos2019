@@ -1,6 +1,8 @@
 import zmq
+import json
 
 from cCommonCommEngine import ConnInfo
+from wosBattleshipServer.cTtsCommEngineMsg import MsgJsonDecoder
 
 
 #
@@ -71,4 +73,6 @@ class TtsClientCommEngine:
         socks = dict(self.poller.poll(polling_rate))
         if (self.socket in socks) and (socks[self.socket] == zmq.POLLIN):
             msg = self.socket.recv_string()
+            if msg is not None:
+                msg = json.loads(msg, cls=MsgJsonDecoder)
         return msg

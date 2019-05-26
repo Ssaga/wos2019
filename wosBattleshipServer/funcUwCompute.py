@@ -8,10 +8,11 @@ from cCommonGame import ShipType
 from cCommonGame import ShipInfo
 from cCommonGame import Position
 from cCommonGame import UwCollectedData
+from cCommonGame import UwDetectInfo
 from wosBattleshipServer.uw_scan.cUwParams import UwParams
 
 
-def uw_compute(uw_data, env_noise=True, verbose=False):
+def uw_compute(uw_data, env_noise_flag=True, verbose=False):
     """
     Generate the display data based on the provided ships' information
     :param uw_data: list of UwCollectedData containing the ships' information
@@ -43,41 +44,43 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
     for i in range(len(uw_data)):
 
         # Generate background noise
-        if env_noise:
-            noise = np.random.randn(uw_params.vector_len)
+        if env_noise_flag:
+            env_noise = np.random.randn(uw_params.vector_len)
         else:
-            noise = np.zeros(uw_params.vector_len)
+            env_noise = np.zeros(uw_params.vector_len)
+
+        ship_noise_dict = dict()
 
         # Check N
-        sect_noise = generate_result(uw_data[i].N, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].N, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check NE
-        sect_noise = generate_result(uw_data[i].NE, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].NE, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check E
-        sect_noise = generate_result(uw_data[i].E, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].E, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check SE
-        sect_noise = generate_result(uw_data[i].SE, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].SE, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check S
-        sect_noise = generate_result(uw_data[i].S, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].S, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check SW
-        sect_noise = generate_result(uw_data[i].SW, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].SW, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check W
-        sect_noise = generate_result(uw_data[i].W, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].W, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
         # Check NW
-        sect_noise = generate_result(uw_data[i].NW, noise, uw_params)
+        sect_noise = generate_result(uw_data[i].NW, ship_noise_dict, env_noise, uw_params)
         tmp_buf.append(sect_noise.tolist())
 
     for i in range(8):
@@ -171,24 +174,32 @@ def uw_compute(uw_data, env_noise=True, verbose=False):
 #     return outp
 
 
-def generate_result(ship_info_list, noise, uw_params):
+def generate_result(ship_info_list, ship_noise_dict, env_noise, uw_params):
     """
     Generate the requested data based on the provided data
     :param ship_info_list:
-    :param environmental noise: data representing in numpy.ndarray
+    :param ship_noise_dict: dictionary containing the generated ship noise in numpy.ndarray
+    :param env_noise: data representing environmental noise in numpy.ndarray
     :param uw_params: parameters for the uw operation
     :return: requested data as numpy.ndarray
     """
-    sect_noise = copy.deepcopy(noise)
+    sect_noise = copy.deepcopy(env_noise)
     if isinstance(ship_info_list, collections.Iterable):
         for j in range(len(ship_info_list)):
-            if isinstance(ship_info_list[j], ShipInfo):
+            # if isinstance(ship_info_list[j], ShipInfo):
+            if isinstance(ship_info_list[j], UwDetectInfo):
                 # Check type and size
-                ship_type = ship_info_list[j].ship_type
-                ship_size = ship_info_list[j].size
+                ship_type = ship_info_list[j].ship_info.ship_type
+                ship_size = ship_info_list[j].ship_info.size
 
-                # Generate ship noise
-                ship_noise = generate_shipnoise(ship_type, ship_size, uw_params)
+                # Generate ship noise if necessary
+                ship_noise_ref = ship_noise_dict.get(ship_info_list[j].ship_info.ship_id)
+                if ship_noise_ref is None:
+                    ship_noise_ref = generate_shipnoise(ship_type, ship_size, uw_params)
+                    ship_noise_dict[ship_info_list[j].ship_info.ship_id] = ship_noise_ref
+
+                ship_noise = ship_noise_ref
+                ship_noise = ship_noise / (ship_info_list[j].dist ** 2)
 
                 # Add ship noise to background noise
                 sect_noise += ship_noise
