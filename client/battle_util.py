@@ -14,3 +14,7 @@ class WosBattleUtil:
         ship_item.set_is_draggable(False)
         scene.addItem(ship_item)
         return ship_item
+
+    @staticmethod
+    def is_in_boundary(self, grid_x, grid_y, min_x, max_x, min_y, max_y):
+        return min_x <= grid_x <= max_x and min_y <= grid_y <= max_y

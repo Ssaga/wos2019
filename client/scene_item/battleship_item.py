@@ -32,12 +32,14 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.brushes[ShipInfo.Type.HOSTILE] = QBrush(QColor(200, 0, 0, 255))
         self.brushes[ShipInfo.Type.CIVILIAN] = QBrush(QColor(200, 200, 200, 255))
         self.brushes[ShipInfo.Type.UNKNOWN] = QBrush(QColor(200, 200, 0, 255))
+        self.brushes[ShipInfo.Type.BLACK] = QBrush(QColor(255, 255, 255, 255))
         self.brushes[ShipInfo.Type.SHADOW] = QBrush(QColor(0, 0, 0, 0))
         self.pens = dict()
         self.pens[ShipInfo.Type.FRIENDLY] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.HOSTILE] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.CIVILIAN] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.UNKNOWN] = QPen(QColor(0, 0, 0, 255))
+        self.pens[ShipInfo.Type.BLACK] = QPen(QColor(0, 0, 0, 255))
         self.pens[ShipInfo.Type.SHADOW] = QPen(QColor(0, 255, 0, 255), 2, Qt.DashLine)
         self.pen = QPen(QColor(0, 0, 0, 255))
 
@@ -157,7 +159,7 @@ class WosBattleShipItem(WosBattlefieldItem):
                 tool_tip = "Civilian ship"
             elif self.ship_info.type is ShipInfo.Type.HOSTILE:
                 tool_tip = "Hostile ship"
-            elif self.ship_info.type is ShipInfo.Type.UNKNOWN:
+            elif self.ship_info.type is ShipInfo.Type.UNKNOWN or self.ship_info.type is ShipInfo.Type.BLACK:
                 tool_tip = "Unidentified ship"
         if self.ship_info.is_sunken:
             tool_tip += ' - Destroyed'

@@ -13,7 +13,8 @@ class ShipInfo(cCommonGame.ShipInfo, QObject):
         HOSTILE = 1
         CIVILIAN = 2
         UNKNOWN = 3
-        SHADOW = 4
+        BLACK = 4
+        SHADOW = 5
 
     def __init__(self, ship_id=0, position=cCommonGame.Position(0, 0), heading=0, size=0, is_sunken=False, parent=None):
         cCommonGame.ShipInfo.__init__(self, ship_id, position, heading, size, is_sunken)

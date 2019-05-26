@@ -121,10 +121,17 @@ class WosSatelliteEo2Manager(QObject):
             turn_info = WosClientInterfaceManager().get_turn_info()
             # Handle case where update_turn was wrongly called
             if turn_info and turn_info.ack:
+                boundary = self.wos_interface.cfg.boundary[str(self.wos_interface.player_info.player_id)]
                 for i in range(0, len(turn_info.other_ship_list)):
                     if not turn_info.other_ship_list[i].is_sunken:
-                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
-                                                           turn_info.other_ship_list[i], ShipInfo.Type.UNKNOWN)
+                        if not turn_info.other_ship_list[i].is_sunken:
+                            ship_type = ShipInfo.Type.BLACK
+                            ship_info = turn_info.other_ship_list[i]
+                            if self.is_in_boundary(ship_info.position.x, ship_info.position.y, boundary.min_x,
+                                                   boundary.max_x, boundary.min_y, boundary.max_y):
+                                ship_type = ShipInfo.Type.UNKNOWN
+                            WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                               ship_info, ship_type)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")
