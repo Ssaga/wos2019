@@ -124,14 +124,22 @@ class WosSatelliteEo2Manager(QObject):
                 boundary = self.wos_interface.cfg.boundary[str(self.wos_interface.player_info.player_id)]
                 for i in range(0, len(turn_info.other_ship_list)):
                     if not turn_info.other_ship_list[i].is_sunken:
-                        if not turn_info.other_ship_list[i].is_sunken:
-                            ship_type = ShipInfo.Type.BLACK
-                            ship_info = turn_info.other_ship_list[i]
-                            if self.is_in_boundary(ship_info.position.x, ship_info.position.y, boundary.min_x,
-                                                   boundary.max_x, boundary.min_y, boundary.max_y):
-                                ship_type = ShipInfo.Type.UNKNOWN
-                            WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
-                                                               ship_info, ship_type)
+                        ship_type = ShipInfo.Type.BLACK
+                        ship_info = turn_info.other_ship_list[i]
+                        if WosBattleUtil.is_in_boundary(ship_info.position.x, ship_info.position.y, boundary.min_x,
+                                                        boundary.max_x, boundary.min_y, boundary.max_y):
+                            ship_type = ShipInfo.Type.UNKNOWN
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           ship_info, ship_type)
+                for i in range(0, len(turn_info.enemy_ship_list)):
+                    if not turn_info.enemy_ship_list[i].is_sunken:
+                        ship_type = ShipInfo.Type.BLACK
+                        ship_info = turn_info.enemy_ship_list[i]
+                        if WosBattleUtil.is_in_boundary(ship_info.position.x, ship_info.position.y, boundary.min_x,
+                                                        boundary.max_x, boundary.min_y, boundary.max_y):
+                            ship_type = ShipInfo.Type.UNKNOWN
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           ship_info, ship_type)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")

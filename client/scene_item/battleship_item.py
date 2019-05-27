@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QBrush, QColor, QPen, QPolygonF
 from PyQt5.QtWidgets import QToolTip
+from client.item_depth_manager import WosItemDepthManager
 from client.scene_item.battlefield_item import WosBattlefieldItem
 from client.ship_info import ShipInfo
 from client.wos import ItemType
@@ -19,6 +20,7 @@ class WosBattleShipItem(WosBattlefieldItem):
         self.ship_info.moved.connect(self.ship_moved)
 
         self.set_type(ItemType.SHIP)
+        WosItemDepthManager().set_depth(self)
 
         self.start_pos = QPointF()
         self.end_pos = QPointF()

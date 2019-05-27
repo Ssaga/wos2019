@@ -129,6 +129,12 @@ class WosSatelliteEoManager(QObject):
                         ship_info = turn_info.other_ship_list[i]
                         WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
                                                            ship_info, ship_type)
+                for i in range(0, len(turn_info.enemy_ship_list)):
+                    if not turn_info.enemy_ship_list[i].is_sunken:
+                        ship_type = ShipInfo.Type.HOSTILE
+                        ship_info = turn_info.enemy_ship_list[i]
+                        WosBattleUtil.insert_ship_to_scene(self.wos_interface.battlefield.battle_scene,
+                                                           ship_info, ship_type)
                 self.wos_interface.battlefield.update_map(turn_info.map_data)
         else:
             self.wos_interface.log("<font color='brown'>Failed! Only 1 satellite action per turn.</font>")
