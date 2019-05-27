@@ -437,18 +437,244 @@ def test_scenerio_3():
     # todo: ...
 
 
+def test_scenerio_4():
+    ###
+    """
+    Scenario:
+    ----------
+        Ship position:
+        --------------
+        (5,5) size:3, heading=90
+        (3,3) size:3, heading=0
+
+        Movement:
+        ---------
+        1) Start at position (0, 0) :               : Turn 0
+        2) Move to  position (4, 4) : Take 6 turn   : Turn 0
+        3) Scan for 1 turn          : Take 1 turn   : Turn 6
+        4) Do nothing for 3 turns   : Take 3 turn   : Turn 7
+        5) End                      :               : Turn 7
+    """
+
+    # set the position of the ship
+    uw_ship = wosBattleshipServer.cCommon.UwShipInfo(ship_id=0,
+                                                     position=cCommonGame.Position(2, 1),
+                                                     size=1,
+                                                     is_sunken=False,
+                                                     ship_type=cCommonGame.ShipType.MIL,
+                                                     mov_speed=1,
+                                                     scan_size=3)
+
+    print("Is ship idle: %s" % uw_ship.is_idle())
+
+    # set the order for the ship
+    orders = list()
+    # orders.append(cCommonGame.UwActionMoveScan(cCommonGame.Position(4, 4), 1))
+    orders.append(cCommonGame.UwActionMoveScan(None, 5))
+    #orders.append(cCommonGame.UwActionMoveScan())
+
+    # plant the ship for testing
+    ships_list = list()
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=1,
+    #                                        position=cCommonGame.Position(2, 0),
+    #                                        heading=270,
+    #                                        size=5,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=2,
+    #                                        position=cCommonGame.Position(2, 3),
+    #                                        heading=270,
+    #                                        size=5,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=3,
+    #                                        position=cCommonGame.Position(0, 1),
+    #                                        heading=0,
+    #                                        size=2,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    ships_list.append(cCommonGame.ShipInfo(ship_id=4,
+                                           position=cCommonGame.Position(5, 1),
+                                           heading=0,
+                                           size=4,
+                                           ship_type=cCommonGame.ShipType.MIL,
+                                           is_sunken=False))
+
+    if len(orders) > 0:
+        print("Set orders")
+        uw_ship.set_ops_order(orders)
+
+    print("Is ship idle: %s" % uw_ship.is_idle())
+
+    # execute the order
+    print("Executing")
+
+    for counter in range(20):
+        uw_ship.execute(ships_list)
+        print("--- %s ---" % counter)
+        print("pos: x=%s, y=%s" % (uw_ship.position.x,
+                                   uw_ship.position.y))
+        print("\tscan=%s" % ((uw_ship.remain_scan_ops > 0) and
+                             (uw_ship.remain_move_ops == 0)))
+        print("\tremaining: move=%s, scan=%s, order=%s" %
+              (uw_ship.remain_move_ops,
+               uw_ship.remain_scan_ops,
+               len(uw_ship.orders)))
+        print("\treport size=%s" % len(uw_ship.report))
+        print("\tIs ship idle: %s" % uw_ship.is_idle())
+        # uw_ship.execute()
+    print("ship pos: x=%s, y=%s" % (uw_ship.position.x, uw_ship.position.y))
+
+    print("*** Get the report ***")
+    uw_ship_report = uw_ship.get_report()
+
+    # print the report
+    print("Report:")
+    print("\tnum of row: %s " % len(uw_ship_report))
+    for uw_ship_report_data in uw_ship_report:
+        if isinstance(uw_ship_report, cCommonGame.UwDetectInfo):
+            print("\tDist: %s   Ship: %s" % (uw_ship_report_data.dist, uw_ship_report_data.ship_info))
+    # assert (len(uw_ship_report) is 7)
+
+    # convert the ship report
+    processed_report = uw_compute(uw_ship_report, False)
+
+    # display the processed report
+    plot_generated_uw_data(processed_report, "test_scenerio_2_1", True)
+    plot_generated_uw_data_as_img(processed_report, "test_scenerio_2_2", True)
+
+    # check if the required ship is in the report
+    # todo: ...
+
+
+def test_scenerio_5():
+    ###
+    """
+    Scenario:
+    ----------
+        Ship position:
+        --------------
+        (5,5) size:3, heading=90
+        (3,3) size:3, heading=0
+
+        Movement:
+        ---------
+        1) Start at position (0, 0) :               : Turn 0
+        2) Move to  position (60, 0): Take 6 turn   : Turn 0
+        3) Scan for 1 turn          : Take 1 turn   : Turn 6
+        4) Do nothing for 3 turns   : Take 3 turn   : Turn 7
+        5) End                      :               : Turn 7
+    """
+
+    # set the position of the ship
+    uw_ship = wosBattleshipServer.cCommon.UwShipInfo(ship_id=0,
+                                                     position=cCommonGame.Position(0, 0),
+                                                     size=1,
+                                                     is_sunken=False,
+                                                     ship_type=cCommonGame.ShipType.MIL,
+                                                     mov_speed=5,
+                                                     scan_size=3)
+
+    print("Is ship idle: %s" % uw_ship.is_idle())
+
+    # set the order for the ship
+    orders = list()
+    orders.append(cCommonGame.UwActionMoveScan(cCommonGame.Position(60, 0), 0))
+    # orders.append(cCommonGame.UwActionMoveScan(None, 5))
+    #orders.append(cCommonGame.UwActionMoveScan())
+
+    # plant the ship for testing
+    ships_list = list()
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=1,
+    #                                        position=cCommonGame.Position(2, 0),
+    #                                        heading=270,
+    #                                        size=5,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=2,
+    #                                        position=cCommonGame.Position(2, 3),
+    #                                        heading=270,
+    #                                        size=5,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=3,
+    #                                        position=cCommonGame.Position(0, 1),
+    #                                        heading=0,
+    #                                        size=2,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+    # ships_list.append(cCommonGame.ShipInfo(ship_id=4,
+    #                                        position=cCommonGame.Position(5, 1),
+    #                                        heading=0,
+    #                                        size=4,
+    #                                        ship_type=cCommonGame.ShipType.MIL,
+    #                                        is_sunken=False))
+
+    if len(orders) > 0:
+        print("Set orders")
+        uw_ship.set_ops_order(orders)
+
+    print("Is ship idle: %s" % uw_ship.is_idle())
+
+    # execute the order
+    print("Executing")
+
+    for counter in range(65):
+        uw_ship.execute(ships_list)
+        print("--- %s ---" % counter)
+        print("pos: x=%s, y=%s" % (uw_ship.position.x,
+                                   uw_ship.position.y))
+        # print("\tscan=%s" % ((uw_ship.remain_scan_ops > 0) and
+        #                      (uw_ship.remain_move_ops == 0)))
+        print("\tremaining: move=%s, scan=%s, order=%s" %
+              (uw_ship.remain_move_ops,
+               uw_ship.remain_scan_ops,
+               len(uw_ship.orders)))
+        print("\treport size=%s" % len(uw_ship.report))
+        print("\tIs ship idle: %s" % uw_ship.is_idle())
+        # uw_ship.execute()
+    print("ship pos: x=%s, y=%s" % (uw_ship.position.x, uw_ship.position.y))
+
+    print("*** Get the report ***")
+    uw_ship_report = uw_ship.get_report()
+
+    # print the report
+    print("Report:")
+    print("\tnum of row: %s " % len(uw_ship_report))
+    for uw_ship_report_data in uw_ship_report:
+        if isinstance(uw_ship_report, cCommonGame.UwDetectInfo):
+            print("\tDist: %s   Ship: %s" % (uw_ship_report_data.dist, uw_ship_report_data.ship_info))
+    # assert (len(uw_ship_report) is 7)
+
+    # convert the ship report
+    processed_report = uw_compute(uw_ship_report, False)
+
+    # display the processed report
+    plot_generated_uw_data(processed_report, "test_scenerio_2_1", True)
+    plot_generated_uw_data_as_img(processed_report, "test_scenerio_2_2", True)
+
+    # check if the required ship is in the report
+    # todo: ...
+
+
 if __name__ == '__main__':
     print("*** %s (%s)" % (__file__, time.ctime(time.time())))
     print("Test UwShipInfo")
 
     #
-    test_scenerio_1()
+    # test_scenerio_1()
 
     #
-    test_scenerio_2()
+    # test_scenerio_2()
 
     #
-    test_scenerio_3()
+    # test_scenerio_3()
+
+    #
+    # test_scenerio_4()
+
+    #
+    test_scenerio_5()
 
     #
     plt.show()

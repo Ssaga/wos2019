@@ -39,6 +39,8 @@ class ServerGameConfig:
                  num_fire_act=1,
                  num_satcom_act=1,
                  num_uw_action=1,
+                 num_uw_speed=1,
+                 num_uw_scan_range=3,
                  radar_cross_table=[1.0, 1.0, 1.0, 1.0],
                  atr_cross_table=[[0.0, 1.0, 1.0, 1.0],
                                   [1.0, 0.0, 1.0, 1.0],
@@ -68,6 +70,8 @@ class ServerGameConfig:
         self.num_fire_act = int(num_fire_act)
         self.num_satcom_act = int(num_satcom_act)
         self.num_uw_action = int(num_uw_action)
+        self.num_uw_speed = int(num_uw_speed)
+        self.num_uw_scan_range = int(num_uw_scan_range)
         self.radar_cross_table = []
         self.radar_cross_table.extend(radar_cross_table)
         self.atr_cross_table = []
@@ -170,7 +174,7 @@ class UwShipInfo(CommonUwShipInfo):
                                   ship_type=ship_type)
         self.mov_speed = mov_speed
         self.scan_size = scan_size
-        self.src_pos = position
+        self.src_pos = copy.deepcopy(position)
         self.dst_pos = None
         self.remain_move_ops = 0
         self.remain_scan_ops = 0
@@ -209,7 +213,7 @@ class UwShipInfo(CommonUwShipInfo):
         """
         if isinstance(pos, Position):
             self.dst_pos = pos
-            self.src_pos = self.position
+            self.src_pos = copy.deepcopy(self.position)
 
             move_cnt = math.sqrt(((self.dst_pos.x - self.src_pos.x) ** 2) +
                                  ((self.dst_pos.y - self.src_pos.y) ** 2))
@@ -255,9 +259,9 @@ class UwShipInfo(CommonUwShipInfo):
 
             if is_warm_up_dirty is False:
                 self.report.append(data)
-                print("-----------------------------------------------")
-                for report_data in self.report:
-                    print(report_data)
+                # print("-----------------------------------------------")
+                # for report_data in self.report:
+                #     print(report_data)
             elif not self.is_idle():
                 print("-----------------------------------------------")
                 print("System warming up : %s" % self.warm_up_cnt)
@@ -284,6 +288,13 @@ class UwShipInfo(CommonUwShipInfo):
             self.set_position(
                 x=self.src_pos.x + math.floor((self.dst_pos.x - self.src_pos.x) / self.total_move_ops * curr_move_cnt),
                 y=self.src_pos.y + math.floor((self.dst_pos.y - self.src_pos.y) / self.total_move_ops * curr_move_cnt))
+
+            print("total: %s,   remain: %s,   current: %s" % (self.total_move_ops, self.remain_move_ops, curr_move_cnt))
+            print("src: %s, %s  dst: %s, %s" % (self.src_pos.x, self.src_pos.y, self.dst_pos.x, self.dst_pos.y))
+            print("x-step: %s,   y-step: %s" % ((math.floor((self.dst_pos.x - self.src_pos.x) / self.total_move_ops * curr_move_cnt)),
+                                                (math.floor((self.dst_pos.y - self.src_pos.y) / self.total_move_ops * curr_move_cnt))))
+            print("x: %s,   y: %s" % ((self.src_pos.x + math.floor((self.dst_pos.x - self.src_pos.x) / self.total_move_ops * curr_move_cnt)),
+                                      (self.src_pos.y + math.floor((self.dst_pos.y - self.src_pos.y) / self.total_move_ops * curr_move_cnt))))
         else:
             self.set_position(x=self.dst_pos.x,
                               y=self.dst_pos.y)
@@ -400,6 +411,8 @@ class SvrCfgJsonEncoder(json.JSONEncoder):
                 "num_fire_act": obj.num_fire_act,
                 "num_satcom_act": obj.num_satcom_act,
                 "num_uw_action": obj.num_uw_action,
+                "num_uw_speed": obj.num_uw_speed,
+                "num_uw_scan_range": obj.num_uw_scan_range,
                 "radar_cross_table": obj.radar_cross_table,
                 "atr_cross_table": obj.atr_cross_table,
                 "en_satellite": obj.en_satellite,
@@ -470,6 +483,8 @@ class SvrCfgJsonDecoder(json.JSONDecoder):
             num_fire_act=obj["num_fire_act"],
             num_satcom_act=obj["num_satcom_act"],
             num_uw_action=obj["num_uw_action"],
+            num_uw_speed=obj["num_uw_speed"],
+            num_uw_scan_range=obj["num_uw_scan_range"],
             radar_cross_table=obj['radar_cross_table'],
             atr_cross_table=obj['atr_cross_table'],
             en_satellite=obj['en_satellite'],
@@ -526,7 +541,7 @@ def get_heading(pos_1, pos_2):
     """
     heading = 0
     if isinstance(pos_1, collections.Iterable) and isinstance(pos_2, collections.Iterable):
-        vec_a = [0, 1]
+        vec_a = [0, -1]
         vec_b = [(pos_2[0] - pos_1[0]), (pos_2[1] - pos_1[1])]
         mag_a = math.sqrt((vec_a[0] * vec_a[0]) + (vec_a[1] * vec_a[1]))
         mag_b = math.sqrt((vec_b[0] * vec_b[0]) + (vec_b[1] * vec_b[1]))

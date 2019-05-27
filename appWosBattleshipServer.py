@@ -751,18 +751,9 @@ class WosBattleshipServer(threading.Thread):
                                                           position=uw_ship_dat.position,
                                                           size=uw_ship_dat.size,
                                                           is_sunken=uw_ship_dat.is_sunken,
-                                                          mov_speed=1,
-                                                          scan_size=3,
+                                                          mov_speed=self.game_setting.num_uw_speed,
+                                                          scan_size=self.game_setting.num_uw_scan_range,
                                                           warm_up_dur=self.game_setting.uw_warm_up_dur)
-                                # uw_ship_info = UwShipInfo(ship_id=uw_ship_dat.ship_id,
-                                #                           ship_type=uw_ship_dat.ship_type,
-                                #                           position=uw_ship_dat.position,
-                                #                           size=uw_ship_dat.size,
-                                #                           is_sunken=uw_ship_dat.is_sunken,
-                                #                           mov_speed=1,
-                                #                           scan_size=3,
-                                #                           warm_up_dur=self.game_setting.uw_warm_up_dur,
-                                #                           player_id=msg_data.player_id)
                                 player_status.uw_ship_dict[uw_ship_info.ship_id] = uw_ship_info
                                 print("Registering : %s" % uw_ship_info)
                     else:
