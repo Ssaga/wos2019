@@ -23,7 +23,8 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         self.field_info = field_info
         self.name = name
 
-        self.body = QRectF(5, 2, self.field_info.size.x() - 10, self.field_info.size.y() - 4)
+        self.body = QRectF(1, 1, self.field_info.size.x() - 2, self.field_info.size.y() - 2)
+        self.body_line = QRectF(6, 6, self.field_info.size.x() - 12, self.field_info.size.y() - 12)
         self.setRotation(30)
 
         self.brushes = dict()
@@ -78,6 +79,10 @@ class WosUnderwaterShipItem(WosBattlefieldItem):
         painter.setBrush(self.brush)
         painter.setPen(self.pens[self.ship_info.type])
         painter.drawEllipse(self.body)
+        painter.drawEllipse(self.body_line)
+        # Sample code to covert icon to ship
+        # icon = qtawesome.icon('fa.ship')
+        # painter.drawImage(QRectF(self.boundingRect()), icon.pixmap(self.boundingRect().toRect().size()).toImage())
 
     def point_is_within(self, x, y):
         x1 = self.drag_boundary.min_x
